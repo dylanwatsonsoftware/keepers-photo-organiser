@@ -61,4 +61,25 @@ public class AsyncThumbnailLoaderTest {
         assertEquals(2400, ((android.graphics.drawable.BitmapDrawable)
                 target.getDrawable()).getBitmap().getWidth());
     }
+
+    @Test public void progressiveLoadUsesOriginalSourceForFullStage() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImageView target = new ImageView(context);
+        List<String> requests = new ArrayList<>();
+        AsyncThumbnailLoader loader = new AsyncThumbnailLoader(Runnable::run, Runnable::run,
+                (uri, size) -> {
+                    requests.add("thumbnail:" + size);
+                    return Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888);
+                }, (uri, size) -> {
+                    requests.add("original:" + size);
+                    return Bitmap.createBitmap(20, 20, Bitmap.Config.ARGB_8888);
+                });
+
+        loader.loadProgressive(target, Uri.parse("content://media/photo/1"), 480, 2400,
+                bitmap -> {});
+
+        assertEquals(List.of("thumbnail:480", "original:2400"), requests);
+        assertEquals(20, ((android.graphics.drawable.BitmapDrawable)
+                target.getDrawable()).getBitmap().getWidth());
+    }
 }
