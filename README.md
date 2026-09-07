@@ -4,6 +4,9 @@ Keepers is an Android proof of concept for one critical question: can an app hel
 
 This build deliberately contains no AI ranking yet. The Google Photos handoff must pass on a real Pixel before the larger product is worth building.
 
+> [!IMPORTANT]
+> **Feasibility result: failed.** Testing on a Pixel 7 found no supported Android or Google Photos integration that can favourite existing cloud items or add them to existing albums without manual work or duplicate-upload risk. Do not proceed with the proposed AI curator on the assumption that an official handoff exists.
+
 > [!WARNING]
 > The **Batch album experiment** uses Android's multi-file sharing mechanism. Google Photos may interpret it as an upload. Use expendable test photos and check for duplicate cloud items afterwards.
 
@@ -25,7 +28,15 @@ Tested on a Pixel 7 running Android 17:
 - `MediaStore.createFavoriteRequest` rejected document-provider URIs, as Android requires item-specific MediaStore URIs.
 - Android Photo Picker URIs were also read-only: Google Photos showed a black viewer and the Favourite request failed.
 - Multi-file sharing opened Google Photos' upload screen, so it is not a safe existing-album handoff.
-- The current build tests the final official route: direct access to native local camera MediaStore items. Its Google Photos behaviour still needs to be tested.
+- Direct access to native local camera MediaStore items also failed: Google Photos did not provide a useful existing-item handoff, and Android's Favourite state did not produce the required Google Photos result.
+
+## Decision
+
+The official integration gate is closed as a **no-go**. Remaining options require changing the product constraint:
+
+- Automate the Google Photos UI with an Android Accessibility service, accepting powerful permissions and ongoing fragility.
+- Keep favourites and child collections inside Keepers instead of Google Photos.
+- Use a photo library with an API that supports modifying existing albums and favourites.
 
 ## Pass criteria
 
