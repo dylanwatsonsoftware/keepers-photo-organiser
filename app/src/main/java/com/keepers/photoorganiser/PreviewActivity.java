@@ -42,6 +42,7 @@ public final class PreviewActivity extends Activity {
         adjacentImage = findViewById(R.id.preview_adjacent_image);
         previewStage = findViewById(R.id.preview_stage);
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
+        findViewById(R.id.preview_close).setOnClickListener(view -> finish());
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             store.toggle(photo);

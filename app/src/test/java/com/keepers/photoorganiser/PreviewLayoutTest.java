@@ -8,6 +8,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -51,5 +52,15 @@ public class PreviewLayoutTest {
         View adjacent = layout.findViewById(R.id.preview_adjacent_image);
 
         assertEquals(true, current.getElevation() > adjacent.getElevation());
+    }
+
+    @Test public void photoViewHasACompactCloseAction() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        View close = layout.findViewById(R.id.preview_close);
+
+        assertEquals(true, close instanceof ImageButton);
+        assertEquals("Close photo", close.getContentDescription());
     }
 }

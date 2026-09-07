@@ -241,6 +241,7 @@ public final class ReviewActivity extends Activity {
         ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
                 ? "No keepers selected yet" : count + (count == 1 ? " keeper" : " keepers"));
         findViewById(R.id.clear_keepers).setEnabled(count > 0);
+        findViewById(R.id.clear_keepers).setAlpha(count > 0 ? 1f : 0.35f);
     }
 
     void showSuggestions(Set<String> recommended) {

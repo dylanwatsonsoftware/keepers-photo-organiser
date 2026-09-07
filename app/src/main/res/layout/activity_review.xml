@@ -2,59 +2,89 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="#FAF9F7"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Recent photos"
+            android:text="Keepers"
             android:textColor="#202124"
-            android:textSize="24sp"
+            android:textSize="28sp"
             android:textStyle="bold" />
 
-        <Button
+        <ImageButton
             android:id="@+id/open_settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Settings" />
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/gallery_icon_button"
+            android:contentDescription="Settings"
+            android:padding="11dp"
+            android:src="@drawable/ic_settings"
+            android:tint="#5F6368" />
 
-        <Button
+        <ImageButton
             android:id="@+id/clear_keepers"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Clear" />
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/gallery_icon_button"
+            android:contentDescription="Clear keepers"
+            android:padding="11dp"
+            android:src="@drawable/ic_clear"
+            android:tint="#5F6368" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/keeper_count"
+    <LinearLayout
+        android:id="@+id/photo_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="12dp"
-        android:text="No keepers selected yet"
-        android:textColor="#5F6368"
-        android:textSize="15sp" />
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp">
 
-    <TextView
-        android:id="@+id/suggestion_count"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="10dp"
-        android:text="Finding similar shots…"
-        android:textColor="#B06000"
-        android:textSize="14sp" />
+        <TextView
+            android:id="@+id/keeper_count"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:background="@drawable/keeper_summary_chip"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingHorizontal="12dp"
+            android:text="No keepers selected yet"
+            android:textColor="#174EA6"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/suggestion_count"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/suggestion_summary_chip"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingHorizontal="12dp"
+            android:text="Finding best shots…"
+            android:textColor="#8A4B00"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/review_empty"
@@ -70,7 +100,9 @@
         android:id="@+id/review_scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="#FFFFFF"
+        android:clipToPadding="false">
 
         <GridLayout
             android:id="@+id/photo_grid"
@@ -86,5 +118,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_margin="12dp"
+        android:indeterminateTint="#B06000"
         android:visibility="gone" />
 </LinearLayout>

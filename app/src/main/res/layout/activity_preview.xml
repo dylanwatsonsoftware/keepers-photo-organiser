@@ -25,6 +25,19 @@
             android:scaleType="fitCenter" />
     </FrameLayout>
 
+    <ImageButton
+        android:id="@+id/preview_close"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:background="@drawable/photo_icon_button"
+        android:contentDescription="Close photo"
+        android:elevation="3dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_close"
+        android:tint="#FFFFFF" />
+
     <LinearLayout
         android:id="@+id/preview_controls"
         android:layout_width="match_parent"
@@ -34,10 +47,10 @@
         android:elevation="2dp"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingTop="56dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="18dp">
+        android:paddingStart="18dp"
+        android:paddingTop="64dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:id="@+id/preview_recommendation"
@@ -60,15 +73,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:gravity="center"
-            android:text="Swipe to browse  •  Swipe down to close"
-            android:textColor="#CCFFFFFF"
-            android:textSize="13sp" />
+            android:text="Swipe to browse  ·  Pull down to close"
+            android:textColor="#BFFFFFFF"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/preview_keeper"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/preview_keeper_button"
             android:clickable="true"
             android:focusable="true"
