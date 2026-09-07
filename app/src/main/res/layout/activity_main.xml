@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Keepers"
+            android:textColor="#202124"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Google Photos integration test"
+            android:textColor="#5F6368"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/selection_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:background="#F1F3F4"
+            android:padding="16dp"
+            android:text="No photos selected"
+            android:textColor="#202124"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/choose_photos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Choose 3–5 backed-up photos" />
+
+        <Button
+            android:id="@+id/open_existing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:enabled="false"
+            android:text="1. Open first existing photo" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Confirm that Google Photos opens the original item and exposes its normal Favourite and Add to album controls."
+            android:textColor="#5F6368" />
+
+        <Button
+            android:id="@+id/request_favourite"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:enabled="false"
+            android:text="2. Request Android favourite" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Android will show a system confirmation. Afterwards, check whether Google Photos’ cloud Favourite state changed."
+            android:textColor="#5F6368" />
+
+        <Button
+            android:id="@+id/share_experiment"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:enabled="false"
+            android:text="3. Batch album experiment — DUPLICATE RISK" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="This invokes Google Photos’ share/import surface. Stop if it offers only Upload. If you continue, verify that no duplicate cloud items are created."
+            android:textColor="#B3261E" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Pass criteria\n\n• Existing backed-up item opens reliably\n• Favourite state syncs to photos.google.com\n• Several originals can be added to an existing album\n• No duplicate uploads are created\n• Results still exist after local copies are removed"
+            android:textColor="#202124"
+            android:textSize="15sp" />
+    </LinearLayout>
+</ScrollView>
