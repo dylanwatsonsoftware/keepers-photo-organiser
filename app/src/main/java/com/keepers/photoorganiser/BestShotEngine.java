@@ -10,6 +10,7 @@ import java.util.Set;
 public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
     static final int MAX_HASH_DISTANCE = 10;
+    static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
 
     private BestShotEngine() {}
 
@@ -43,8 +44,11 @@ public final class BestShotEngine {
         for (PhotoFeatures photo : ordered) {
             List<PhotoFeatures> latest = groups.isEmpty() ? null : groups.get(groups.size() - 1);
             PhotoFeatures previous = latest == null ? null : latest.get(latest.size() - 1);
-            if (previous == null || photo.takenAtMillis() - previous.takenAtMillis()
-                    > SCENE_WINDOW_MILLIS) {
+            boolean timeBreak = previous != null && photo.takenAtMillis()
+                    - previous.takenAtMillis() > SCENE_WINDOW_MILLIS;
+            boolean visualBreak = previous != null && Long.bitCount(previous.perceptualHash()
+                    ^ photo.perceptualHash()) > MAX_WITHIN_STACK_HASH_DISTANCE;
+            if (previous == null || timeBreak || visualBreak) {
                 latest = new ArrayList<>();
                 groups.add(latest);
             }

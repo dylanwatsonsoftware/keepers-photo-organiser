@@ -62,8 +62,20 @@ public class BestShotEngineTest {
     @Test public void stacksRapidSequenceDespiteCompositionAndExposureChanges() {
         assertEquals(Set.of("first", "second", "third"), BestShotEngine.stacks(List.of(
                 feature("first", 1_000, 0L, 0.4),
-                feature("second", 35_000, -1L, 0.9),
-                feature("third", 90_000, 0xAAAAAAAAAAAAAAAAL, 0.7))).keySet());
+                feature("second", 35_000, 0xFFFFL, 0.9),
+                feature("third", 90_000, 0xFFFFFL, 0.7))).keySet());
+    }
+
+    @Test public void splitsRapidSequenceAtLargeVisualSceneChange() {
+        assertEquals(Map.of(
+                "inside-a", new PhotoStackPosition(1, 2),
+                "inside-b", new PhotoStackPosition(2, 2),
+                "entrance-a", new PhotoStackPosition(1, 2),
+                "entrance-b", new PhotoStackPosition(2, 2)), BestShotEngine.stacks(List.of(
+                feature("inside-a", 1_000, 0L, 0.4),
+                feature("inside-b", 20_000, 0xFFFFL, 0.8),
+                feature("entrance-a", 30_000, -1L, 0.7),
+                feature("entrance-b", 40_000, -256L, 0.6))));
     }
 
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
