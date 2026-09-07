@@ -29,6 +29,7 @@ public final class ReviewActivity extends Activity {
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
+    private final List<FrameLayout> tiles = new ArrayList<>();
     private final List<PhotoFeatures> features = new ArrayList<>();
     private Set<String> suggestions = Set.of();
     private int analyzedCount;
@@ -120,11 +121,14 @@ public final class ReviewActivity extends Activity {
             suggestions = Set.of();
             analyzedCount = 0;
             grid.removeAllViews();
+            tiles.clear();
             previousCount = 0;
         }
         int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
         for (int index = previousCount; index < recentPhotos.size(); index++) {
-            grid.addView(createTile(recentPhotos.get(index), tileSize, generation));
+            FrameLayout tile = createTile(recentPhotos.get(index), tileSize, generation);
+            tiles.add(tile);
+            grid.addView(tile);
         }
         TextView empty = findViewById(R.id.review_empty);
         empty.setText("No recent local camera photos found.");
@@ -133,7 +137,7 @@ public final class ReviewActivity extends Activity {
         updateSelectionDisplay();
     }
 
-    private View createTile(RecentPhoto recentPhoto, int size, int generation) {
+    private FrameLayout createTile(RecentPhoto recentPhoto, int size, int generation) {
         Uri photo = recentPhoto.uri();
         FrameLayout tile = new FrameLayout(this);
         tile.setTag(photo);
@@ -233,9 +237,7 @@ public final class ReviewActivity extends Activity {
         for (Uri photo : photos) if (selected.contains(photo.toString())) {
             visibleSelected.add(photo.toString());
         }
-        GridLayout grid = findViewById(R.id.photo_grid);
-        for (int index = 0; index < grid.getChildCount(); index++) {
-            FrameLayout tile = (FrameLayout) grid.getChildAt(index);
+        for (FrameLayout tile : tiles) {
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
             boolean suggested = suggestions.contains(tile.getTag().toString());
             tile.setAlpha(1f);
@@ -269,9 +271,7 @@ public final class ReviewActivity extends Activity {
     }
 
     void showStacks(Map<String, PhotoStackPosition> stacks) {
-        GridLayout grid = findViewById(R.id.photo_grid);
-        for (int index = 0; index < grid.getChildCount(); index++) {
-            FrameLayout tile = (FrameLayout) grid.getChildAt(index);
+        for (FrameLayout tile : tiles) {
             TextView badge = (TextView) tile.getChildAt(3);
             PhotoStackPosition position = stacks.get(tile.getTag().toString());
             badge.setText(position == null ? "" : position.label());
@@ -287,15 +287,17 @@ public final class ReviewActivity extends Activity {
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
         GridLayout grid = findViewById(R.id.photo_grid);
+        grid.removeAllViews();
         int visible = 0;
-        for (int index = 0; index < grid.getChildCount(); index++) {
-            View tile = grid.getChildAt(index);
+        for (FrameLayout tile : tiles) {
             String id = tile.getTag().toString();
             boolean show = galleryFilter == GalleryFilter.ALL
                     || galleryFilter == GalleryFilter.KEEPERS && keepers.contains(id)
                     || galleryFilter == GalleryFilter.RECOMMENDED && suggestions.contains(id);
-            tile.setVisibility(show ? View.VISIBLE : View.GONE);
-            if (show) visible++;
+            if (show) {
+                grid.addView(tile);
+                visible++;
+            }
         }
         View keeperFilter = findViewById(R.id.filter_keepers);
         View recommendedFilter = findViewById(R.id.filter_recommended);

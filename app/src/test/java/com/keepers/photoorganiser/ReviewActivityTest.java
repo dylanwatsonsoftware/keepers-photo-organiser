@@ -115,20 +115,20 @@ public class ReviewActivityTest {
         activity.showSuggestions(Set.of("content://media/photo/2"));
 
         activity.findViewById(R.id.filter_keepers).performClick();
-        assertEquals(View.VISIBLE, grid.getChildAt(0).getVisibility());
-        assertEquals(View.GONE, grid.getChildAt(1).getVisibility());
-        assertEquals(View.GONE, grid.getChildAt(2).getVisibility());
+        assertEquals(1, grid.getChildCount());
+        assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
 
         activity.findViewById(R.id.filter_recommended).performClick();
-        assertEquals(View.GONE, grid.getChildAt(0).getVisibility());
-        assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
+        assertEquals(1, grid.getChildCount());
+        assertEquals("content://media/photo/2", grid.getChildAt(0).getTag().toString());
         assertTrue(activity.findViewById(R.id.filter_recommended).isSelected());
         assertTrue(!activity.findViewById(R.id.filter_keepers).isSelected());
 
         activity.findViewById(R.id.filter_recommended).performClick();
-        assertEquals(View.VISIBLE, grid.getChildAt(0).getVisibility());
-        assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
-        assertEquals(View.VISIBLE, grid.getChildAt(2).getVisibility());
+        assertEquals(3, grid.getChildCount());
+        assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
+        assertEquals("content://media/photo/2", grid.getChildAt(1).getTag().toString());
+        assertEquals("content://media/photo/3", grid.getChildAt(2).getTag().toString());
     }
 
     @Test public void tappingPhotoOpensLargePreview() {
