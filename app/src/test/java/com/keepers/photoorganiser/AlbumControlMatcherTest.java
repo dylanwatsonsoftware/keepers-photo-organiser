@@ -20,4 +20,11 @@ public class AlbumControlMatcherTest {
         assertFalse(AlbumControlMatcher.isAlbum("", ""));
         assertFalse(AlbumControlMatcher.isAlbum(null, "Ada"));
     }
+
+    @Test public void albumPickerOptionRequiresExactAlbumLabel() {
+        assertTrue(AlbumControlMatcher.isAlbumPickerOption("Album"));
+        assertTrue(AlbumControlMatcher.isAlbumPickerOption("  album  "));
+        assertFalse(AlbumControlMatcher.isAlbumPickerOption("Shared album"));
+        assertFalse(AlbumControlMatcher.isAlbumPickerOption(null));
+    }
 }

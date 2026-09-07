@@ -28,12 +28,14 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         if (System.currentTimeMillis() > prefs.getLong(ALBUM_ARMED_UNTIL, 0)) return false;
         String album = prefs.getString(ALBUM_NAME, "");
         int phase = prefs.getInt(ALBUM_PHASE, 0);
-        AccessibilityNodeInfo target = phase == 0
-                ? findAdd(getRootInActiveWindow()) : findAlbum(getRootInActiveWindow(), album);
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        AccessibilityNodeInfo target = phase == 0 ? findAdd(root)
+                : phase == 1 ? findAlbumPickerOption(root) : findAlbum(root, album);
         if (target == null) return false;
-        if (phase == 0) prefs.edit().putInt(ALBUM_PHASE, 1).apply();
+        if (phase < 2) prefs.edit().putInt(ALBUM_PHASE, phase + 1).apply();
         else prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME).remove(ALBUM_PHASE).apply();
-        toast(click(target) ? (phase == 0 ? "Keepers opened album picker" : "Keepers selected " + album)
+        toast(click(target) ? (phase == 0 ? "Keepers opened Add to"
+                : phase == 1 ? "Keepers opened album picker" : "Keepers selected " + album)
                 : "Album control was not clickable");
         return true;
     }
@@ -59,11 +61,19 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         return findChild(node, 2, album);
     }
 
+    private AccessibilityNodeInfo findAlbumPickerOption(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (AlbumControlMatcher.isAlbumPickerOption(node.getContentDescription())
+                || AlbumControlMatcher.isAlbumPickerOption(node.getText())) return node;
+        return findChild(node, 3, null);
+    }
+
     private AccessibilityNodeInfo findChild(AccessibilityNodeInfo node, int mode, String album) {
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             AccessibilityNodeInfo found = mode == 0 ? findFavourite(child)
-                    : mode == 1 ? findAdd(child) : findAlbum(child, album);
+                    : mode == 1 ? findAdd(child)
+                    : mode == 2 ? findAlbum(child, album) : findAlbumPickerOption(child);
             if (found != null) return found;
         }
         return null;
