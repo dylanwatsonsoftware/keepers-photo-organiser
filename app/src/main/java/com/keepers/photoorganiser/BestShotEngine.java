@@ -27,22 +27,34 @@ public final class BestShotEngine {
 
     public static Map<String, PhotoStackPosition> stacks(List<PhotoFeatures> photos) {
         Map<String, PhotoStackPosition> result = new LinkedHashMap<>();
-        int stackNumber = 0;
-        for (List<PhotoFeatures> group : visualGroups(photos)) {
+        for (List<PhotoFeatures> group : sceneGroups(photos)) {
             if (group.size() < 2) continue;
-            stackNumber++;
             for (int index = 0; index < group.size(); index++) {
                 result.put(group.get(index).id(),
-                        new PhotoStackPosition(stackNumber, index + 1, group.size()));
+                        new PhotoStackPosition(index + 1, group.size()));
             }
         }
         return result;
     }
 
+    private static List<List<PhotoFeatures>> sceneGroups(List<PhotoFeatures> photos) {
+        List<PhotoFeatures> ordered = ordered(photos);
+        List<List<PhotoFeatures>> groups = new ArrayList<>();
+        for (PhotoFeatures photo : ordered) {
+            List<PhotoFeatures> latest = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+            PhotoFeatures previous = latest == null ? null : latest.get(latest.size() - 1);
+            if (previous == null || photo.takenAtMillis() - previous.takenAtMillis()
+                    > SCENE_WINDOW_MILLIS) {
+                latest = new ArrayList<>();
+                groups.add(latest);
+            }
+            latest.add(photo);
+        }
+        return groups;
+    }
+
     private static List<List<PhotoFeatures>> visualGroups(List<PhotoFeatures> photos) {
-        List<PhotoFeatures> ordered = new ArrayList<>(photos);
-        ordered.sort(java.util.Comparator.comparingLong(PhotoFeatures::takenAtMillis)
-                .thenComparing(PhotoFeatures::id));
+        List<PhotoFeatures> ordered = ordered(photos);
         List<List<PhotoFeatures>> groups = new ArrayList<>();
         for (PhotoFeatures photo : ordered) {
             List<PhotoFeatures> match = null;
@@ -57,6 +69,13 @@ public final class BestShotEngine {
             match.add(photo);
         }
         return groups;
+    }
+
+    private static List<PhotoFeatures> ordered(List<PhotoFeatures> photos) {
+        List<PhotoFeatures> ordered = new ArrayList<>(photos);
+        ordered.sort(java.util.Comparator.comparingLong(PhotoFeatures::takenAtMillis)
+                .thenComparing(PhotoFeatures::id));
+        return ordered;
     }
 
     private static PhotoFeatures best(List<PhotoFeatures> group) {

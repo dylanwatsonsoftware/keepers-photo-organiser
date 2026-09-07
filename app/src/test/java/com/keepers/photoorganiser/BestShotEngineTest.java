@@ -46,17 +46,24 @@ public class BestShotEngineTest {
 
     @Test public void numbersOnlyDuplicateStacksDeterministically() {
         Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(List.of(
-                feature("second-b", 40, -2L, 0.4),
-                feature("unique", 30, 0xAAAAAAAAAAAAAAAAL, 0.8),
+                feature("second-b", 200_040, -2L, 0.4),
+                feature("unique", 500_000, 0xAAAAAAAAAAAAAAAAL, 0.8),
                 feature("first-b", 20, 0b00000001L, 0.5),
-                feature("second-a", 10, -1L, 0.6),
+                feature("second-a", 200_000, -1L, 0.6),
                 feature("first-a", 1, 0L, 0.7)));
 
         assertEquals(Map.of(
-                "first-a", new PhotoStackPosition(1, 1, 2),
-                "first-b", new PhotoStackPosition(1, 2, 2),
-                "second-a", new PhotoStackPosition(2, 1, 2),
-                "second-b", new PhotoStackPosition(2, 2, 2)), stacks);
+                "first-a", new PhotoStackPosition(1, 2),
+                "first-b", new PhotoStackPosition(2, 2),
+                "second-a", new PhotoStackPosition(1, 2),
+                "second-b", new PhotoStackPosition(2, 2)), stacks);
+    }
+
+    @Test public void stacksRapidSequenceDespiteCompositionAndExposureChanges() {
+        assertEquals(Set.of("first", "second", "third"), BestShotEngine.stacks(List.of(
+                feature("first", 1_000, 0L, 0.4),
+                feature("second", 35_000, -1L, 0.9),
+                feature("third", 90_000, 0xAAAAAAAAAAAAAAAAL, 0.7))).keySet());
     }
 
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {

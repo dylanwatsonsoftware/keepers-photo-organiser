@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -108,6 +109,11 @@ public final class PreviewActivity extends Activity {
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
         loader.load(incoming, requested, Math.min(screen, 1600), bitmap -> {
+            Log.d("KeepersPreview", "adjacent uri=" + requested + " bitmap="
+                    + (bitmap == null ? "null" : bitmap.getWidth() + "x" + bitmap.getHeight())
+                    + " current=" + requested.equals(photo) + " incomingVisibility="
+                    + incoming.getVisibility() + " incomingAlpha=" + incoming.getAlpha()
+                    + " incomingX=" + incoming.getTranslationX());
             if (bitmap == null || !requested.equals(photo)) return;
             incoming.setTranslationX(0);
             incoming.setTranslationY(0);
@@ -117,6 +123,9 @@ public final class PreviewActivity extends Activity {
             outgoing.setVisibility(View.INVISIBLE);
             frontImage = incoming;
             backImage = outgoing;
+            Log.d("KeepersPreview", "swapped drawable=" + (frontImage.getDrawable() != null)
+                    + " visibility=" + frontImage.getVisibility() + " alpha="
+                    + frontImage.getAlpha() + " x=" + frontImage.getTranslationX());
         });
         updateRecommendation();
     }

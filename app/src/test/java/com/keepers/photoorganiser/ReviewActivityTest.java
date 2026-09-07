@@ -92,12 +92,12 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
         activity.showStacks(Map.of(
-                "content://media/photo/1", new PhotoStackPosition(1, 1, 2),
-                "content://media/photo/2", new PhotoStackPosition(1, 2, 2)));
+                "content://media/photo/1", new PhotoStackPosition(1, 2),
+                "content://media/photo/2", new PhotoStackPosition(2, 2)));
 
-        assertEquals("Stack 1 · 1/2", ((TextView) ((android.view.ViewGroup)
+        assertEquals("1/2", ((TextView) ((android.view.ViewGroup)
                 grid.getChildAt(0)).getChildAt(3)).getText());
-        assertEquals("Stack 1 · 2/2", ((TextView) ((android.view.ViewGroup)
+        assertEquals("2/2", ((TextView) ((android.view.ViewGroup)
                 grid.getChildAt(1)).getChildAt(3)).getText());
         assertEquals(View.GONE, ((android.view.ViewGroup)
                 grid.getChildAt(2)).getChildAt(3).getVisibility());
