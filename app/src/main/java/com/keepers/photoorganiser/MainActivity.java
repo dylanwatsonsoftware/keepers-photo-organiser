@@ -30,6 +30,8 @@ public final class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.choose_photos).setOnClickListener(view -> choosePhotos());
+        findViewById(R.id.open_review).setOnClickListener(view ->
+                startActivity(new Intent(this, ReviewActivity.class)));
         findViewById(R.id.open_existing).setOnClickListener(view -> openFirstPhoto());
         findViewById(R.id.request_favourite).setOnClickListener(view -> requestFavourite());
         findViewById(R.id.share_experiment).setOnClickListener(view -> confirmShareExperiment());

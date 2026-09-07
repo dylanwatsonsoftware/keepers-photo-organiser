@@ -15,6 +15,9 @@
         android:label="Keepers Photo Organiser"
         android:supportsRtl="true"
         android:theme="@style/Theme.Keepers">
+        <activity
+            android:name=".ReviewActivity"
+            android:exported="false" />
         <service
             android:name=".KeepersAccessibilityService"
             android:exported="true"

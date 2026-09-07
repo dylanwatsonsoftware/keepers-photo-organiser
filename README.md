@@ -1,16 +1,26 @@
 # Keepers Photo Organiser
 
-Keepers is an Android proof of concept for one critical question: can an app help select photos and then reliably apply those selections to the **existing** Google Photos items without creating duplicate uploads?
-
-This build deliberately contains no AI ranking yet. The Google Photos handoff must pass on a real Pixel before the larger product is worth building.
+Keepers is an Android prototype for reviewing recent Pixel camera photos, choosing the best images without hiding the rest, and applying approved choices to the **existing** Google Photos items without creating duplicate uploads.
 
 > [!IMPORTANT]
-> **Feasibility result: failed.** Testing on a Pixel 7 found no supported Android or Google Photos integration that can favourite existing cloud items or add them to existing albums without manual work or duplicate-upload risk. Do not proceed with the proposed AI curator on the assumption that an official handoff exists.
+> **Feasibility result: passed through explicit Accessibility automation.** Testing on a Pixel 7 confirmed that Keepers can one-shot Favourite an open existing Google Photos item and add it to an exact existing album. Google provides no supported public API for these operations, so the integration depends on visible Google Photos controls and may break when its UI changes.
 
 > [!WARNING]
 > The **Batch album experiment** uses Android's multi-file sharing mechanism. Google Photos may interpret it as an upload. Use expendable test photos and check for duplicate cloud items afterwards.
 
-## What the proof tests
+## Current review prototype
+
+Tap **Review recent photos** to load up to 60 recent images that still exist locally in `DCIM/Camera`:
+
+- Photos appear in a compact three-column grid inspired by Google Photos.
+- Tap an image to mark it as a keeper; tap again to undo.
+- Once a keeper is chosen, other images fade but always remain visible and selectable.
+- Keeper choices persist locally across app restarts and can be cleared at any time.
+- No image is moved, hidden, deleted, uploaded, or modified by the review screen.
+
+This first review slice does not rank images with AI, group similar scenes, identify people, or navigate Google Photos to the corresponding photo automatically. Those are subsequent milestones built on the now-proven one-shot actions.
+
+## Earlier integration experiments
 
 The app lets you select 3–5 photos and run three experiments:
 
@@ -51,15 +61,15 @@ The current build includes an explicitly armed, one-shot Accessibility test:
 
 It ignores `Unfavourite`/`Remove from favorites`, listens only to Google Photos, expires after two minutes, and never runs continuously unless explicitly armed again.
 
-The build also includes a one-shot album test. Enter the exact existing album name, arm **Add to album**, and manually open one test photo. Keepers first clicks only the exact `Add to album` control, then clicks only the exact configured album name. It disarms before selecting the album and expires after two minutes.
+The build also includes a one-shot album action. Enter the exact existing album name, arm **Add to album**, and manually open one test photo. Keepers follows the observed Google Photos flow—exact `Add to`, exact `Album`, then the exact configured album name—and expires after two minutes.
 
 ## Pass criteria
 
-Do not proceed to photo ranking unless the on-device test establishes that:
+The Pixel 7 test established that:
 
 - A selected, already-backed-up item opens as the existing Google Photos item.
-- Its Google Photos Favourite state can be changed with an acceptable number of taps.
-- Several selected originals can be added to an existing Google Photos album.
+- Its Google Photos Favourite state can be changed through an explicitly armed one-shot action.
+- An existing item can be added to an exact existing Google Photos album through an explicitly armed one-shot action.
 - No duplicate cloud items are created.
 - The cloud state remains correct after local copies are removed.
 

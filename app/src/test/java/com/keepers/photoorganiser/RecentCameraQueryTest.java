@@ -17,8 +17,8 @@ public class RecentCameraQueryTest {
     }
 
     @Test
-    public void limitsTheExperimentToFiveCameraImages() {
-        assertEquals(5, RecentCameraQuery.LIMIT);
+    public void loadsAUsefulRecentReviewWindow() {
+        assertEquals(60, RecentCameraQuery.LIMIT);
         assertEquals("DCIM/Camera/%", RecentCameraQuery.PATH_PATTERN);
     }
 }

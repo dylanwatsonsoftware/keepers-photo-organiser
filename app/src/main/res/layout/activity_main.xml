@@ -26,6 +26,13 @@
             android:textColor="#5F6368"
             android:textSize="17sp" />
 
+        <Button
+            android:id="@+id/open_review"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Review recent photos" />
+
         <TextView
             android:id="@+id/selection_status"
             android:layout_width="match_parent"

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class RecentCameraQuery {
-    public static final int LIMIT = 5;
+    public static final int LIMIT = 60;
     public static final String PATH_PATTERN = "DCIM/Camera/%";
 
     private RecentCameraQuery() {}
