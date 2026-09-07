@@ -49,28 +49,61 @@ public final class PreviewActivity extends Activity {
     }
 
     private boolean handleSwipe(MotionEvent event) {
+        ImageView image = findViewById(R.id.preview_image);
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            image.animate().cancel();
             touchStartX = event.getX();
             touchStartY = event.getY();
+            return true;
+        }
+        if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            DragTransform drag = DragTransform.from(event.getX() - touchStartX,
+                    event.getY() - touchStartY, image.getHeight());
+            image.setTranslationX(drag.x());
+            image.setTranslationY(drag.y());
+            image.setAlpha(drag.alpha());
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
         SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
                 event.getY() - touchStartY, dp(64));
-        if (direction == SwipeDirection.BACK) { finish(); return true; }
-        if (direction == SwipeDirection.NONE) return true;
+        if (direction == SwipeDirection.BACK) {
+            image.animate().translationY(image.getHeight()).alpha(0.5f).setDuration(160)
+                    .withEndAction(this::finish).start();
+            return true;
+        }
+        if (direction == SwipeDirection.NONE) { resetPosition(image); return true; }
+        Uri before = photo;
         photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
-        loadCurrent();
+        if (photo.equals(before)) { resetPosition(image); return true; }
+        float exit = direction == SwipeDirection.NEXT ? -image.getWidth() : image.getWidth();
+        float enter = -exit;
+        image.animate().translationX(exit).alpha(0.7f).setDuration(140).withEndAction(() -> {
+            image.setImageDrawable(null);
+            image.setTranslationX(enter);
+            image.setTranslationY(0);
+            image.setAlpha(1);
+            loadCurrent(() -> image.animate().translationX(0).setDuration(170).start());
+        }).start();
         updateButton();
         return true;
     }
 
     private void loadCurrent() {
+        loadCurrent(() -> {});
+    }
+
+    private void loadCurrent(Runnable loaded) {
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
-        loader.load((ImageView) findViewById(R.id.preview_image), photo, Math.min(screen, 1600));
+        loader.load((ImageView) findViewById(R.id.preview_image), photo, Math.min(screen, 1600),
+                bitmap -> loaded.run());
         ((TextView) findViewById(R.id.preview_recommendation)).setText(
                 suggestionStore.load().contains(photo.toString()) ? "★ Recommended best shot" : "");
+    }
+
+    private void resetPosition(ImageView image) {
+        image.animate().translationX(0).translationY(0).alpha(1).setDuration(140).start();
     }
 
     private int dp(int value) {
