@@ -38,6 +38,17 @@ The official integration gate is closed as a **no-go**. Remaining options requir
 - Keep favourites and child collections inside Keepers instead of Google Photos.
 - Use a photo library with an API that supports modifying existing albums and favourites.
 
+## Accessibility experiment
+
+The current build includes an explicitly armed, one-shot Accessibility test:
+
+1. Tap **Enable Keepers Accessibility service** and enable only the Keepers service.
+2. Return to Keepers and tap **Arm one-shot Favourite**.
+3. Keepers opens Google Photos. Manually open one expendable photo within two minutes.
+4. Keepers clicks only an exact `Favourite`, `Favorite`, `Add to favourites`, or `Add to favorites` accessibility label, disarming before the click.
+
+It ignores `Unfavourite`/`Remove from favorites`, listens only to Google Photos, expires after two minutes, and never runs continuously unless explicitly armed again.
+
 ## Pass criteria
 
 Do not proceed to photo ranking unless the on-device test establishes that:

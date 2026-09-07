@@ -11,6 +11,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.Settings;
+import android.widget.Toast;
 import android.widget.Button;
 import android.widget.TextView;
 import java.util.ArrayList;
@@ -30,7 +32,20 @@ public final class MainActivity extends Activity {
         findViewById(R.id.open_existing).setOnClickListener(view -> openFirstPhoto());
         findViewById(R.id.request_favourite).setOnClickListener(view -> requestFavourite());
         findViewById(R.id.share_experiment).setOnClickListener(view -> confirmShareExperiment());
+        findViewById(R.id.open_accessibility_settings).setOnClickListener(view ->
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        findViewById(R.id.arm_accessibility_favourite).setOnClickListener(view -> armFavourite());
         showSelection(List.of());
+    }
+
+    private void armFavourite() {
+        long deadline = System.currentTimeMillis() + 120_000;
+        getSharedPreferences(KeepersAccessibilityService.PREFS, MODE_PRIVATE).edit()
+                .putLong(KeepersAccessibilityService.ARMED_UNTIL, deadline).apply();
+        Toast.makeText(this, "Armed for two minutes. Open one test photo.", Toast.LENGTH_LONG).show();
+        Intent launch = getPackageManager().getLaunchIntentForPackage(
+                GooglePhotosIntentFactory.GOOGLE_PHOTOS_PACKAGE);
+        if (launch != null) startActivity(launch);
     }
 
     private void choosePhotos() {

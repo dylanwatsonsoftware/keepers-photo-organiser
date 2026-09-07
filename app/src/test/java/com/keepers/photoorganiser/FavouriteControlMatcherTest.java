@@ -1,0 +1,22 @@
+package com.keepers.photoorganiser;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
+public class FavouriteControlMatcherTest {
+    @Test public void acceptsExactAustralianAndAmericanLabels() {
+        assertTrue(FavouriteControlMatcher.matches("Favourite"));
+        assertTrue(FavouriteControlMatcher.matches("Favorite"));
+        assertTrue(FavouriteControlMatcher.matches("Add to favourites"));
+        assertTrue(FavouriteControlMatcher.matches("Add to favorites"));
+    }
+
+    @Test public void rejectsControlsThatWouldReverseOrMisrouteTheAction() {
+        assertFalse(FavouriteControlMatcher.matches("Unfavourite"));
+        assertFalse(FavouriteControlMatcher.matches("Remove from favorites"));
+        assertFalse(FavouriteControlMatcher.matches("Favorite people"));
+        assertFalse(FavouriteControlMatcher.matches(null));
+    }
+}
