@@ -21,6 +21,7 @@ public final class PreviewActivity extends Activity {
     private SuggestionStore suggestionStore;
     private ImageView frontImage;
     private ImageView adjacentImage;
+    private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
 
     @Override protected void onCreate(Bundle state) {
@@ -40,8 +41,8 @@ public final class PreviewActivity extends Activity {
         navigator = new PhotoNavigator(photos, photo);
         frontImage = findViewById(R.id.preview_image);
         adjacentImage = findViewById(R.id.preview_adjacent_image);
-        FrameLayout stage = findViewById(R.id.preview_stage);
-        stage.setOnTouchListener((view, event) -> handleSwipe(event));
+        previewStage = findViewById(R.id.preview_stage);
+        previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             store.toggle(photo);
@@ -59,6 +60,7 @@ public final class PreviewActivity extends Activity {
         ImageView image = frontImage;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             image.animate().cancel();
+            adjacentImage.animate().cancel();
             adjacentImage.setVisibility(View.INVISIBLE);
             dragPreviewPhoto = null;
             touchStartX = event.getX();
@@ -70,6 +72,13 @@ public final class PreviewActivity extends Activity {
             float deltaY = event.getY() - touchStartY;
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
                 showDragPreview(deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
+                CarouselTransform carousel = CarouselTransform.from(deltaX,
+                        previewStage.getWidth(), dp(8));
+                image.setTranslationX(carousel.currentX());
+                image.setTranslationY(0);
+                image.setAlpha(1);
+                adjacentImage.setTranslationX(carousel.adjacentX());
+                return true;
             }
             DragTransform drag = DragTransform.from(deltaX, deltaY, image.getHeight());
             image.setTranslationX(drag.x());
@@ -90,12 +99,17 @@ public final class PreviewActivity extends Activity {
         Uri before = photo;
         photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
         if (photo.equals(before)) { resetPosition(image); return true; }
-        image.animate().cancel();
-        image.setTranslationX(0);
-        image.setTranslationY(0);
-        image.setAlpha(1);
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
-        recreate();
+        if (adjacentImage.getVisibility() != View.VISIBLE
+                || !photo.equals(dragPreviewPhoto)) {
+            recreate();
+            return true;
+        }
+        float pageDistance = previewStage.getWidth() + dp(8);
+        float exit = direction == SwipeDirection.NEXT ? -pageDistance : pageDistance;
+        image.animate().translationX(exit).setDuration(140).start();
+        adjacentImage.animate().translationX(0).setDuration(140)
+                .withEndAction(this::recreate).start();
         return true;
     }
 
@@ -132,6 +146,9 @@ public final class PreviewActivity extends Activity {
     }
 
     private void resetPosition(ImageView image) {
+        float pageDistance = previewStage.getWidth() + dp(8);
+        float adjacentRest = image.getTranslationX() < 0 ? pageDistance : -pageDistance;
+        adjacentImage.animate().translationX(adjacentRest).setDuration(140).start();
         image.animate().translationX(0).translationY(0).alpha(1).setDuration(140)
                 .withEndAction(() -> adjacentImage.setVisibility(View.INVISIBLE)).start();
     }
