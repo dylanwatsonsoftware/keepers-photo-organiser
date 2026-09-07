@@ -4,9 +4,11 @@ import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.MotionEvent;
+import android.view.View;
 import java.util.ArrayList;
 
 public final class PreviewActivity extends Activity {
@@ -17,6 +19,8 @@ public final class PreviewActivity extends Activity {
     private float touchStartX;
     private float touchStartY;
     private SuggestionStore suggestionStore;
+    private ImageView frontImage;
+    private ImageView backImage;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -33,8 +37,10 @@ public final class PreviewActivity extends Activity {
         }
         if (photos.isEmpty()) photos.add(photo);
         navigator = new PhotoNavigator(photos, photo);
-        ImageView image = findViewById(R.id.preview_image);
-        image.setOnTouchListener((view, event) -> handleSwipe(event));
+        frontImage = findViewById(R.id.preview_image);
+        backImage = findViewById(R.id.preview_incoming_image);
+        FrameLayout stage = findViewById(R.id.preview_stage);
+        stage.setOnTouchListener((view, event) -> handleSwipe(event));
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             store.toggle(photo);
@@ -49,7 +55,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private boolean handleSwipe(MotionEvent event) {
-        ImageView image = findViewById(R.id.preview_image);
+        ImageView image = frontImage;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             image.animate().cancel();
             touchStartX = event.getX();
@@ -80,20 +86,42 @@ public final class PreviewActivity extends Activity {
         image.setTranslationX(0);
         image.setTranslationY(0);
         image.setAlpha(1);
-        loadCurrent();
+        loadCurrentKeepingVisiblePhoto();
         updateButton();
         return true;
     }
 
     private void loadCurrent() {
-        loadCurrent(() -> {});
-    }
-
-    private void loadCurrent(Runnable loaded) {
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
-        loader.load((ImageView) findViewById(R.id.preview_image), photo, Math.min(screen, 1600),
-                bitmap -> loaded.run());
+        loader.load(frontImage, photo, Math.min(screen, 1600), bitmap -> {
+            if (bitmap != null) frontImage.setVisibility(View.VISIBLE);
+        });
+        updateRecommendation();
+    }
+
+    private void loadCurrentKeepingVisiblePhoto() {
+        Uri requested = photo;
+        ImageView outgoing = frontImage;
+        ImageView incoming = backImage;
+        incoming.setVisibility(View.INVISIBLE);
+        int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
+                getResources().getDisplayMetrics().heightPixels);
+        loader.load(incoming, requested, Math.min(screen, 1600), bitmap -> {
+            if (bitmap == null || !requested.equals(photo)) return;
+            incoming.setTranslationX(0);
+            incoming.setTranslationY(0);
+            incoming.setAlpha(1);
+            incoming.setVisibility(View.VISIBLE);
+            incoming.bringToFront();
+            outgoing.setVisibility(View.INVISIBLE);
+            frontImage = incoming;
+            backImage = outgoing;
+        });
+        updateRecommendation();
+    }
+
+    private void updateRecommendation() {
         ((TextView) findViewById(R.id.preview_recommendation)).setText(
                 suggestionStore.load().contains(photo.toString()) ? "★ Recommended best shot" : "");
     }
