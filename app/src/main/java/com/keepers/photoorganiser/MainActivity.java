@@ -3,10 +3,12 @@ package com.keepers.photoorganiser;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
-import android.content.ClipData;
+import android.Manifest;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.Button;
@@ -15,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class MainActivity extends Activity {
-    private static final int PICK_PHOTOS = 100;
+    private static final int PHOTO_PERMISSION = 100;
     private static final int FAVOURITE_REQUEST = 101;
     private final ArrayList<Uri> selectedPhotos = new ArrayList<>();
 
@@ -32,39 +34,42 @@ public final class MainActivity extends Activity {
     }
 
     private void choosePhotos() {
-        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES)
-                .setType("image/*")
-                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivityForResult(intent, PICK_PHOTOS);
+        if (hasLocalPhotoAccess()) {
+            loadRecentCameraPhotos();
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= 34) {
+            requestPermissions(new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED}, PHOTO_PERMISSION);
+        } else if (Build.VERSION.SDK_INT >= 33) {
+            requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, PHOTO_PERMISSION);
+        } else {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PHOTO_PERMISSION);
+        }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != PICK_PHOTOS || resultCode != RESULT_OK || data == null) {
-            return;
-        }
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == PHOTO_PERMISSION && hasLocalPhotoAccess()) loadRecentCameraPhotos();
+    }
 
-        ArrayList<Uri> photos = new ArrayList<>();
-        ClipData clipData = data.getClipData();
-        if (clipData != null) {
-            for (int index = 0; index < clipData.getItemCount(); index++) {
-                photos.add(clipData.getItemAt(index).getUri());
-            }
-        } else if (data.getData() != null) {
-            photos.add(data.getData());
-        }
-        try {
-            MediaUriResolver resolver = new MediaUriResolver(
-                    uri -> MediaStore.getMediaUri(this, uri));
-            showSelection(resolver.resolveAll(photos));
-        } catch (IllegalArgumentException exception) {
-            showSelection(List.of());
-            explain("Local photo required",
-                    "At least one selection exists only through a document or cloud provider. "
-                            + "Choose recent Pixel camera photos that are still stored on this phone.");
-        }
+    private boolean hasLocalPhotoAccess() {
+        if (Build.VERSION.SDK_INT >= 34
+                && checkSelfPermission(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                == PackageManager.PERMISSION_GRANTED) return true;
+        String permission = Build.VERSION.SDK_INT >= 33
+                ? Manifest.permission.READ_MEDIA_IMAGES
+                : Manifest.permission.READ_EXTERNAL_STORAGE;
+        return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void loadRecentCameraPhotos() {
+        List<Uri> photos = RecentCameraQuery.load(getContentResolver());
+        showSelection(photos);
+        if (photos.isEmpty()) explain("No local camera photos found",
+                "Grant access to recent Pixel camera photos that still exist on this phone.");
     }
 
     void showSelection(List<Uri> photos) {

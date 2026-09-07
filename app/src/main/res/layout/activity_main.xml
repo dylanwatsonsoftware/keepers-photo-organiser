@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Choose 3–5 local backed-up photos" />
+            android:text="Load latest 5 local camera photos" />
 
         <Button
             android:id="@+id/open_existing"
