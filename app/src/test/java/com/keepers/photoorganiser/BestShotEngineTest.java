@@ -18,7 +18,7 @@ public class BestShotEngineTest {
         PhotoFeatures first = feature("first", 1_000, 0L, 0.4);
         PhotoFeatures different = feature("different", 20_000, -1L, 0.9);
 
-        assertEquals(Set.of("first", "different"), BestShotEngine.recommend(List.of(first, different)));
+        assertEquals(Set.of("different"), BestShotEngine.recommend(List.of(first, different)));
     }
 
     @Test public void doesNotGroupSimilarPhotosFromDifferentScenesInTime() {
@@ -33,6 +33,14 @@ public class BestShotEngineTest {
                 feature("first", 1_000, 8L, 0.5),
                 feature("middle", 5_000, 9L, 0.9),
                 feature("last", 9_000, 10L, 0.7))));
+    }
+
+    @Test public void recommendsOnlyTopThirdOfDistinctCandidates() {
+        assertEquals(Set.of("best", "second"), BestShotEngine.recommend(List.of(
+                feature("low", 1, 0L, 0.1),
+                feature("best", 2, -1L, 0.9),
+                feature("third", 3, 0xAAAAAAAAAAAAAAAAL, 0.7),
+                feature("second", 4, 0x5555555555555555L, 0.8))));
     }
 
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {

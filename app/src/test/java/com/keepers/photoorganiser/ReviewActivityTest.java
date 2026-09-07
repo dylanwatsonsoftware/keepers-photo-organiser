@@ -17,7 +17,7 @@ import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
-    @Test public void selectingPhotoFadesNonKeepersButKeepsEveryTileVisible() {
+    @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
                 Uri.parse("content://media/photo/1"),
@@ -30,7 +30,7 @@ public class ReviewActivityTest {
         assertEquals(2, grid.getChildCount());
         assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
-        assertEquals(0.38f, grid.getChildAt(1).getAlpha(), 0.001f);
+        assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
     }
 
     @Test public void clearRestoresAllPhotosAtFullStrength() {
@@ -48,7 +48,7 @@ public class ReviewActivityTest {
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
     }
 
-    @Test public void suggestionsFadeAlternativesWithoutConfirmingThem() {
+    @Test public void suggestionsUseStarsWithoutFadingAlternatives() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
                 Uri.parse("content://media/photo/1"),
@@ -59,8 +59,15 @@ public class ReviewActivityTest {
 
         assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
         assertEquals("No keepers selected yet", text(activity, R.id.keeper_count));
-        assertEquals(0.5f, grid.getChildAt(0).getAlpha(), 0.001f);
+        assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
+        assertEquals(View.VISIBLE,
+                ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2).getVisibility());
+
+        ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(1).performClick();
+
+        assertEquals(View.VISIBLE,
+                ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2).getVisibility());
     }
 
     @Test public void tappingPhotoOpensLargePreview() {

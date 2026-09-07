@@ -23,7 +23,6 @@ import java.util.ArrayList;
 public final class ReviewActivity extends Activity {
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     private static final int PHOTO_PERMISSION = 200;
-    private static final float FADED_ALPHA = 0.38f;
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
@@ -185,19 +184,17 @@ public final class ReviewActivity extends Activity {
         for (Uri photo : photos) if (selected.contains(photo.toString())) {
             visibleSelected.add(photo.toString());
         }
-        boolean hasSelection = !visibleSelected.isEmpty();
         GridLayout grid = findViewById(R.id.photo_grid);
         for (int index = 0; index < grid.getChildCount(); index++) {
             FrameLayout tile = (FrameLayout) grid.getChildAt(index);
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
             boolean suggested = suggestions.contains(tile.getTag().toString());
-            tile.setAlpha(hasSelection ? (keeper ? 1f : FADED_ALPHA)
-                    : suggestions.isEmpty() || suggested ? 1f : 0.5f);
+            tile.setAlpha(1f);
             TextView heart = (TextView) tile.getChildAt(1);
             heart.setText(keeper ? "♥" : "♡");
             heart.setBackgroundColor(keeper ? Color.rgb(11, 87, 208) : 0x66000000);
             heart.setVisibility(View.VISIBLE);
-            tile.getChildAt(2).setVisibility(suggested && !keeper ? View.VISIBLE : View.GONE);
+            tile.getChildAt(2).setVisibility(suggested ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
                     : "Photo. Tap to mark as keeper.");
         }

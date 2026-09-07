@@ -76,15 +76,11 @@ public final class PreviewActivity extends Activity {
         Uri before = photo;
         photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
         if (photo.equals(before)) { resetPosition(image); return true; }
-        float exit = direction == SwipeDirection.NEXT ? -image.getWidth() : image.getWidth();
-        float enter = -exit;
-        image.animate().translationX(exit).alpha(0.7f).setDuration(140).withEndAction(() -> {
-            image.setImageDrawable(null);
-            image.setTranslationX(enter);
-            image.setTranslationY(0);
-            image.setAlpha(1);
-            loadCurrent(() -> image.animate().translationX(0).setDuration(170).start());
-        }).start();
+        image.animate().cancel();
+        image.setTranslationX(0);
+        image.setTranslationY(0);
+        image.setAlpha(1);
+        loadCurrent();
         updateButton();
         return true;
     }

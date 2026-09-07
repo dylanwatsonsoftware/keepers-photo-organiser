@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Size;
+import android.util.Log;
 import android.widget.ImageView;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +61,7 @@ public final class AsyncThumbnailLoader implements AutoCloseable {
                     onLoaded.accept(thumbnail);
                 });
             } catch (Exception unavailablePhoto) {
+                Log.w("KeepersThumbnail", "Unable to load " + uri, unavailablePhoto);
                 main.execute(() -> onLoaded.accept(null));
             }
         });
