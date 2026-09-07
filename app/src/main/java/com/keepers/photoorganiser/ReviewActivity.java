@@ -32,6 +32,7 @@ public final class ReviewActivity extends Activity {
     private final List<FrameLayout> tiles = new ArrayList<>();
     private final List<PhotoFeatures> features = new ArrayList<>();
     private Set<String> suggestions = Set.of();
+    private Set<String> goodAlternatives = Set.of();
     private int analyzedCount;
     private int analysisGeneration;
     private final ReviewWindow reviewWindow = new ReviewWindow();
@@ -119,6 +120,7 @@ public final class ReviewActivity extends Activity {
         if (!appending) {
             features.clear();
             suggestions = Set.of();
+            goodAlternatives = Set.of();
             analyzedCount = 0;
             grid.removeAllViews();
             tiles.clear();
@@ -161,10 +163,11 @@ public final class ReviewActivity extends Activity {
             }
             if (analyzedCount == photos.size()) {
                 Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
-                Set<String> recommendations = BestShotEngine.recommend(features);
-                new PhotoInsightStore(this).save(features, stacks, recommendations);
+                BestShotResult result = BestShotEngine.classify(features);
+                new PhotoInsightStore(this).save(features, stacks, result.recommended(),
+                        result.goodAlternatives());
                 showStacks(stacks);
-                showSuggestions(recommendations);
+                showSuggestions(result.recommended(), result.goodAlternatives());
             }
         });
         tile.addView(image, new FrameLayout.LayoutParams(
@@ -240,6 +243,7 @@ public final class ReviewActivity extends Activity {
         for (FrameLayout tile : tiles) {
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
             boolean suggested = suggestions.contains(tile.getTag().toString());
+            boolean alternative = goodAlternatives.contains(tile.getTag().toString());
             tile.setAlpha(1f);
             ImageView heart = (ImageView) tile.getChildAt(1);
             heart.setImageResource(keeper ? R.drawable.ic_heart_filled
@@ -248,7 +252,12 @@ public final class ReviewActivity extends Activity {
             int heartPadding = dp(HeartIconStyle.paddingDp(keeper));
             heart.setPadding(heartPadding, heartPadding, heartPadding, heartPadding);
             heart.setVisibility(View.VISIBLE);
-            tile.getChildAt(2).setVisibility(suggested ? View.VISIBLE : View.GONE);
+            ImageView star = (ImageView) tile.getChildAt(2);
+            star.setImageResource(alternative ? R.drawable.ic_star_outline : R.drawable.ic_star);
+            star.setBackground(suggested ? recommendationCircle() : null);
+            star.setContentDescription(suggested ? "Recommended best shot" : alternative
+                    ? "Good alternative — near-identical photo ranked higher" : null);
+            star.setVisibility(suggested || alternative ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
                     : "Photo. Tap to mark as keeper.");
         }
@@ -261,13 +270,26 @@ public final class ReviewActivity extends Activity {
     }
 
     void showSuggestions(Set<String> recommended) {
+        showSuggestions(recommended, Set.of());
+    }
+
+    void showSuggestions(Set<String> recommended, Set<String> alternatives) {
         suggestions = Set.copyOf(recommended);
+        goodAlternatives = Set.copyOf(alternatives);
         new SuggestionStore(this).save(suggestions);
+        new SuggestionStore(this).saveAlternatives(goodAlternatives);
         int count = suggestions.size();
         ((TextView) findViewById(R.id.suggestion_count)).setText(count == 0
                 ? "No near-duplicate groups found" : count
                 + (count == 1 ? " suggested best shot" : " suggested best shots"));
         updateSelectionDisplay();
+    }
+
+    private GradientDrawable recommendationCircle() {
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(Color.rgb(176, 96, 0));
+        return circle;
     }
 
     void showStacks(Map<String, PhotoStackPosition> stacks) {

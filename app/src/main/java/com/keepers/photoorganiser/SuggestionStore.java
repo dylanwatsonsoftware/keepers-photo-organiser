@@ -15,4 +15,10 @@ public final class SuggestionStore {
     public Set<String> load() {
         return new HashSet<>(preferences.getStringSet("photo_ids", Set.of()));
     }
+    public void saveAlternatives(Set<String> ids) {
+        preferences.edit().putStringSet("alternative_ids", new HashSet<>(ids)).apply();
+    }
+    public Set<String> loadAlternatives() {
+        return new HashSet<>(preferences.getStringSet("alternative_ids", Set.of()));
+    }
 }

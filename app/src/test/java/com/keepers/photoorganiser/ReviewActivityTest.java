@@ -104,6 +104,22 @@ public class ReviewActivityTest {
                 ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2).getVisibility());
     }
 
+    @Test public void goodDuplicateUsesOutlinedStarInsteadOfRecommendation() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"), Uri.parse("content://media/photo/2")));
+
+        activity.showSuggestions(Set.of("content://media/photo/1"),
+                Set.of("content://media/photo/2"));
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals("Recommended best shot", ((android.view.ViewGroup) grid.getChildAt(0))
+                .getChildAt(2).getContentDescription());
+        assertEquals("Good alternative — near-identical photo ranked higher",
+                ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2)
+                        .getContentDescription());
+    }
+
     @Test public void keeperAndRecommendedFiltersAreExclusiveAndToggleBackToAll() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(

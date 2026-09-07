@@ -11,10 +11,45 @@ public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
     static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
     static final double MIN_USABLE_STACK_QUALITY = 0.03;
+    static final int NEAR_IDENTICAL_HASH_DISTANCE = 6;
 
     private BestShotEngine() {}
 
     public static Set<String> recommend(List<PhotoFeatures> photos) {
+        return classify(photos).recommended();
+    }
+
+    public static BestShotResult classify(List<PhotoFeatures> photos) {
+        Set<String> initial = recommendInitial(photos);
+        List<PhotoFeatures> ranked = new ArrayList<>(photos);
+        ranked.sort(java.util.Comparator.comparingDouble(PhotoFeatures::quality).reversed()
+                .thenComparing(PhotoFeatures::id));
+        Set<String> recommended = new java.util.LinkedHashSet<>();
+        for (PhotoFeatures photo : ranked) {
+            if (!initial.contains(photo.id())) continue;
+            boolean duplicate = ranked.stream().filter(candidate -> recommended.contains(candidate.id()))
+                    .anyMatch(candidate -> nearIdentical(photo, candidate));
+            if (!duplicate) recommended.add(photo.id());
+        }
+        Set<String> alternatives = new java.util.LinkedHashSet<>();
+        for (PhotoFeatures photo : ranked) {
+            if (recommended.contains(photo.id())) continue;
+            for (PhotoFeatures selected : ranked) {
+                if (!recommended.contains(selected.id()) || !nearIdentical(photo, selected)) continue;
+                if (photo.quality() >= MIN_USABLE_STACK_QUALITY
+                        && photo.quality() >= selected.quality() * 0.75) alternatives.add(photo.id());
+                break;
+            }
+        }
+        return new BestShotResult(recommended, alternatives);
+    }
+
+    private static boolean nearIdentical(PhotoFeatures first, PhotoFeatures second) {
+        return Long.bitCount(first.perceptualHash() ^ second.perceptualHash())
+                <= NEAR_IDENTICAL_HASH_DISTANCE;
+    }
+
+    private static Set<String> recommendInitial(List<PhotoFeatures> photos) {
         List<List<PhotoFeatures>> groups = sceneGroups(photos);
         List<PhotoFeatures> candidates = new ArrayList<>();
         for (List<PhotoFeatures> group : groups) candidates.add(best(group));

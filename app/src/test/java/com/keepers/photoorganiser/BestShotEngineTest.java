@@ -107,6 +107,16 @@ public class BestShotEngineTest {
                 feature("third", 600_000, 0x5555555555555555L, 0.7))));
     }
 
+    @Test public void identicalCandidatesProduceOneRecommendationAndGoodAlternative() {
+        BestShotResult result = BestShotEngine.classify(List.of(
+                feature("better", 1_000, 7L, 0.9),
+                feature("almost-as-good", 301_000, 7L, 0.8),
+                feature("different", 600_000, -1L, 0.2)));
+
+        assertEquals(Set.of("better"), result.recommended());
+        assertEquals(Set.of("almost-as-good"), result.goodAlternatives());
+    }
+
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
         return new PhotoFeatures(id, takenAt, hash, quality);
     }

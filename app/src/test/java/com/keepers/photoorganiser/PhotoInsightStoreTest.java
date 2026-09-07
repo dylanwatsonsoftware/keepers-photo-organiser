@@ -28,4 +28,15 @@ public class PhotoInsightStoreTest {
         assertEquals(62, insight.assessment().score());
         assertTrue(insight.assessment().explanation().contains("Motion blur — 90%"));
     }
+
+    @Test public void explainsStrongDuplicateAsAGoodAlternative() {
+        PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
+        store.save(List.of(new PhotoFeatures("photo-b", 1, 0, 0.7)), Map.of(), Set.of(),
+                Set.of("photo-b"));
+
+        PhotoInsight insight = store.load("photo-b");
+
+        assertEquals(true, insight.goodAlternative());
+        assertEquals("A near-identical photo ranked slightly higher", insight.reason());
+    }
 }

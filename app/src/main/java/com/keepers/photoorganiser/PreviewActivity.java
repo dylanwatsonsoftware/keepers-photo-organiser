@@ -218,8 +218,10 @@ public final class PreviewActivity extends Activity {
     private void updateRecommendation() {
         TextView recommendation = findViewById(R.id.preview_recommendation);
         boolean recommended = suggestionStore.load().contains(photo.toString());
-        recommendation.setText(recommended ? "★  Best shot" : "");
-        recommendation.setVisibility(recommended ? View.VISIBLE : View.GONE);
+        boolean alternative = suggestionStore.loadAlternatives().contains(photo.toString());
+        recommendation.setText(recommended ? "★  Best shot"
+                : alternative ? "☆  Good alternative" : "");
+        recommendation.setVisibility(recommended || alternative ? View.VISIBLE : View.GONE);
     }
 
     private void showAnalysis() {
@@ -231,7 +233,8 @@ public final class PreviewActivity extends Activity {
             title.setText("Analysis pending");
             body.setText("This photo has not finished being analysed yet.");
         } else {
-            title.setText(insight.recommended() ? "Recommended best shot" : "Not recommended");
+            title.setText(insight.recommended() ? "Recommended best shot"
+                    : insight.goodAlternative() ? "Good alternative" : "Not recommended");
             String stack = insight.stack() == null ? "Distinct photo"
                     : "Photo " + insight.stack().position() + " of " + insight.stack().size()
                     + " in this detected stack";
