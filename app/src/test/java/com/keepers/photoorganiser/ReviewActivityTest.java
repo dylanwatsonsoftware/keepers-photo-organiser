@@ -1,9 +1,11 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import android.net.Uri;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.view.View;
 import android.widget.GridLayout;
 import android.widget.TextView;
@@ -18,6 +20,27 @@ import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
+    @Test public void appLauncherOpensPhotoGallery() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Intent launcher = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .setPackage(activity.getPackageName());
+
+        ResolveInfo resolved = activity.getPackageManager().resolveActivity(launcher, 0);
+
+        assertNotNull(resolved);
+        assertEquals(ReviewActivity.class.getName(), resolved.activityInfo.name);
+    }
+
+    @Test public void settingsButtonOpensExistingSetupScreen() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        activity.findViewById(R.id.open_settings).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(MainActivity.class.getName(), started.getComponent().getClassName());
+    }
+
     @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(

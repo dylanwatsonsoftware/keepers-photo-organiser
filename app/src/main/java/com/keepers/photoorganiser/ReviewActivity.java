@@ -41,6 +41,8 @@ public final class ReviewActivity extends Activity {
         setContentView(R.layout.activity_review);
         selectionStore = new KeeperSelectionStore(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
+        findViewById(R.id.open_settings).setOnClickListener(view ->
+                startActivity(new Intent(this, MainActivity.class)));
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {
             selectionStore.clear();
             updateSelectionDisplay();
