@@ -22,6 +22,7 @@ public final class PreviewActivity extends Activity {
     private ImageView adjacentImage;
     private FrameLayout currentSurface;
     private FrameLayout adjacentSurface;
+    private CarouselPagePair pages;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
 
@@ -44,6 +45,7 @@ public final class PreviewActivity extends Activity {
         adjacentImage = findViewById(R.id.preview_adjacent_image);
         currentSurface = findViewById(R.id.preview_current_surface);
         adjacentSurface = findViewById(R.id.preview_adjacent_surface);
+        pages = new CarouselPagePair(currentSurface, frontImage, adjacentSurface, adjacentImage);
         previewStage = findViewById(R.id.preview_stage);
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
@@ -100,21 +102,33 @@ public final class PreviewActivity extends Activity {
             return true;
         }
         if (direction == SwipeDirection.NONE) { resetPosition(image); return true; }
-        Uri before = photo;
-        photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
-        if (photo.equals(before)) { resetPosition(image); return true; }
-        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+        Uri target = direction == SwipeDirection.NEXT
+                ? navigator.peekNext() : navigator.peekPrevious();
+        if (target.equals(photo)) { resetPosition(image); return true; }
         if (adjacentSurface.getVisibility() != View.VISIBLE
-                || !photo.equals(dragPreviewPhoto)) {
-            recreate();
+                || !target.equals(dragPreviewPhoto)) {
+            resetPosition(image);
             return true;
         }
+        photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
         float pageDistance = previewStage.getWidth() + dp(8);
         float exit = direction == SwipeDirection.NEXT ? -pageDistance : pageDistance;
         image.animate().translationX(exit).setDuration(140).start();
         adjacentSurface.animate().translationX(0).setDuration(140)
-                .withEndAction(this::recreate).start();
+                .withEndAction(this::promoteAdjacentPage).start();
         return true;
+    }
+
+    private void promoteAdjacentPage() {
+        pages.promoteAdjacent();
+        currentSurface = pages.currentSurface();
+        frontImage = pages.currentImage();
+        adjacentSurface = pages.adjacentSurface();
+        adjacentImage = pages.adjacentImage();
+        dragPreviewPhoto = null;
+        updateRecommendation();
+        updateButton();
     }
 
     private void loadCurrent() {
