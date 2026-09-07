@@ -24,6 +24,8 @@ public final class PreviewActivity extends Activity {
     private FrameLayout adjacentSurface;
     private CarouselPagePair pages;
     private View analysisSheet;
+    private boolean analysisDragStarted;
+    private boolean analysisWasOpen;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
 
@@ -72,6 +74,8 @@ public final class PreviewActivity extends Activity {
             adjacentSurface.animate().cancel();
             adjacentSurface.setVisibility(View.INVISIBLE);
             dragPreviewPhoto = null;
+            analysisDragStarted = false;
+            analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
             touchStartX = event.getX();
             touchStartY = event.getY();
             return true;
@@ -79,6 +83,21 @@ public final class PreviewActivity extends Activity {
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             float deltaX = event.getX() - touchStartX;
             float deltaY = event.getY() - touchStartY;
+            if (!analysisWasOpen && deltaY < 0 && Math.abs(deltaY) > Math.abs(deltaX)
+                    && Math.abs(deltaY) > dp(8)) {
+                if (!analysisDragStarted) {
+                    showAnalysis();
+                    analysisSheet.measure(View.MeasureSpec.makeMeasureSpec(
+                            previewStage.getWidth(), View.MeasureSpec.EXACTLY),
+                            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+                    analysisDragStarted = true;
+                }
+                AnalysisSheetTransform sheet = AnalysisSheetTransform.from(deltaY,
+                        Math.max(analysisSheet.getHeight(), analysisSheet.getMeasuredHeight()));
+                analysisSheet.setTranslationY(sheet.translationY());
+                analysisSheet.setAlpha(sheet.alpha());
+                return true;
+            }
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
                 showDragPreview(deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
                 CarouselTransform carousel = CarouselTransform.from(deltaX,
@@ -100,7 +119,7 @@ public final class PreviewActivity extends Activity {
                 event.getY() - touchStartY, dp(64));
         if (direction == SwipeDirection.BACK) {
             if (analysisSheet.getVisibility() == View.VISIBLE) {
-                analysisSheet.setVisibility(View.GONE);
+                hideAnalysis();
                 resetPosition(image);
                 return true;
             }
@@ -112,9 +131,14 @@ public final class PreviewActivity extends Activity {
         if (direction == SwipeDirection.DETAILS) {
             resetPosition(image);
             showAnalysis();
+            analysisSheet.animate().translationY(0).alpha(1).setDuration(180).start();
             return true;
         }
-        if (direction == SwipeDirection.NONE) { resetPosition(image); return true; }
+        if (direction == SwipeDirection.NONE) {
+            if (analysisDragStarted) hideAnalysis();
+            resetPosition(image);
+            return true;
+        }
         Uri target = direction == SwipeDirection.NEXT
                 ? navigator.peekNext() : navigator.peekPrevious();
         if (target.equals(photo)) { resetPosition(image); return true; }
@@ -142,6 +166,7 @@ public final class PreviewActivity extends Activity {
         dragPreviewPhoto = null;
         updateRecommendation();
         updateButton();
+        if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
     private void loadCurrent() {
@@ -176,6 +201,16 @@ public final class PreviewActivity extends Activity {
                     "%.3f", insight.quality()) + "\n" + insight.reason());
         }
         analysisSheet.setVisibility(View.VISIBLE);
+    }
+
+    private void hideAnalysis() {
+        int distance = Math.max(analysisSheet.getHeight(), analysisSheet.getMeasuredHeight());
+        analysisSheet.animate().translationY(distance).alpha(0).setDuration(160)
+                .withEndAction(() -> {
+                    analysisSheet.setVisibility(View.GONE);
+                    analysisSheet.setTranslationY(0);
+                    analysisSheet.setAlpha(1);
+                }).start();
     }
 
     private void showDragPreview(Uri target) {
