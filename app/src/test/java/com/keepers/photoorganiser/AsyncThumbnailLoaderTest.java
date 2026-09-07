@@ -8,6 +8,8 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.widget.ImageView;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -40,5 +42,23 @@ public class AsyncThumbnailLoaderTest {
         loader.load(target, Uri.parse("content://media/photo/gone"), 360);
 
         assertEquals(null, target.getDrawable());
+    }
+
+    @Test public void progressiveLoadShowsPreviewThenScreenSizedImage() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImageView target = new ImageView(context);
+        List<Integer> requestedSizes = new ArrayList<>();
+        AsyncThumbnailLoader loader = new AsyncThumbnailLoader(Runnable::run, Runnable::run,
+                (uri, size) -> {
+                    requestedSizes.add(size);
+                    return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                });
+
+        loader.loadProgressive(target, Uri.parse("content://media/photo/1"), 480, 2400,
+                bitmap -> {});
+
+        assertEquals(List.of(480, 2400), requestedSizes);
+        assertEquals(2400, ((android.graphics.drawable.BitmapDrawable)
+                target.getDrawable()).getBitmap().getWidth());
     }
 }

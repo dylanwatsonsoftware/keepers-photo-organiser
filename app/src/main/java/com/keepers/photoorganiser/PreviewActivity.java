@@ -174,7 +174,8 @@ public final class PreviewActivity extends Activity {
     private void loadCurrent() {
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
-        loader.load(frontImage, photo, Math.min(screen, 1600), bitmap -> {
+        PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
+        loader.loadProgressive(frontImage, photo, sizes.previewPixels(), sizes.fullPixels(), bitmap -> {
             if (bitmap != null) frontImage.setVisibility(View.VISIBLE);
         });
         updateRecommendation();
@@ -247,7 +248,8 @@ public final class PreviewActivity extends Activity {
         adjacentSurface.setVisibility(View.INVISIBLE);
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
-        loader.load(adjacentImage, target, Math.min(screen, 1600), bitmap -> {
+        PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
+        loader.loadProgressive(adjacentImage, target, sizes.previewPixels(), sizes.fullPixels(), bitmap -> {
             if (bitmap != null && target.equals(dragPreviewPhoto)) {
                 adjacentSurface.setVisibility(View.VISIBLE);
             }

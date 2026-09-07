@@ -67,6 +67,40 @@ public final class AsyncThumbnailLoader implements AutoCloseable {
         });
     }
 
+    void loadProgressive(ImageView target, Uri uri, int previewSize, int fullSize,
+            Consumer<Bitmap> onLoaded) {
+        target.setTag(uri);
+        background.execute(() -> {
+            deliver(target, uri, loadSafely(uri, previewSize), false, onLoaded);
+            if (fullSize > previewSize) {
+                deliver(target, uri, loadSafely(uri, fullSize), true, onLoaded);
+            }
+        });
+    }
+
+    private Bitmap loadSafely(Uri uri, int size) {
+        try {
+            return source.load(uri, size);
+        } catch (Exception unavailablePhoto) {
+            Log.w("KeepersThumbnail", "Unable to load " + uri + " at " + size + "px",
+                    unavailablePhoto);
+            return null;
+        }
+    }
+
+    private void deliver(ImageView target, Uri uri, Bitmap bitmap, boolean crossfade,
+            Consumer<Bitmap> onLoaded) {
+        main.execute(() -> {
+            if (!uri.equals(target.getTag())) return;
+            if (bitmap != null) {
+                if (crossfade) target.setAlpha(0.82f);
+                target.setImageBitmap(bitmap);
+                if (crossfade) target.animate().alpha(1f).setDuration(180).start();
+            }
+            onLoaded.accept(bitmap);
+        });
+    }
+
     @Override public void close() {
         if (ownedExecutor != null) ownedExecutor.shutdownNow();
     }
