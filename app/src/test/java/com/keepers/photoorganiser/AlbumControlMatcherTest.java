@@ -7,6 +7,7 @@ import org.junit.Test;
 
 public class AlbumControlMatcherTest {
     @Test public void addControlRequiresAnExactLabel() {
+        assertTrue(AlbumControlMatcher.isAddToAlbum("Add to"));
         assertTrue(AlbumControlMatcher.isAddToAlbum("Add to album"));
         assertFalse(AlbumControlMatcher.isAddToAlbum("Add"));
         assertFalse(AlbumControlMatcher.isAddToAlbum("Add to shared album"));
