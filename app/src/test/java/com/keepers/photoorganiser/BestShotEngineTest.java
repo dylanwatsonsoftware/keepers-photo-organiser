@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 
@@ -41,6 +42,21 @@ public class BestShotEngineTest {
                 feature("best", 2, -1L, 0.9),
                 feature("third", 3, 0xAAAAAAAAAAAAAAAAL, 0.7),
                 feature("second", 4, 0x5555555555555555L, 0.8))));
+    }
+
+    @Test public void numbersOnlyDuplicateStacksDeterministically() {
+        Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(List.of(
+                feature("second-b", 40, -2L, 0.4),
+                feature("unique", 30, 0xAAAAAAAAAAAAAAAAL, 0.8),
+                feature("first-b", 20, 0b00000001L, 0.5),
+                feature("second-a", 10, -1L, 0.6),
+                feature("first-a", 1, 0L, 0.7)));
+
+        assertEquals(Map.of(
+                "first-a", new PhotoStackPosition(1, 1, 2),
+                "first-b", new PhotoStackPosition(1, 2, 2),
+                "second-a", new PhotoStackPosition(2, 1, 2),
+                "second-b", new PhotoStackPosition(2, 2, 2)), stacks);
     }
 
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {

@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
 
@@ -128,7 +129,10 @@ public final class ReviewActivity extends Activity {
             if (bitmap != null) features.add(new PhotoFeatures(photo.toString(),
                     recentPhoto.takenAtMillis(), PhotoFeatureExtractor.hash(bitmap),
                     PhotoFeatureExtractor.quality(bitmap)));
-            if (analyzedCount == photos.size()) showSuggestions(BestShotEngine.recommend(features));
+            if (analyzedCount == photos.size()) {
+                showStacks(BestShotEngine.stacks(features));
+                showSuggestions(BestShotEngine.recommend(features));
+            }
         });
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -166,6 +170,22 @@ public final class ReviewActivity extends Activity {
                 Gravity.TOP | Gravity.START);
         suggestionParams.setMargins(dp(7), dp(7), 0, 0);
         tile.addView(suggestion, suggestionParams);
+
+        TextView stack = new TextView(this);
+        stack.setTextColor(Color.WHITE);
+        stack.setTextSize(12);
+        stack.setGravity(Gravity.CENTER);
+        stack.setPadding(dp(7), dp(4), dp(7), dp(4));
+        GradientDrawable stackBackground = new GradientDrawable();
+        stackBackground.setColor(0xCC303134);
+        stackBackground.setCornerRadius(dp(12));
+        stack.setBackground(stackBackground);
+        stack.setVisibility(View.GONE);
+        FrameLayout.LayoutParams stackParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.START);
+        stackParams.setMargins(dp(7), 0, 0, dp(7));
+        tile.addView(stack, stackParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
                 .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
@@ -212,6 +232,17 @@ public final class ReviewActivity extends Activity {
                 ? "No near-duplicate groups found" : count
                 + (count == 1 ? " suggested best shot" : " suggested best shots"));
         updateSelectionDisplay();
+    }
+
+    void showStacks(Map<String, PhotoStackPosition> stacks) {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            FrameLayout tile = (FrameLayout) grid.getChildAt(index);
+            TextView badge = (TextView) tile.getChildAt(3);
+            PhotoStackPosition position = stacks.get(tile.getTag().toString());
+            badge.setText(position == null ? "" : position.label());
+            badge.setVisibility(position == null ? View.GONE : View.VISIBLE);
+        }
     }
 
     @Override protected void onResume() {

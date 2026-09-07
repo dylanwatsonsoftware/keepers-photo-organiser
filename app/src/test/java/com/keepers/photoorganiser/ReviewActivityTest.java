@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.GridLayout;
 import android.widget.TextView;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -80,6 +81,26 @@ public class ReviewActivityTest {
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
         assertEquals(photo, started.getData());
+    }
+
+    @Test public void duplicatePhotosShowTheirSharedStackAndPosition() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"),
+                Uri.parse("content://media/photo/2"),
+                Uri.parse("content://media/photo/3")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.showStacks(Map.of(
+                "content://media/photo/1", new PhotoStackPosition(1, 1, 2),
+                "content://media/photo/2", new PhotoStackPosition(1, 2, 2)));
+
+        assertEquals("Stack 1 · 1/2", ((TextView) ((android.view.ViewGroup)
+                grid.getChildAt(0)).getChildAt(3)).getText());
+        assertEquals("Stack 1 · 2/2", ((TextView) ((android.view.ViewGroup)
+                grid.getChildAt(1)).getChildAt(3)).getText());
+        assertEquals(View.GONE, ((android.view.ViewGroup)
+                grid.getChildAt(2)).getChildAt(3).getVisibility());
     }
 
     @Test public void loadMoreExpandsTheReviewWindow() {
