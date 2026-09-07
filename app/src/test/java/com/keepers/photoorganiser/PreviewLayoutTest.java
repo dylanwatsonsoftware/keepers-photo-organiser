@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import android.view.LayoutInflater;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.ScrollView;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -17,6 +18,12 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
+    @Test public void analysisBreakdownIsScrollable() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        assertEquals(ScrollView.class, layout.findViewById(R.id.preview_analysis_sheet).getClass());
+    }
     @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

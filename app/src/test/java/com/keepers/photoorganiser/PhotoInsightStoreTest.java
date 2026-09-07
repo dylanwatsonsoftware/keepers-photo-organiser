@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,8 @@ import org.robolectric.RuntimeEnvironment;
 public class PhotoInsightStoreTest {
     @Test public void storesQualityStackAndRecommendationReasonForReview() {
         PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
-        store.save(List.of(new PhotoFeatures("photo-a", 1, 0, 0.084)),
+        store.save(List.of(new PhotoFeatures("photo-a", 1, 0, 0.084,
+                        0.8, 0.7, 0.6, 0.9)),
                 Map.of("photo-a", new PhotoStackPosition(2, 6)), Set.of("photo-a"));
 
         PhotoInsight insight = store.load("photo-a");
@@ -23,5 +25,7 @@ public class PhotoInsightStoreTest {
         assertEquals(new PhotoStackPosition(2, 6), insight.stack());
         assertEquals(true, insight.recommended());
         assertEquals("Best detail score in this stack", insight.reason());
+        assertEquals(62, insight.assessment().score());
+        assertTrue(insight.assessment().explanation().contains("Motion blur — 90%"));
     }
 }

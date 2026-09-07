@@ -30,6 +30,23 @@ public class PhotoFeatureExtractorTest {
                 ^ PhotoFeatureExtractor.hash(brighter)) <= 4);
     }
 
+    @Test public void balancedExposureScoresHigherThanClippedExposure() {
+        Bitmap balanced = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+        balanced.eraseColor(Color.rgb(128, 128, 128));
+        Bitmap clipped = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+        clipped.eraseColor(Color.WHITE);
+
+        assertTrue(PhotoFeatureExtractor.assess(balanced).exposure()
+                > PhotoFeatureExtractor.assess(clipped).exposure());
+    }
+
+    @Test public void edgeDetailIsReportedSeparatelyFromMotionStability() {
+        PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(gradient(0));
+
+        assertTrue(assessment.detail() >= 0 && assessment.detail() <= 1);
+        assertTrue(assessment.motionStability() >= 0 && assessment.motionStability() <= 1);
+    }
+
     private static Bitmap gradient(int offset) {
         Bitmap bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
         for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++) {

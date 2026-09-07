@@ -78,7 +78,8 @@ public final class PreviewActivity extends Activity {
             analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
             touchStartX = event.getX();
             touchStartY = event.getY();
-            return true;
+            // Once open, let the analysis ScrollView handle its long factor breakdown.
+            return !analysisWasOpen;
         }
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             float deltaX = event.getX() - touchStartX;
@@ -197,8 +198,8 @@ public final class PreviewActivity extends Activity {
             String stack = insight.stack() == null ? "Distinct photo"
                     : "Photo " + insight.stack().position() + " of " + insight.stack().size()
                     + " in this detected stack";
-            body.setText(stack + "\nDetail score " + String.format(java.util.Locale.US,
-                    "%.3f", insight.quality()) + "\n" + insight.reason());
+            body.setText("Assessment " + insight.assessment().score() + "/100\n" + stack
+                    + "\n" + insight.reason() + "\n\n" + insight.assessment().explanation());
         }
         analysisSheet.setVisibility(View.VISIBLE);
     }

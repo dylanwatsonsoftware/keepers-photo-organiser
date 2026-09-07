@@ -143,9 +143,12 @@ public final class ReviewActivity extends Activity {
         thumbnailLoader.load(image, photo, size, bitmap -> {
             if (generation != analysisGeneration) return;
             analyzedCount++;
-            if (bitmap != null) features.add(new PhotoFeatures(photo.toString(),
-                    recentPhoto.takenAtMillis(), PhotoFeatureExtractor.hash(bitmap),
-                    PhotoFeatureExtractor.quality(bitmap)));
+            if (bitmap != null) {
+                PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
+                features.add(new PhotoFeatures(photo.toString(), recentPhoto.takenAtMillis(),
+                        PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
+                        assessment.exposure(), assessment.composition(), assessment.motionStability()));
+            }
             if (analyzedCount == photos.size()) {
                 Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
                 Set<String> recommendations = BestShotEngine.recommend(features);
