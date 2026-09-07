@@ -30,6 +30,8 @@ public final class PreviewActivity extends Activity {
     private boolean analysisWasOpen;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
+    private float analysisPullStartY;
+    private boolean analysisPulling;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -52,7 +54,7 @@ public final class PreviewActivity extends Activity {
         adjacentSurface = findViewById(R.id.preview_adjacent_surface);
         pages = new CarouselPagePair(currentSurface, frontImage, adjacentSurface, adjacentImage);
         analysisSheet = findViewById(R.id.preview_analysis_sheet);
-        analysisSheet.setOnTouchListener((view, event) -> handleSwipe(event));
+        analysisSheet.setOnTouchListener((view, event) -> handleAnalysisScroll(event));
         previewStage = findViewById(R.id.preview_stage);
         previewControls = findViewById(R.id.preview_controls);
         previewClose = findViewById(R.id.preview_close);
@@ -69,6 +71,37 @@ public final class PreviewActivity extends Activity {
     private void updateButton() {
         ((TextView) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
                 ? "♥ Keeper — tap to remove" : "♡ Mark as keeper");
+    }
+
+    private boolean handleAnalysisScroll(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            analysisPullStartY = event.getY();
+            analysisPulling = false;
+            return false;
+        }
+        float pull = event.getY() - analysisPullStartY;
+        if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            if (analysisSheet.getScrollY() > 0 || pull <= dp(4)) return false;
+            analysisPulling = true;
+            AnalysisSheetTransform transform = AnalysisSheetTransform.fromOpenPull(pull,
+                    previewStage.getHeight(), dp(72));
+            setPhotoChromeTranslation(transform.photoTranslationY());
+            analysisSheet.setTranslationY(transform.sheetTranslationY());
+            return true;
+        }
+        if (!analysisPulling) return false;
+        if (event.getAction() == MotionEvent.ACTION_UP) {
+            if (AnalysisSheetTransform.shouldClose(pull, dp(64))) hideAnalysis();
+            else openAnalysis();
+            analysisPulling = false;
+            return true;
+        }
+        if (event.getAction() == MotionEvent.ACTION_CANCEL) {
+            openAnalysis();
+            analysisPulling = false;
+            return true;
+        }
+        return false;
     }
 
     private boolean handleSwipe(MotionEvent event) {

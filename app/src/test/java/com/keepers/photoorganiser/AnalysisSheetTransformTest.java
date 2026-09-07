@@ -13,4 +13,13 @@ public class AnalysisSheetTransformTest {
         assertEquals(-240f, fullyOpen.photoTranslationY(), 0.001f);
         assertEquals(0f, fullyOpen.sheetTranslationY(), 0.001f);
     }
+
+    @Test public void pullingDownFromOpenRevealsThePhotoAndCanClose() {
+        AnalysisSheetTransform pull = AnalysisSheetTransform.fromOpenPull(90, 300, 60);
+
+        assertEquals(-150f, pull.photoTranslationY(), 0.001f);
+        assertEquals(90f, pull.sheetTranslationY(), 0.001f);
+        assertEquals(true, AnalysisSheetTransform.shouldClose(90, 64));
+        assertEquals(false, AnalysisSheetTransform.shouldClose(40, 64));
+    }
 }
