@@ -29,6 +29,8 @@ public final class ReviewActivity extends Activity {
     private final List<PhotoFeatures> features = new ArrayList<>();
     private Set<String> suggestions = Set.of();
     private int analyzedCount;
+    private int analysisGeneration;
+    private final ReviewWindow reviewWindow = new ReviewWindow();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,12 +41,16 @@ public final class ReviewActivity extends Activity {
             selectionStore.clear();
             updateSelectionDisplay();
         });
+        findViewById(R.id.load_more).setOnClickListener(view -> {
+            reviewWindow.expand();
+            if (hasLocalPhotoAccess()) loadRecentPhotos();
+        });
         loadOrRequestPhotos();
     }
 
     private void loadOrRequestPhotos() {
         if (hasLocalPhotoAccess()) {
-            showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver()));
+            loadRecentPhotos();
             return;
         }
         if (Build.VERSION.SDK_INT >= 34) {
@@ -61,7 +67,7 @@ public final class ReviewActivity extends Activity {
             int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PHOTO_PERMISSION && hasLocalPhotoAccess()) {
-            showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver()));
+            loadRecentPhotos();
         } else if (requestCode == PHOTO_PERMISSION) {
             ((TextView) findViewById(R.id.review_empty)).setText(
                     "Photo access is needed to review recent Pixel camera images.");
@@ -85,6 +91,7 @@ public final class ReviewActivity extends Activity {
     }
 
     private void showRecentPhotos(List<RecentPhoto> recentPhotos) {
+        int generation = ++analysisGeneration;
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
         photos = List.copyOf(uris);
@@ -94,7 +101,7 @@ public final class ReviewActivity extends Activity {
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
         int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
-        for (RecentPhoto photo : recentPhotos) grid.addView(createTile(photo, tileSize));
+        for (RecentPhoto photo : recentPhotos) grid.addView(createTile(photo, tileSize, generation));
         TextView empty = findViewById(R.id.review_empty);
         empty.setText("No recent local camera photos found.");
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
@@ -102,7 +109,7 @@ public final class ReviewActivity extends Activity {
         updateSelectionDisplay();
     }
 
-    private View createTile(RecentPhoto recentPhoto, int size) {
+    private View createTile(RecentPhoto recentPhoto, int size, int generation) {
         Uri photo = recentPhoto.uri();
         FrameLayout tile = new FrameLayout(this);
         tile.setTag(photo);
@@ -116,6 +123,7 @@ public final class ReviewActivity extends Activity {
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(Color.rgb(232, 234, 237));
         thumbnailLoader.load(image, photo, size, bitmap -> {
+            if (generation != analysisGeneration) return;
             analyzedCount++;
             if (bitmap != null) features.add(new PhotoFeatures(photo.toString(),
                     recentPhoto.takenAtMillis(), PhotoFeatureExtractor.hash(bitmap),
@@ -163,6 +171,12 @@ public final class ReviewActivity extends Activity {
                 new Intent(this, PreviewActivity.class).setData(photo)));
         return tile;
     }
+
+    private void loadRecentPhotos() {
+        showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver(), reviewWindow.limit()));
+    }
+
+    int reviewLimit() { return reviewWindow.limit(); }
 
     private void updateSelectionDisplay() {
         Set<String> selected = selectionStore.load();

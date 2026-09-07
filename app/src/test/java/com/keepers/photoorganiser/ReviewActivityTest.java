@@ -75,6 +75,14 @@ public class ReviewActivityTest {
         assertEquals(photo, started.getData());
     }
 
+    @Test public void loadMoreExpandsTheReviewWindow() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        activity.findViewById(R.id.load_more).performClick();
+
+        assertEquals(120, activity.reviewLimit());
+    }
+
     private static String text(ReviewActivity activity, int id) {
         return ((TextView) activity.findViewById(id)).getText().toString();
     }

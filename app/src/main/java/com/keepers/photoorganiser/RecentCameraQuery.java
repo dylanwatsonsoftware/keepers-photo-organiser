@@ -25,6 +25,10 @@ public final class RecentCameraQuery {
     }
 
     public static List<RecentPhoto> loadRecent(ContentResolver resolver) {
+        return loadRecent(resolver, LIMIT);
+    }
+
+    public static List<RecentPhoto> loadRecent(ContentResolver resolver, int limit) {
         Bundle args = new Bundle();
         args.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                 MediaStore.Images.Media.RELATIVE_PATH + " LIKE ?");
@@ -34,7 +38,7 @@ public final class RecentCameraQuery {
                 new String[]{MediaStore.Images.Media.DATE_TAKEN});
         args.putInt(ContentResolver.QUERY_ARG_SORT_DIRECTION,
                 ContentResolver.QUERY_SORT_DIRECTION_DESCENDING);
-        args.putInt(ContentResolver.QUERY_ARG_LIMIT, LIMIT);
+        args.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
 
         ArrayList<RecentPhoto> photos = new ArrayList<>();
         try (Cursor cursor = resolver.query(

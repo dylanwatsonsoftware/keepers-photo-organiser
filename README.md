@@ -10,7 +10,7 @@ Keepers is an Android prototype for reviewing recent Pixel camera photos, choosi
 
 ## Current review prototype
 
-Tap **Review recent photos** to load up to 60 recent images that still exist locally in `DCIM/Camera`:
+Tap **Review recent photos** to load the first 60 recent images that still exist locally in `DCIM/Camera`. Use **Load 60 more** repeatedly to work backward through as many locally available images as needed without loading full-resolution files into memory.
 
 - Photos appear in a compact three-column grid inspired by Google Photos.
 - Tap an image to mark it as a keeper; tap again to undo.

@@ -71,4 +71,11 @@
             android:columnCount="3"
             android:padding="1dp" />
     </ScrollView>
+
+    <Button
+        android:id="@+id/load_more"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:text="Load 60 more" />
 </LinearLayout>
