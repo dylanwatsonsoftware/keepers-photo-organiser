@@ -15,9 +15,9 @@ Tap **Review recent photos** to load the first 60 recent images that still exist
 - Photos appear in a compact three-column grid inspired by Google Photos.
 - Tap an image to mark it as a keeper; tap again to undo.
 - Once a keeper is chosen, other images fade but always remain visible and selectable.
-- Keepers groups nearby photos into time-based scenes and marks the strongest technical frame in each scene with an amber star.
+- Keepers clusters visually similar photos across the loaded batch, keeps the strongest technical frame from each near-duplicate cluster, and recommends visually distinct shots rather than excluding them because they were taken close together.
 - AI suggestions are not confirmations: only photos you tap receive a blue keeper heart.
-- Tap a thumbnail to inspect it in a large preview, swipe left or right through adjacent photos, and use the explicit heart control to confirm or remove a keeper.
+- Tap a thumbnail to inspect it in a large preview, see whether it is recommended, swipe left or right through adjacent photos, swipe down to return, and use the explicit heart control to confirm or remove a keeper.
 - Keeper choices persist locally across app restarts and can be cleared at any time.
 - No image is moved, hidden, deleted, uploaded, or modified by the review screen.
 

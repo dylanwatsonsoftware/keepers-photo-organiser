@@ -4,8 +4,12 @@
     android:background="#000000" android:orientation="vertical">
     <ImageView android:id="@+id/preview_image" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:scaleType="fitCenter" />
+    <TextView android:id="@+id/preview_recommendation" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:gravity="center" android:padding="8dp"
+        android:textColor="#FFB74D" android:textStyle="bold" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center" android:padding="8dp" android:text="Swipe left or right to browse"
+        android:gravity="center" android:padding="8dp"
+        android:text="Swipe left/right to browse • down to return"
         android:textColor="#FFFFFF" />
     <Button android:id="@+id/preview_keeper" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_margin="16dp" android:text="Mark as keeper" />

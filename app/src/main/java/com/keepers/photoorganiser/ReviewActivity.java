@@ -209,11 +209,17 @@ public final class ReviewActivity extends Activity {
 
     void showSuggestions(Set<String> recommended) {
         suggestions = Set.copyOf(recommended);
+        new SuggestionStore(this).save(suggestions);
         int count = suggestions.size();
         ((TextView) findViewById(R.id.suggestion_count)).setText(count == 0
                 ? "No near-duplicate groups found" : count
                 + (count == 1 ? " suggested best shot" : " suggested best shots"));
         updateSelectionDisplay();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (!photos.isEmpty()) updateSelectionDisplay();
     }
 
     private int dp(int value) {

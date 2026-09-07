@@ -12,21 +12,22 @@ public final class BestShotEngine {
     private BestShotEngine() {}
 
     public static Set<String> recommend(List<PhotoFeatures> photos) {
-        Set<String> recommendations = new HashSet<>();
-        List<PhotoFeatures> group = new ArrayList<>();
+        List<List<PhotoFeatures>> groups = new ArrayList<>();
         for (PhotoFeatures photo : photos) {
-            if (!group.isEmpty() && !isSameScene(group.get(group.size() - 1), photo)) {
-                addBestIfDuplicateGroup(group, recommendations);
-                group.clear();
+            List<PhotoFeatures> match = null;
+            for (List<PhotoFeatures> group : groups) {
+                if (Long.bitCount(group.get(0).perceptualHash() ^ photo.perceptualHash())
+                        <= MAX_HASH_DISTANCE) {
+                    match = group;
+                    break;
+                }
             }
-            group.add(photo);
+            if (match == null) { match = new ArrayList<>(); groups.add(match); }
+            match.add(photo);
         }
-        addBestIfDuplicateGroup(group, recommendations);
+        Set<String> recommendations = new HashSet<>();
+        for (List<PhotoFeatures> group : groups) addBestIfDuplicateGroup(group, recommendations);
         return recommendations;
-    }
-
-    private static boolean isSameScene(PhotoFeatures first, PhotoFeatures second) {
-        return Math.abs(second.takenAtMillis() - first.takenAtMillis()) <= SCENE_WINDOW_MILLIS;
     }
 
     private static void addBestIfDuplicateGroup(List<PhotoFeatures> group, Set<String> result) {

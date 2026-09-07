@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.view.MotionEvent;
 import java.util.ArrayList;
 
@@ -14,12 +15,15 @@ public final class PreviewActivity extends Activity {
     private Uri photo;
     private PhotoNavigator navigator;
     private float touchStartX;
+    private float touchStartY;
+    private SuggestionStore suggestionStore;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_preview);
         photo = getIntent().getData();
         store = new KeeperSelectionStore(this);
+        suggestionStore = new SuggestionStore(this);
         loader = AsyncThumbnailLoader.forResolver(getContentResolver());
         int limit = getIntent().getIntExtra(ReviewActivity.EXTRA_REVIEW_LIMIT,
                 ReviewWindow.PAGE_SIZE);
@@ -47,12 +51,15 @@ public final class PreviewActivity extends Activity {
     private boolean handleSwipe(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             touchStartX = event.getX();
+            touchStartY = event.getY();
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
-        float distance = event.getX() - touchStartX;
-        if (Math.abs(distance) < dp(64)) return true;
-        photo = distance < 0 ? navigator.next() : navigator.previous();
+        SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
+                event.getY() - touchStartY, dp(64));
+        if (direction == SwipeDirection.BACK) { finish(); return true; }
+        if (direction == SwipeDirection.NONE) return true;
+        photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
         loadCurrent();
         updateButton();
         return true;
@@ -62,6 +69,8 @@ public final class PreviewActivity extends Activity {
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
         loader.load((ImageView) findViewById(R.id.preview_image), photo, Math.min(screen, 1600));
+        ((TextView) findViewById(R.id.preview_recommendation)).setText(
+                suggestionStore.load().contains(photo.toString()) ? "★ Recommended best shot" : "");
     }
 
     private int dp(int value) {
