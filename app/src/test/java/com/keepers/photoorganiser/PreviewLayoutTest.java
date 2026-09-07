@@ -42,4 +42,14 @@ public class PreviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.preview_recommendation).getBackground());
         assertNotNull(layout.findViewById(R.id.preview_keeper).getBackground());
     }
+
+    @Test public void currentPhotoStaysAboveTheAdjacentCarouselSurface() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        View current = layout.findViewById(R.id.preview_image);
+        View adjacent = layout.findViewById(R.id.preview_adjacent_image);
+
+        assertEquals(true, current.getElevation() > adjacent.getElevation());
+    }
 }

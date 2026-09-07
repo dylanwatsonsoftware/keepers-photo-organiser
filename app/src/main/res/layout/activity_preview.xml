@@ -21,6 +21,7 @@
             android:id="@+id/preview_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:elevation="1dp"
             android:scaleType="fitCenter" />
     </FrameLayout>
 
@@ -30,6 +31,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@drawable/preview_controls_gradient"
+        android:elevation="2dp"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:paddingStart="20dp"
