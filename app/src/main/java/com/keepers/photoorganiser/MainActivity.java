@@ -23,6 +23,7 @@ public final class MainActivity extends Activity {
     private static final int PHOTO_PERMISSION = 100;
     private static final int FAVOURITE_REQUEST = 101;
     private final ArrayList<Uri> selectedPhotos = new ArrayList<>();
+    private boolean favoriteDiagnosticPending;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,7 @@ public final class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.choose_photos).setOnClickListener(view -> choosePhotos());
+        findViewById(R.id.check_media_favorites).setOnClickListener(view -> checkMediaFavorites());
         findViewById(R.id.open_review).setOnClickListener(view ->
                 startActivity(new Intent(this, ReviewActivity.class)));
         findViewById(R.id.open_existing).setOnClickListener(view -> openFirstPhoto());
@@ -74,6 +76,10 @@ public final class MainActivity extends Activity {
             loadRecentCameraPhotos();
             return;
         }
+        requestPhotoAccess();
+    }
+
+    private void requestPhotoAccess() {
         if (Build.VERSION.SDK_INT >= 34) {
             requestPermissions(new String[]{
                     Manifest.permission.READ_MEDIA_IMAGES,
@@ -88,7 +94,48 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == PHOTO_PERMISSION && hasLocalPhotoAccess()) loadRecentCameraPhotos();
+        if (requestCode != PHOTO_PERMISSION) return;
+        if (!hasLocalPhotoAccess()) {
+            if (favoriteDiagnosticPending) {
+                favoriteDiagnosticPending = false;
+                ((TextView) findViewById(R.id.favorite_diagnostic_status)).setText(
+                        "Photo access is required to inspect MediaStore favourite state.");
+            }
+            return;
+        }
+        if (favoriteDiagnosticPending) {
+            favoriteDiagnosticPending = false;
+            runFavoriteDiagnostic();
+        } else {
+            loadRecentCameraPhotos();
+        }
+    }
+
+    private void checkMediaFavorites() {
+        if (hasLocalPhotoAccess()) {
+            runFavoriteDiagnostic();
+            return;
+        }
+        favoriteDiagnosticPending = true;
+        requestPhotoAccess();
+    }
+
+    private void runFavoriteDiagnostic() {
+        try {
+            showFavoriteDiagnostic(MediaStoreFavoriteDiagnostic.scan(getContentResolver()));
+        } catch (RuntimeException exception) {
+            ((TextView) findViewById(R.id.favorite_diagnostic_status)).setText(
+                    "MediaStore favourite state could not be read on this device.");
+        }
+    }
+
+    void showFavoriteDiagnostic(FavoriteDiagnostic diagnostic) {
+        int favorites = diagnostic.favoriteUris().size();
+        String count = favorites == 0 ? "no favourites" : favorites + " favourite"
+                + (favorites == 1 ? "" : "s");
+        ((TextView) findViewById(R.id.favorite_diagnostic_status)).setText(
+                "MediaStore reports " + count + " among " + diagnostic.scannedCount()
+                        + " recent local camera photos.");
     }
 
     private boolean hasLocalPhotoAccess() {

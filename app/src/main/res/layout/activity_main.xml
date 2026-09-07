@@ -34,6 +34,39 @@
             android:text="Review recent photos" />
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Google Photos favourite sync"
+            android:textColor="#202124"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/check_media_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Check local favourite state" />
+
+        <TextView
+            android:id="@+id/favorite_diagnostic_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#F1F3F4"
+            android:padding="16dp"
+            android:text="Not checked yet."
+            android:textColor="#202124"
+            android:textSize="15sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Favourite one known local Pixel photo in Google Photos, return here, then check again. A changed count means Keepers can read the sync state."
+            android:textColor="#5F6368" />
+
+        <TextView
             android:id="@+id/selection_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

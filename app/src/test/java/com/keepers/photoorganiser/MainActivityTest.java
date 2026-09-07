@@ -41,6 +41,16 @@ public class MainActivityTest {
                 .contains("DUPLICATE RISK"));
     }
 
+    @Test public void favoriteDiagnosticExplainsTheObservedMediaStoreState() {
+        MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
+
+        activity.showFavoriteDiagnostic(new FavoriteDiagnostic(12,
+                Arrays.asList(Uri.parse("content://media/photo/1"))));
+
+        assertEquals("MediaStore reports 1 favourite among 12 recent local camera photos.",
+                text(activity, R.id.favorite_diagnostic_status));
+    }
+
     private static Button button(MainActivity activity, int id) {
         return activity.findViewById(id);
     }
