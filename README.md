@@ -51,6 +51,8 @@ The current build includes an explicitly armed, one-shot Accessibility test:
 
 It ignores `Unfavourite`/`Remove from favorites`, listens only to Google Photos, expires after two minutes, and never runs continuously unless explicitly armed again.
 
+The build also includes a one-shot album test. Enter the exact existing album name, arm **Add to album**, and manually open one test photo. Keepers first clicks only the exact `Add to album` control, then clicks only the exact configured album name. It disarms before selecting the album and expires after two minutes.
+
 ## Pass criteria
 
 Do not proceed to photo ranking unless the on-device test establishes that:

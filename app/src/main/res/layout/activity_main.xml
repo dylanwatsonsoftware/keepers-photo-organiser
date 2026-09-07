@@ -57,6 +57,26 @@
             android:text="After arming, Keepers opens Google Photos. Manually open one expendable test photo; Keepers will tap an exact Favourite control once, then disarm."
             android:textColor="#B3261E" />
 
+        <EditText
+            android:id="@+id/album_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Exact existing album name"
+            android:inputType="textCapWords" />
+
+        <Button
+            android:id="@+id/arm_accessibility_album"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Arm one-shot Add to album" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="After arming, manually open one test photo. Keepers clicks Add to album, then only the exact album name above, and disarms."
+            android:textColor="#B3261E" />
+
         <Button
             android:id="@+id/choose_photos"
             android:layout_width="match_parent"

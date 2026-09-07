@@ -14,6 +14,7 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.widget.Toast;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,25 @@ public final class MainActivity extends Activity {
         findViewById(R.id.open_accessibility_settings).setOnClickListener(view ->
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         findViewById(R.id.arm_accessibility_favourite).setOnClickListener(view -> armFavourite());
+        findViewById(R.id.arm_accessibility_album).setOnClickListener(view -> armAlbum());
         showSelection(List.of());
+    }
+
+    private void armAlbum() {
+        String album = ((EditText) findViewById(R.id.album_name)).getText().toString().trim();
+        if (album.isEmpty()) {
+            explain("Album name required", "Enter the exact existing Google Photos album name.");
+            return;
+        }
+        getSharedPreferences(KeepersAccessibilityService.PREFS, MODE_PRIVATE).edit()
+                .putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL,
+                        System.currentTimeMillis() + 120_000)
+                .putString(KeepersAccessibilityService.ALBUM_NAME, album)
+                .putInt(KeepersAccessibilityService.ALBUM_PHASE, 0).apply();
+        Toast.makeText(this, "Armed for album “" + album + "”", Toast.LENGTH_LONG).show();
+        Intent launch = getPackageManager().getLaunchIntentForPackage(
+                GooglePhotosIntentFactory.GOOGLE_PHOTOS_PACKAGE);
+        if (launch != null) startActivity(launch);
     }
 
     private void armFavourite() {
