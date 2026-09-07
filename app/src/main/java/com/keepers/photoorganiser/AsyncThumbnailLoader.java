@@ -50,10 +50,12 @@ public final class AsyncThumbnailLoader implements AutoCloseable {
     }
 
     void load(ImageView target, Uri uri, int size, Consumer<Bitmap> onLoaded) {
+        target.setTag(uri);
         background.execute(() -> {
             try {
                 Bitmap thumbnail = source.load(uri, size);
                 main.execute(() -> {
+                    if (!uri.equals(target.getTag())) return;
                     target.setImageBitmap(thumbnail);
                     onLoaded.accept(thumbnail);
                 });

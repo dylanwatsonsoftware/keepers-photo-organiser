@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.ArrayList;
 
 public final class ReviewActivity extends Activity {
+    public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     private static final int PHOTO_PERMISSION = 200;
     private static final float FADED_ALPHA = 0.38f;
     private KeeperSelectionStore selectionStore;
@@ -167,8 +168,8 @@ public final class ReviewActivity extends Activity {
         suggestionParams.setMargins(dp(7), dp(7), 0, 0);
         tile.addView(suggestion, suggestionParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
-        tile.setOnClickListener(view -> startActivity(
-                new Intent(this, PreviewActivity.class).setData(photo)));
+        tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
+                .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
         return tile;
     }
 
