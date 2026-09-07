@@ -101,17 +101,25 @@ public final class ReviewActivity extends Activity {
     private void showRecentPhotos(List<RecentPhoto> recentPhotos) {
         hasMorePhotos = recentPhotos.size() == reviewWindow.limit();
         findViewById(R.id.review_loading).setVisibility(View.GONE);
-        int generation = ++analysisGeneration;
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
+        int previousCount = photos.size();
+        boolean appending = recentPhotos.size() > previousCount
+                && uris.subList(0, previousCount).equals(photos);
+        int generation = appending ? analysisGeneration : ++analysisGeneration;
         photos = List.copyOf(uris);
-        features.clear();
-        suggestions = Set.of();
-        analyzedCount = 0;
         GridLayout grid = findViewById(R.id.photo_grid);
-        grid.removeAllViews();
+        if (!appending) {
+            features.clear();
+            suggestions = Set.of();
+            analyzedCount = 0;
+            grid.removeAllViews();
+            previousCount = 0;
+        }
         int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
-        for (RecentPhoto photo : recentPhotos) grid.addView(createTile(photo, tileSize, generation));
+        for (int index = previousCount; index < recentPhotos.size(); index++) {
+            grid.addView(createTile(recentPhotos.get(index), tileSize, generation));
+        }
         TextView empty = findViewById(R.id.review_empty);
         empty.setText("No recent local camera photos found.");
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
@@ -146,14 +154,11 @@ public final class ReviewActivity extends Activity {
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        TextView marker = new TextView(this);
+        ImageView marker = new ImageView(this);
         marker.setTag("marker");
-        marker.setText("♥");
-        marker.setTextColor(Color.WHITE);
-        marker.setTextSize(17);
-        marker.setTextScaleX(1.15f);
-        marker.setIncludeFontPadding(false);
-        marker.setGravity(Gravity.CENTER);
+        marker.setImageResource(R.drawable.ic_heart_outline);
+        marker.setColorFilter(Color.WHITE);
+        marker.setPadding(dp(6), dp(6), dp(6), dp(6));
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
         circle.setColor(Color.rgb(11, 87, 208));
@@ -167,13 +172,10 @@ public final class ReviewActivity extends Activity {
             updateSelectionDisplay();
         });
 
-        TextView suggestion = new TextView(this);
-        suggestion.setText("★");
-        suggestion.setTextColor(Color.WHITE);
-        suggestion.setTextSize(15);
-        suggestion.setIncludeFontPadding(false);
-        suggestion.setTranslationY(-dp(1));
-        suggestion.setGravity(Gravity.CENTER);
+        ImageView suggestion = new ImageView(this);
+        suggestion.setImageResource(R.drawable.ic_star);
+        suggestion.setColorFilter(Color.WHITE);
+        suggestion.setPadding(dp(6), dp(6), dp(6), dp(6));
         GradientDrawable suggestionCircle = new GradientDrawable();
         suggestionCircle.setShape(GradientDrawable.OVAL);
         suggestionCircle.setColor(Color.rgb(176, 96, 0));
@@ -229,9 +231,10 @@ public final class ReviewActivity extends Activity {
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
             boolean suggested = suggestions.contains(tile.getTag().toString());
             tile.setAlpha(1f);
-            TextView heart = (TextView) tile.getChildAt(1);
-            heart.setText(keeper ? "♥" : "♡");
-            heart.setBackgroundColor(keeper ? Color.rgb(11, 87, 208) : 0x66000000);
+            ImageView heart = (ImageView) tile.getChildAt(1);
+            heart.setImageResource(keeper ? R.drawable.ic_heart_filled
+                    : R.drawable.ic_heart_outline);
+            heart.setColorFilter(keeper ? Color.rgb(234, 67, 53) : Color.WHITE);
             heart.setVisibility(View.VISIBLE);
             tile.getChildAt(2).setVisibility(suggested ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."

@@ -10,19 +10,31 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/preview_adjacent_image"
+        <FrameLayout
+            android:id="@+id/preview_adjacent_surface"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter"
-            android:visibility="invisible" />
+            android:visibility="invisible">
 
-        <ImageView
-            android:id="@+id/preview_image"
+            <ImageView
+                android:id="@+id/preview_adjacent_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/preview_current_surface"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:elevation="1dp"
-            android:scaleType="fitCenter" />
+            android:elevation="1dp">
+
+            <ImageView
+                android:id="@+id/preview_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
     </FrameLayout>
 
     <ImageButton

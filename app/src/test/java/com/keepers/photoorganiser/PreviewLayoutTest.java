@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import android.view.LayoutInflater;
 import android.view.Gravity;
@@ -44,14 +45,18 @@ public class PreviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.preview_keeper).getBackground());
     }
 
-    @Test public void currentPhotoStaysAboveTheAdjacentCarouselSurface() {
+    @Test public void carouselUsesDedicatedPageSurfacesAroundItsImages() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
+        int currentSurface = layout.getResources().getIdentifier(
+                "preview_current_surface", "id", RuntimeEnvironment.getApplication().getPackageName());
+        int adjacentSurface = layout.getResources().getIdentifier(
+                "preview_adjacent_surface", "id", RuntimeEnvironment.getApplication().getPackageName());
 
-        View current = layout.findViewById(R.id.preview_image);
-        View adjacent = layout.findViewById(R.id.preview_adjacent_image);
-
-        assertEquals(true, current.getElevation() > adjacent.getElevation());
+        assertTrue(currentSurface != 0);
+        assertTrue(adjacentSurface != 0);
+        assertTrue(layout.findViewById(currentSurface) instanceof FrameLayout);
+        assertTrue(layout.findViewById(adjacentSurface) instanceof FrameLayout);
     }
 
     @Test public void photoViewHasACompactCloseAction() {

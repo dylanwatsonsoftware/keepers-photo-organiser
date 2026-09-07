@@ -2,12 +2,15 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
 import android.view.View;
 import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 import java.util.List;
 import java.util.Map;
@@ -106,21 +109,20 @@ public class ReviewActivityTest {
         assertEquals(photo, started.getData());
     }
 
-    @Test public void photoMarkersUseCompactOpticallyCenteredSizing() {
+    @Test public void photoMarkersUseMatchingVectorShapesWithCenteredStar() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(Uri.parse("content://media/photo/1")));
         android.view.ViewGroup tile = (android.view.ViewGroup) activity
                 .<GridLayout>findViewById(R.id.photo_grid).getChildAt(0);
-        TextView heart = (TextView) tile.getChildAt(1);
-        TextView star = (TextView) tile.getChildAt(2);
+        assertTrue(tile.getChildAt(1) instanceof ImageView);
+        assertTrue(tile.getChildAt(2) instanceof ImageView);
+        ImageView heart = (ImageView) tile.getChildAt(1);
+        ImageView star = (ImageView) tile.getChildAt(2);
         float density = activity.getResources().getDisplayMetrics().density;
 
         assertEquals(Math.round(30 * density), heart.getLayoutParams().width);
-        assertEquals(1.15f, heart.getTextScaleX(), 0.001f);
-        assertEquals(false, heart.getIncludeFontPadding());
         assertEquals(Math.round(28 * density), star.getLayoutParams().width);
-        assertEquals(false, star.getIncludeFontPadding());
-        assertEquals(-density, star.getTranslationY(), 0.001f);
+        assertEquals(0f, star.getTranslationY(), 0.001f);
     }
 
     @Test public void duplicatePhotosShowTheirSharedStackAndPosition() {
@@ -149,6 +151,23 @@ public class ReviewActivityTest {
         activity.loadNextPage();
 
         assertEquals(120, activity.reviewLimit());
+    }
+
+    @Test public void addingTheNextPagePreservesAlreadyRenderedTiles() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"),
+                Uri.parse("content://media/photo/2")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        View firstTile = grid.getChildAt(0);
+
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"),
+                Uri.parse("content://media/photo/2"),
+                Uri.parse("content://media/photo/3")));
+
+        assertSame(firstTile, grid.getChildAt(0));
+        assertEquals(3, grid.getChildCount());
     }
 
     private static String text(ReviewActivity activity, int id) {

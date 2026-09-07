@@ -20,6 +20,8 @@ public final class PreviewActivity extends Activity {
     private SuggestionStore suggestionStore;
     private ImageView frontImage;
     private ImageView adjacentImage;
+    private FrameLayout currentSurface;
+    private FrameLayout adjacentSurface;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
 
@@ -40,6 +42,8 @@ public final class PreviewActivity extends Activity {
         navigator = new PhotoNavigator(photos, photo);
         frontImage = findViewById(R.id.preview_image);
         adjacentImage = findViewById(R.id.preview_adjacent_image);
+        currentSurface = findViewById(R.id.preview_current_surface);
+        adjacentSurface = findViewById(R.id.preview_adjacent_surface);
         previewStage = findViewById(R.id.preview_stage);
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
@@ -57,11 +61,11 @@ public final class PreviewActivity extends Activity {
     }
 
     private boolean handleSwipe(MotionEvent event) {
-        ImageView image = frontImage;
+        View image = currentSurface;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             image.animate().cancel();
-            adjacentImage.animate().cancel();
-            adjacentImage.setVisibility(View.INVISIBLE);
+            adjacentSurface.animate().cancel();
+            adjacentSurface.setVisibility(View.INVISIBLE);
             dragPreviewPhoto = null;
             touchStartX = event.getX();
             touchStartY = event.getY();
@@ -77,7 +81,7 @@ public final class PreviewActivity extends Activity {
                 image.setTranslationX(carousel.currentX());
                 image.setTranslationY(0);
                 image.setAlpha(1);
-                adjacentImage.setTranslationX(carousel.adjacentX());
+                adjacentSurface.setTranslationX(carousel.adjacentX());
                 return true;
             }
             DragTransform drag = DragTransform.from(deltaX, deltaY, image.getHeight());
@@ -90,7 +94,7 @@ public final class PreviewActivity extends Activity {
         SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
                 event.getY() - touchStartY, dp(64));
         if (direction == SwipeDirection.BACK) {
-            adjacentImage.setVisibility(View.INVISIBLE);
+            adjacentSurface.setVisibility(View.INVISIBLE);
             image.animate().translationY(image.getHeight()).alpha(0.5f).setDuration(160)
                     .withEndAction(this::finish).start();
             return true;
@@ -100,7 +104,7 @@ public final class PreviewActivity extends Activity {
         photo = direction == SwipeDirection.NEXT ? navigator.next() : navigator.previous();
         if (photo.equals(before)) { resetPosition(image); return true; }
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
-        if (adjacentImage.getVisibility() != View.VISIBLE
+        if (adjacentSurface.getVisibility() != View.VISIBLE
                 || !photo.equals(dragPreviewPhoto)) {
             recreate();
             return true;
@@ -108,7 +112,7 @@ public final class PreviewActivity extends Activity {
         float pageDistance = previewStage.getWidth() + dp(8);
         float exit = direction == SwipeDirection.NEXT ? -pageDistance : pageDistance;
         image.animate().translationX(exit).setDuration(140).start();
-        adjacentImage.animate().translationX(0).setDuration(140)
+        adjacentSurface.animate().translationX(0).setDuration(140)
                 .withEndAction(this::recreate).start();
         return true;
     }
@@ -131,28 +135,28 @@ public final class PreviewActivity extends Activity {
 
     private void showDragPreview(Uri target) {
         if (target.equals(photo)) {
-            adjacentImage.setVisibility(View.INVISIBLE);
+            adjacentSurface.setVisibility(View.INVISIBLE);
             dragPreviewPhoto = null;
             return;
         }
         if (target.equals(dragPreviewPhoto)) return;
         dragPreviewPhoto = target;
-        adjacentImage.setVisibility(View.INVISIBLE);
+        adjacentSurface.setVisibility(View.INVISIBLE);
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
         loader.load(adjacentImage, target, Math.min(screen, 1600), bitmap -> {
             if (bitmap != null && target.equals(dragPreviewPhoto)) {
-                adjacentImage.setVisibility(View.VISIBLE);
+                adjacentSurface.setVisibility(View.VISIBLE);
             }
         });
     }
 
-    private void resetPosition(ImageView image) {
+    private void resetPosition(View image) {
         float pageDistance = previewStage.getWidth() + dp(8);
         float adjacentRest = image.getTranslationX() < 0 ? pageDistance : -pageDistance;
-        adjacentImage.animate().translationX(adjacentRest).setDuration(140).start();
+        adjacentSurface.animate().translationX(adjacentRest).setDuration(140).start();
         image.animate().translationX(0).translationY(0).alpha(1).setDuration(140)
-                .withEndAction(() -> adjacentImage.setVisibility(View.INVISIBLE)).start();
+                .withEndAction(() -> adjacentSurface.setVisibility(View.INVISIBLE)).start();
     }
 
     private int dp(int value) {
