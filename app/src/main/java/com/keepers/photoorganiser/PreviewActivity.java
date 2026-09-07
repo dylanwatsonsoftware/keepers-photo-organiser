@@ -23,6 +23,7 @@ public final class PreviewActivity extends Activity {
     private FrameLayout currentSurface;
     private FrameLayout adjacentSurface;
     private CarouselPagePair pages;
+    private View analysisSheet;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
 
@@ -46,6 +47,8 @@ public final class PreviewActivity extends Activity {
         currentSurface = findViewById(R.id.preview_current_surface);
         adjacentSurface = findViewById(R.id.preview_adjacent_surface);
         pages = new CarouselPagePair(currentSurface, frontImage, adjacentSurface, adjacentImage);
+        analysisSheet = findViewById(R.id.preview_analysis_sheet);
+        analysisSheet.setOnTouchListener((view, event) -> handleSwipe(event));
         previewStage = findViewById(R.id.preview_stage);
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
@@ -96,9 +99,19 @@ public final class PreviewActivity extends Activity {
         SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
                 event.getY() - touchStartY, dp(64));
         if (direction == SwipeDirection.BACK) {
+            if (analysisSheet.getVisibility() == View.VISIBLE) {
+                analysisSheet.setVisibility(View.GONE);
+                resetPosition(image);
+                return true;
+            }
             adjacentSurface.setVisibility(View.INVISIBLE);
             image.animate().translationY(image.getHeight()).alpha(0.5f).setDuration(160)
                     .withEndAction(this::finish).start();
+            return true;
+        }
+        if (direction == SwipeDirection.DETAILS) {
+            resetPosition(image);
+            showAnalysis();
             return true;
         }
         if (direction == SwipeDirection.NONE) { resetPosition(image); return true; }
@@ -145,6 +158,24 @@ public final class PreviewActivity extends Activity {
         boolean recommended = suggestionStore.load().contains(photo.toString());
         recommendation.setText(recommended ? "★  Best shot" : "");
         recommendation.setVisibility(recommended ? View.VISIBLE : View.GONE);
+    }
+
+    private void showAnalysis() {
+        PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
+        TextView title = findViewById(R.id.preview_analysis_title);
+        TextView body = findViewById(R.id.preview_analysis_body);
+        if (insight == null) {
+            title.setText("Analysis pending");
+            body.setText("This photo has not finished being analysed yet.");
+        } else {
+            title.setText(insight.recommended() ? "Recommended best shot" : "Not recommended");
+            String stack = insight.stack() == null ? "Distinct photo"
+                    : "Photo " + insight.stack().position() + " of " + insight.stack().size()
+                    + " in this detected stack";
+            body.setText(stack + "\nDetail score " + String.format(java.util.Locale.US,
+                    "%.3f", insight.quality()) + "\n" + insight.reason());
+        }
+        analysisSheet.setVisibility(View.VISIBLE);
     }
 
     private void showDragPreview(Uri target) {

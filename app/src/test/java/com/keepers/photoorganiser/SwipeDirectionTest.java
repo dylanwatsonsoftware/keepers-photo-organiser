@@ -9,6 +9,6 @@ public class SwipeDirectionTest {
         assertEquals(SwipeDirection.PREVIOUS, SwipeDirection.classify(120, 10, 64));
         assertEquals(SwipeDirection.BACK, SwipeDirection.classify(10, 120, 64));
         assertEquals(SwipeDirection.NONE, SwipeDirection.classify(20, 30, 64));
-        assertEquals(SwipeDirection.NONE, SwipeDirection.classify(5, -120, 64));
+        assertEquals(SwipeDirection.DETAILS, SwipeDirection.classify(5, -120, 64));
     }
 }

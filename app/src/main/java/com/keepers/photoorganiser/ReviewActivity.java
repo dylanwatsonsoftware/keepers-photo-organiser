@@ -147,8 +147,11 @@ public final class ReviewActivity extends Activity {
                     recentPhoto.takenAtMillis(), PhotoFeatureExtractor.hash(bitmap),
                     PhotoFeatureExtractor.quality(bitmap)));
             if (analyzedCount == photos.size()) {
-                showStacks(BestShotEngine.stacks(features));
-                showSuggestions(BestShotEngine.recommend(features));
+                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
+                Set<String> recommendations = BestShotEngine.recommend(features);
+                new PhotoInsightStore(this).save(features, stacks, recommendations);
+                showStacks(stacks);
+                showSuggestions(recommendations);
             }
         });
         tile.addView(image, new FrameLayout.LayoutParams(

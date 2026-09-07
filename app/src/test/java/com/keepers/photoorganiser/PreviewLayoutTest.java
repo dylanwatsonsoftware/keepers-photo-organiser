@@ -68,4 +68,15 @@ public class PreviewLayoutTest {
         assertEquals(true, close instanceof ImageButton);
         assertEquals("Close photo", close.getContentDescription());
     }
+
+    @Test public void photoViewIncludesAHiddenAnalysisSheet() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        int sheetId = layout.getResources().getIdentifier(
+                "preview_analysis_sheet", "id",
+                RuntimeEnvironment.getApplication().getPackageName());
+
+        assertTrue(sheetId != 0);
+        assertEquals(View.GONE, layout.findViewById(sheetId).getVisibility());
+    }
 }
