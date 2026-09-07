@@ -3,7 +3,6 @@ package com.keepers.photoorganiser;
 import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -52,7 +51,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void updateButton() {
-        ((Button) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
+        ((TextView) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
                 ? "♥ Keeper — tap to remove" : "♡ Mark as keeper");
     }
 
@@ -123,8 +122,10 @@ public final class PreviewActivity extends Activity {
     }
 
     private void updateRecommendation() {
-        ((TextView) findViewById(R.id.preview_recommendation)).setText(
-                suggestionStore.load().contains(photo.toString()) ? "★ Recommended best shot" : "");
+        TextView recommendation = findViewById(R.id.preview_recommendation);
+        boolean recommended = suggestionStore.load().contains(photo.toString());
+        recommendation.setText(recommended ? "★  Best shot" : "");
+        recommendation.setVisibility(recommended ? View.VISIBLE : View.GONE);
     }
 
     private void showDragPreview(Uri target) {
