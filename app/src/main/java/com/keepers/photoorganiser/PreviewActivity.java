@@ -83,8 +83,9 @@ public final class PreviewActivity extends Activity {
             touchStartX = event.getX();
             touchStartY = event.getY();
             // Once open, let the analysis ScrollView handle its long factor breakdown.
-            return !analysisWasOpen;
+            return AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen);
         }
+        if (!AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen)) return false;
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             float deltaX = event.getX() - touchStartX;
             float deltaY = event.getY() - touchStartY;
