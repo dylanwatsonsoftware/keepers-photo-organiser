@@ -20,7 +20,7 @@ public class PhotoAssessmentTest {
                 "Exposure quality", "Motion blur", "Variety among selected moments",
                 "Your previous Keeper choices"),
                 assessment.rules().stream().map(AssessmentRule::name).toList());
-        assertTrue(assessment.explanation().contains("Smiles and expressions — Not assessed yet"));
-        assertTrue(assessment.explanation().contains("Focus — 80%"));
+        assertTrue(assessment.explanation().contains("— Smiles and expressions — Not assessed yet"));
+        assertTrue(assessment.explanation().contains("★ Focus — 80%"));
     }
 }

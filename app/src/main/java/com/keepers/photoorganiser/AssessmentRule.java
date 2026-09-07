@@ -10,7 +10,8 @@ public record AssessmentRule(String name, Double value, String note) {
     }
 
     public String display() {
-        return name + " — " + (value == null ? "Not assessed yet"
+        String indicator = value == null ? "—" : value >= 0.65 ? "★" : "✓";
+        return indicator + " " + name + " — " + (value == null ? "Not assessed yet"
                 : Math.round(value * 100) + "%") + "\n" + note;
     }
 }
