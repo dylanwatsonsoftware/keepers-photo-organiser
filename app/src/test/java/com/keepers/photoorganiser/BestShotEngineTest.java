@@ -78,6 +78,16 @@ public class BestShotEngineTest {
                 feature("entrance-b", 40_000, -256L, 0.6))));
     }
 
+    @Test public void recommendsOnlyOneBestPhotoFromOneDisplayedStack() {
+        assertEquals(Set.of("best"), BestShotEngine.recommend(List.of(
+                feature("one", 1_000, 0L, 0.4),
+                feature("two", 10_000, 0xFFFL, 0.5),
+                feature("three", 20_000, 0xFFFFFFL, 0.6),
+                feature("best", 30_000, 0xFFFFFFFFFL, 0.9),
+                feature("five", 40_000, 0xFFFFFFFFFFFFL, 0.7),
+                feature("six", 50_000, 0x0FFFFFFFFFFFFFFFL, 0.8))));
+    }
+
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
         return new PhotoFeatures(id, takenAt, hash, quality);
     }

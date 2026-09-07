@@ -9,13 +9,12 @@ import java.util.Set;
 
 public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
-    static final int MAX_HASH_DISTANCE = 10;
     static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
 
     private BestShotEngine() {}
 
     public static Set<String> recommend(List<PhotoFeatures> photos) {
-        List<List<PhotoFeatures>> groups = visualGroups(photos);
+        List<List<PhotoFeatures>> groups = sceneGroups(photos);
         List<PhotoFeatures> candidates = new ArrayList<>();
         for (List<PhotoFeatures> group : groups) candidates.add(best(group));
         candidates.sort(java.util.Comparator.comparingDouble(PhotoFeatures::quality).reversed()
@@ -53,24 +52,6 @@ public final class BestShotEngine {
                 groups.add(latest);
             }
             latest.add(photo);
-        }
-        return groups;
-    }
-
-    private static List<List<PhotoFeatures>> visualGroups(List<PhotoFeatures> photos) {
-        List<PhotoFeatures> ordered = ordered(photos);
-        List<List<PhotoFeatures>> groups = new ArrayList<>();
-        for (PhotoFeatures photo : ordered) {
-            List<PhotoFeatures> match = null;
-            for (List<PhotoFeatures> group : groups) {
-                if (Long.bitCount(group.get(0).perceptualHash() ^ photo.perceptualHash())
-                        <= MAX_HASH_DISTANCE) {
-                    match = group;
-                    break;
-                }
-            }
-            if (match == null) { match = new ArrayList<>(); groups.add(match); }
-            match.add(photo);
         }
         return groups;
     }
