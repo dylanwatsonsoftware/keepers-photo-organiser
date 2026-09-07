@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.net.Uri;
@@ -127,6 +128,7 @@ public class ReviewActivityTest {
         float density = activity.getResources().getDisplayMetrics().density;
 
         assertEquals(Math.round(30 * density), heart.getLayoutParams().width);
+        assertNull(heart.getBackground());
         assertEquals(Math.round(28 * density), star.getLayoutParams().width);
         assertEquals(0f, star.getTranslationY(), 0.001f);
     }

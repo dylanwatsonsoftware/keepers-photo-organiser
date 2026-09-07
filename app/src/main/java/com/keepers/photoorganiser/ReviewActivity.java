@@ -162,10 +162,6 @@ public final class ReviewActivity extends Activity {
         marker.setImageResource(R.drawable.ic_heart_outline);
         marker.setColorFilter(Color.WHITE);
         marker.setPadding(dp(6), dp(6), dp(6), dp(6));
-        GradientDrawable circle = new GradientDrawable();
-        circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(Color.rgb(11, 87, 208));
-        marker.setBackground(circle);
         FrameLayout.LayoutParams markerParams = new FrameLayout.LayoutParams(dp(30), dp(30),
                 Gravity.TOP | Gravity.END);
         markerParams.setMargins(0, dp(7), dp(7), 0);
