@@ -22,12 +22,14 @@ public final class ReviewActivity extends Activity {
     private static final int PHOTO_PERMISSION = 200;
     private static final float FADED_ALPHA = 0.38f;
     private KeeperSelectionStore selectionStore;
+    private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_review);
         selectionStore = new KeeperSelectionStore(this);
+        thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {
             selectionStore.clear();
             updateSelectionDisplay();
@@ -93,11 +95,8 @@ public final class ReviewActivity extends Activity {
 
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        try {
-            image.setImageURI(photo);
-        } catch (RuntimeException unavailablePhoto) {
-            image.setBackgroundColor(Color.rgb(232, 234, 237));
-        }
+        image.setBackgroundColor(Color.rgb(232, 234, 237));
+        thumbnailLoader.load(image, photo, size);
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
@@ -147,5 +146,10 @@ public final class ReviewActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    @Override protected void onDestroy() {
+        thumbnailLoader.close();
+        super.onDestroy();
     }
 }
