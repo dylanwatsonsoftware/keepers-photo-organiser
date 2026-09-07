@@ -32,12 +32,10 @@ public final class MainActivity extends Activity {
     }
 
     private void choosePhotos() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE)
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES)
                 .setType("image/*")
-                .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivityForResult(intent, PICK_PHOTOS);
     }
 
@@ -57,7 +55,16 @@ public final class MainActivity extends Activity {
         } else if (data.getData() != null) {
             photos.add(data.getData());
         }
-        showSelection(photos);
+        try {
+            MediaUriResolver resolver = new MediaUriResolver(
+                    uri -> MediaStore.getMediaUri(this, uri));
+            showSelection(resolver.resolveAll(photos));
+        } catch (IllegalArgumentException exception) {
+            showSelection(List.of());
+            explain("Local photo required",
+                    "At least one selection exists only through a document or cloud provider. "
+                            + "Choose recent Pixel camera photos that are still stored on this phone.");
+        }
     }
 
     void showSelection(List<Uri> photos) {

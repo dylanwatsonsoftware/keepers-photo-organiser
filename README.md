@@ -15,6 +15,16 @@ The app lets you select 3–5 photos and run three experiments:
 2. **Request Android favourite** — asks Android's `MediaStore` to mark the selected local items as favourites, behind the system confirmation dialog. The test is whether Google Photos reflects and syncs that state.
 3. **Batch album experiment** — sends several selected URIs to Google Photos using `ACTION_SEND_MULTIPLE`. This is explicitly treated as a duplicate-risk experiment.
 
+The picker now uses Android's native `MediaStore.ACTION_PICK_IMAGES` flow. Document-provider selections are converted to equivalent local MediaStore items when Android can resolve them; cloud-only selections are rejected for the Favourite experiment.
+
+## Observations so far
+
+Tested on a Pixel 7 running Android 17:
+
+- Opening a previously selected document URI in Google Photos displayed the correct photo, but in a restricted viewer without the normal Favourite control.
+- `MediaStore.createFavoriteRequest` rejected document-provider URIs, as Android requires item-specific MediaStore URIs.
+- The current build replaces that picker path with the native Android Photo Picker and local MediaStore URI resolution. Its cloud Favourite-sync behaviour still needs to be tested.
+
 ## Pass criteria
 
 Do not proceed to photo ranking unless the on-device test establishes that:
