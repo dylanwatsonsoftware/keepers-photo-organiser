@@ -237,6 +237,8 @@ public final class ReviewActivity extends Activity {
             heart.setImageResource(keeper ? R.drawable.ic_heart_filled
                     : R.drawable.ic_heart_outline);
             heart.setColorFilter(keeper ? Color.rgb(234, 67, 53) : Color.WHITE);
+            int heartPadding = dp(HeartIconStyle.paddingDp(keeper));
+            heart.setPadding(heartPadding, heartPadding, heartPadding, heartPadding);
             heart.setVisibility(View.VISIBLE);
             tile.getChildAt(2).setVisibility(suggested ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
