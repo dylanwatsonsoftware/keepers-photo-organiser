@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.ArrayList;
 
 public final class ReviewActivity extends Activity {
+    private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     private static final int PHOTO_PERMISSION = 200;
     private KeeperSelectionStore selectionStore;
@@ -35,6 +36,7 @@ public final class ReviewActivity extends Activity {
     private final ReviewWindow reviewWindow = new ReviewWindow();
     private final InfiniteScrollTrigger infiniteScroll = new InfiniteScrollTrigger(600);
     private boolean hasMorePhotos;
+    private GalleryFilter galleryFilter = GalleryFilter.ALL;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,6 +49,10 @@ public final class ReviewActivity extends Activity {
             selectionStore.clear();
             updateSelectionDisplay();
         });
+        findViewById(R.id.filter_keepers).setOnClickListener(view ->
+                toggleFilter(GalleryFilter.KEEPERS));
+        findViewById(R.id.filter_recommended).setOnClickListener(view ->
+                toggleFilter(GalleryFilter.RECOMMENDED));
         ScrollView scroll = findViewById(R.id.review_scroll);
         scroll.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
             View content = scroll.getChildAt(0);
@@ -249,6 +255,7 @@ public final class ReviewActivity extends Activity {
                 ? "No keepers selected yet" : count + (count == 1 ? " keeper" : " keepers"));
         findViewById(R.id.clear_keepers).setEnabled(count > 0);
         findViewById(R.id.clear_keepers).setAlpha(count > 0 ? 1f : 0.35f);
+        applyFilter();
     }
 
     void showSuggestions(Set<String> recommended) {
@@ -269,6 +276,39 @@ public final class ReviewActivity extends Activity {
             PhotoStackPosition position = stacks.get(tile.getTag().toString());
             badge.setText(position == null ? "" : position.label());
             badge.setVisibility(position == null ? View.GONE : View.VISIBLE);
+        }
+    }
+
+    private void toggleFilter(GalleryFilter requested) {
+        galleryFilter = galleryFilter == requested ? GalleryFilter.ALL : requested;
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        Set<String> keepers = selectionStore.load();
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int visible = 0;
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            View tile = grid.getChildAt(index);
+            String id = tile.getTag().toString();
+            boolean show = galleryFilter == GalleryFilter.ALL
+                    || galleryFilter == GalleryFilter.KEEPERS && keepers.contains(id)
+                    || galleryFilter == GalleryFilter.RECOMMENDED && suggestions.contains(id);
+            tile.setVisibility(show ? View.VISIBLE : View.GONE);
+            if (show) visible++;
+        }
+        View keeperFilter = findViewById(R.id.filter_keepers);
+        View recommendedFilter = findViewById(R.id.filter_recommended);
+        keeperFilter.setSelected(galleryFilter == GalleryFilter.KEEPERS);
+        recommendedFilter.setSelected(galleryFilter == GalleryFilter.RECOMMENDED);
+        TextView empty = findViewById(R.id.review_empty);
+        if (!photos.isEmpty() && visible == 0) {
+            empty.setText(galleryFilter == GalleryFilter.KEEPERS
+                    ? "No Keepers in the loaded photos yet."
+                    : "No recommended photos in the loaded photos yet.");
+            empty.setVisibility(View.VISIBLE);
+        } else if (!photos.isEmpty()) {
+            empty.setVisibility(View.GONE);
         }
     }
 

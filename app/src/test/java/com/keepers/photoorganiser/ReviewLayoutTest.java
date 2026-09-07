@@ -38,5 +38,7 @@ public class ReviewLayoutTest {
         LinearLayout summary = layout.findViewById(R.id.photo_summary);
         assertNotNull(summary);
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
+        assertNotNull(layout.findViewById(R.id.filter_keepers));
+        assertNotNull(layout.findViewById(R.id.filter_recommended));
     }
 }

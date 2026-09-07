@@ -104,6 +104,33 @@ public class ReviewActivityTest {
                 ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2).getVisibility());
     }
 
+    @Test public void keeperAndRecommendedFiltersAreExclusiveAndToggleBackToAll() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"),
+                Uri.parse("content://media/photo/2"),
+                Uri.parse("content://media/photo/3")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
+        activity.showSuggestions(Set.of("content://media/photo/2"));
+
+        activity.findViewById(R.id.filter_keepers).performClick();
+        assertEquals(View.VISIBLE, grid.getChildAt(0).getVisibility());
+        assertEquals(View.GONE, grid.getChildAt(1).getVisibility());
+        assertEquals(View.GONE, grid.getChildAt(2).getVisibility());
+
+        activity.findViewById(R.id.filter_recommended).performClick();
+        assertEquals(View.GONE, grid.getChildAt(0).getVisibility());
+        assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
+        assertTrue(activity.findViewById(R.id.filter_recommended).isSelected());
+        assertTrue(!activity.findViewById(R.id.filter_keepers).isSelected());
+
+        activity.findViewById(R.id.filter_recommended).performClick();
+        assertEquals(View.VISIBLE, grid.getChildAt(0).getVisibility());
+        assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
+        assertEquals(View.VISIBLE, grid.getChildAt(2).getVisibility());
+    }
+
     @Test public void tappingPhotoOpensLargePreview() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Uri photo = Uri.parse("content://media/photo/1");
