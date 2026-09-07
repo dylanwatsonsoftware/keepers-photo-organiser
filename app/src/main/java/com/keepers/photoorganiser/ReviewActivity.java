@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,8 @@ public final class ReviewActivity extends Activity {
     private int analyzedCount;
     private int analysisGeneration;
     private final ReviewWindow reviewWindow = new ReviewWindow();
+    private final InfiniteScrollTrigger infiniteScroll = new InfiniteScrollTrigger(600);
+    private boolean hasMorePhotos;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,9 +45,11 @@ public final class ReviewActivity extends Activity {
             selectionStore.clear();
             updateSelectionDisplay();
         });
-        findViewById(R.id.load_more).setOnClickListener(view -> {
-            reviewWindow.expand();
-            if (hasLocalPhotoAccess()) loadRecentPhotos();
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        scroll.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            View content = scroll.getChildAt(0);
+            if (content != null && infiniteScroll.onScroll(scrollY, scroll.getHeight(),
+                    content.getHeight(), hasMorePhotos)) loadNextPage();
         });
         loadOrRequestPhotos();
     }
@@ -92,6 +97,8 @@ public final class ReviewActivity extends Activity {
     }
 
     private void showRecentPhotos(List<RecentPhoto> recentPhotos) {
+        hasMorePhotos = recentPhotos.size() == reviewWindow.limit();
+        findViewById(R.id.review_loading).setVisibility(View.GONE);
         int generation = ++analysisGeneration;
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
@@ -198,6 +205,12 @@ public final class ReviewActivity extends Activity {
 
     private void loadRecentPhotos() {
         showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver(), reviewWindow.limit()));
+    }
+
+    void loadNextPage() {
+        reviewWindow.expand();
+        findViewById(R.id.review_loading).setVisibility(View.VISIBLE);
+        if (hasLocalPhotoAccess()) loadRecentPhotos();
     }
 
     int reviewLimit() { return reviewWindow.limit(); }

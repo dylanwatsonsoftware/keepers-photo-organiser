@@ -120,10 +120,10 @@ public class ReviewActivityTest {
                 grid.getChildAt(2)).getChildAt(3).getVisibility());
     }
 
-    @Test public void loadMoreExpandsTheReviewWindow() {
+    @Test public void infiniteScrollExpandsTheReviewWindow() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
-        activity.findViewById(R.id.load_more).performClick();
+        activity.loadNextPage();
 
         assertEquals(120, activity.reviewLimit());
     }

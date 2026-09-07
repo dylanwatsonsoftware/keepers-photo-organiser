@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,5 +17,13 @@ public class ReviewLayoutTest {
                 .inflate(R.layout.activity_review, null);
 
         assertTrue(layout.getFitsSystemWindows());
+    }
+
+    @Test public void reviewUsesScrollableGridWithLoadingIndicator() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+
+        assertNotNull(layout.findViewById(R.id.review_scroll));
+        assertNotNull(layout.findViewById(R.id.review_loading));
     }
 }
