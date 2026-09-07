@@ -19,6 +19,12 @@ public final class RecentCameraQuery {
     }
 
     public static List<Uri> load(ContentResolver resolver) {
+        ArrayList<Uri> uris = new ArrayList<>();
+        for (RecentPhoto photo : loadRecent(resolver)) uris.add(photo.uri());
+        return uris;
+    }
+
+    public static List<RecentPhoto> loadRecent(ContentResolver resolver) {
         Bundle args = new Bundle();
         args.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                 MediaStore.Images.Media.RELATIVE_PATH + " LIKE ?");
@@ -30,13 +36,15 @@ public final class RecentCameraQuery {
                 ContentResolver.QUERY_SORT_DIRECTION_DESCENDING);
         args.putInt(ContentResolver.QUERY_ARG_LIMIT, LIMIT);
 
-        ArrayList<Uri> photos = new ArrayList<>();
+        ArrayList<RecentPhoto> photos = new ArrayList<>();
         try (Cursor cursor = resolver.query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[]{MediaStore.Images.Media._ID}, args, null)) {
+                new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DATE_TAKEN}, args, null)) {
             if (cursor == null) return photos;
             int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID);
-            while (cursor.moveToNext()) photos.add(itemUri(cursor.getLong(idColumn)));
+            int dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN);
+            while (cursor.moveToNext()) photos.add(new RecentPhoto(
+                    itemUri(cursor.getLong(idColumn)), cursor.getLong(dateColumn)));
         }
         return photos;
     }

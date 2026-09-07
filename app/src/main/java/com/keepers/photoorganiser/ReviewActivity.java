@@ -17,6 +17,7 @@ import android.widget.TextView;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 public final class ReviewActivity extends Activity {
     private static final int PHOTO_PERMISSION = 200;
@@ -24,6 +25,9 @@ public final class ReviewActivity extends Activity {
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
+    private final List<PhotoFeatures> features = new ArrayList<>();
+    private Set<String> suggestions = Set.of();
+    private int analyzedCount;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +43,7 @@ public final class ReviewActivity extends Activity {
 
     private void loadOrRequestPhotos() {
         if (hasLocalPhotoAccess()) {
-            showPhotos(RecentCameraQuery.load(getContentResolver()));
+            showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver()));
             return;
         }
         if (Build.VERSION.SDK_INT >= 34) {
@@ -56,7 +60,7 @@ public final class ReviewActivity extends Activity {
             int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PHOTO_PERMISSION && hasLocalPhotoAccess()) {
-            showPhotos(RecentCameraQuery.load(getContentResolver()));
+            showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver()));
         } else if (requestCode == PHOTO_PERMISSION) {
             ((TextView) findViewById(R.id.review_empty)).setText(
                     "Photo access is needed to review recent Pixel camera images.");
@@ -73,18 +77,32 @@ public final class ReviewActivity extends Activity {
     }
 
     void showPhotos(List<Uri> recentPhotos) {
-        photos = List.copyOf(recentPhotos);
+        ArrayList<RecentPhoto> details = new ArrayList<>();
+        long timestamp = 0;
+        for (Uri photo : recentPhotos) details.add(new RecentPhoto(photo, timestamp++));
+        showRecentPhotos(details);
+    }
+
+    private void showRecentPhotos(List<RecentPhoto> recentPhotos) {
+        ArrayList<Uri> uris = new ArrayList<>();
+        for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
+        photos = List.copyOf(uris);
+        features.clear();
+        suggestions = Set.of();
+        analyzedCount = 0;
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
         int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
-        for (Uri photo : photos) grid.addView(createTile(photo, tileSize));
+        for (RecentPhoto photo : recentPhotos) grid.addView(createTile(photo, tileSize));
         TextView empty = findViewById(R.id.review_empty);
         empty.setText("No recent local camera photos found.");
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
+        if (photos.isEmpty()) showSuggestions(Set.of());
         updateSelectionDisplay();
     }
 
-    private View createTile(Uri photo, int size) {
+    private View createTile(RecentPhoto recentPhoto, int size) {
+        Uri photo = recentPhoto.uri();
         FrameLayout tile = new FrameLayout(this);
         tile.setTag(photo);
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
@@ -96,7 +114,13 @@ public final class ReviewActivity extends Activity {
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(Color.rgb(232, 234, 237));
-        thumbnailLoader.load(image, photo, size);
+        thumbnailLoader.load(image, photo, size, bitmap -> {
+            analyzedCount++;
+            if (bitmap != null) features.add(new PhotoFeatures(photo.toString(),
+                    recentPhoto.takenAtMillis(), PhotoFeatureExtractor.hash(bitmap),
+                    PhotoFeatureExtractor.quality(bitmap)));
+            if (analyzedCount == photos.size()) showSuggestions(BestShotEngine.recommend(features));
+        });
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
@@ -114,6 +138,18 @@ public final class ReviewActivity extends Activity {
                 Gravity.TOP | Gravity.END);
         markerParams.setMargins(0, dp(7), dp(7), 0);
         tile.addView(marker, markerParams);
+
+        TextView suggestion = new TextView(this);
+        suggestion.setText("★");
+        suggestion.setTextColor(Color.WHITE);
+        suggestion.setTextSize(18);
+        suggestion.setGravity(Gravity.CENTER);
+        GradientDrawable suggestionCircle = new GradientDrawable();
+        suggestionCircle.setShape(GradientDrawable.OVAL);
+        suggestionCircle.setColor(Color.rgb(176, 96, 0));
+        suggestion.setBackground(suggestionCircle);
+        suggestion.setVisibility(View.GONE);
+        tile.addView(suggestion, markerParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> {
             selectionStore.toggle((Uri) view.getTag());
@@ -133,8 +169,11 @@ public final class ReviewActivity extends Activity {
         for (int index = 0; index < grid.getChildCount(); index++) {
             FrameLayout tile = (FrameLayout) grid.getChildAt(index);
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
-            tile.setAlpha(!hasSelection || keeper ? 1f : FADED_ALPHA);
+            boolean suggested = suggestions.contains(tile.getTag().toString());
+            tile.setAlpha(hasSelection ? (keeper ? 1f : FADED_ALPHA)
+                    : suggestions.isEmpty() || suggested ? 1f : 0.5f);
             tile.getChildAt(1).setVisibility(keeper ? View.VISIBLE : View.GONE);
+            tile.getChildAt(2).setVisibility(suggested && !keeper ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
                     : "Photo. Tap to mark as keeper.");
         }
@@ -142,6 +181,15 @@ public final class ReviewActivity extends Activity {
         ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
                 ? "No keepers selected yet" : count + (count == 1 ? " keeper" : " keepers"));
         findViewById(R.id.clear_keepers).setEnabled(count > 0);
+    }
+
+    void showSuggestions(Set<String> recommended) {
+        suggestions = Set.copyOf(recommended);
+        int count = suggestions.size();
+        ((TextView) findViewById(R.id.suggestion_count)).setText(count == 0
+                ? "No near-duplicate groups found" : count
+                + (count == 1 ? " suggested best shot" : " suggested best shots"));
+        updateSelectionDisplay();
     }
 
     private int dp(int value) {

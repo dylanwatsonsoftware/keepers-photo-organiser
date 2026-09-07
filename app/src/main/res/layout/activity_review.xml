@@ -40,6 +40,16 @@
         android:textSize="15sp" />
 
     <TextView
+        android:id="@+id/suggestion_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="10dp"
+        android:text="Finding similar shots…"
+        android:textColor="#B06000"
+        android:textSize="14sp" />
+
+    <TextView
         android:id="@+id/review_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

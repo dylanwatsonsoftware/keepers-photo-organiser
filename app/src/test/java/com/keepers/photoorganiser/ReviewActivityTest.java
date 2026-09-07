@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.GridLayout;
 import android.widget.TextView;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -42,6 +43,21 @@ public class ReviewActivityTest {
 
         assertEquals("No keepers selected yet", text(activity, R.id.keeper_count));
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
+        assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
+    }
+
+    @Test public void suggestionsFadeAlternativesWithoutConfirmingThem() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/1"),
+                Uri.parse("content://media/photo/2")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.showSuggestions(Set.of("content://media/photo/2"));
+
+        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
+        assertEquals("No keepers selected yet", text(activity, R.id.keeper_count));
+        assertEquals(0.5f, grid.getChildAt(0).getAlpha(), 0.001f);
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
     }
 

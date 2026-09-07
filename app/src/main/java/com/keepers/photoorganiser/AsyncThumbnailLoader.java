@@ -10,6 +10,7 @@ import android.widget.ImageView;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 public final class AsyncThumbnailLoader implements AutoCloseable {
     interface Source {
@@ -45,12 +46,19 @@ public final class AsyncThumbnailLoader implements AutoCloseable {
     }
 
     void load(ImageView target, Uri uri, int size) {
+        load(target, uri, size, bitmap -> {});
+    }
+
+    void load(ImageView target, Uri uri, int size, Consumer<Bitmap> onLoaded) {
         background.execute(() -> {
             try {
                 Bitmap thumbnail = source.load(uri, size);
-                main.execute(() -> target.setImageBitmap(thumbnail));
+                main.execute(() -> {
+                    target.setImageBitmap(thumbnail);
+                    onLoaded.accept(thumbnail);
+                });
             } catch (Exception unavailablePhoto) {
-                // Keep the neutral placeholder when a local item disappears or cannot be read.
+                main.execute(() -> onLoaded.accept(null));
             }
         });
     }
