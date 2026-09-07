@@ -3,7 +3,6 @@ package com.keepers.photoorganiser;
 import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -21,7 +20,6 @@ public final class PreviewActivity extends Activity {
     private float touchStartY;
     private SuggestionStore suggestionStore;
     private ImageView frontImage;
-    private ImageView backImage;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -39,7 +37,6 @@ public final class PreviewActivity extends Activity {
         if (photos.isEmpty()) photos.add(photo);
         navigator = new PhotoNavigator(photos, photo);
         frontImage = findViewById(R.id.preview_image);
-        backImage = findViewById(R.id.preview_incoming_image);
         FrameLayout stage = findViewById(R.id.preview_stage);
         stage.setOnTouchListener((view, event) -> handleSwipe(event));
         loadCurrent();
@@ -87,8 +84,8 @@ public final class PreviewActivity extends Activity {
         image.setTranslationX(0);
         image.setTranslationY(0);
         image.setAlpha(1);
-        loadCurrentKeepingVisiblePhoto();
-        updateButton();
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+        recreate();
         return true;
     }
 
@@ -97,35 +94,6 @@ public final class PreviewActivity extends Activity {
                 getResources().getDisplayMetrics().heightPixels);
         loader.load(frontImage, photo, Math.min(screen, 1600), bitmap -> {
             if (bitmap != null) frontImage.setVisibility(View.VISIBLE);
-        });
-        updateRecommendation();
-    }
-
-    private void loadCurrentKeepingVisiblePhoto() {
-        Uri requested = photo;
-        ImageView outgoing = frontImage;
-        ImageView incoming = backImage;
-        incoming.setVisibility(View.INVISIBLE);
-        int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
-                getResources().getDisplayMetrics().heightPixels);
-        loader.load(incoming, requested, Math.min(screen, 1600), bitmap -> {
-            Log.d("KeepersPreview", "adjacent uri=" + requested + " bitmap="
-                    + (bitmap == null ? "null" : bitmap.getWidth() + "x" + bitmap.getHeight())
-                    + " current=" + requested.equals(photo) + " incomingVisibility="
-                    + incoming.getVisibility() + " incomingAlpha=" + incoming.getAlpha()
-                    + " incomingX=" + incoming.getTranslationX());
-            if (bitmap == null || !requested.equals(photo)) return;
-            incoming.setTranslationX(0);
-            incoming.setTranslationY(0);
-            incoming.setAlpha(1);
-            incoming.setVisibility(View.VISIBLE);
-            incoming.bringToFront();
-            outgoing.setVisibility(View.INVISIBLE);
-            frontImage = incoming;
-            backImage = outgoing;
-            Log.d("KeepersPreview", "swapped drawable=" + (frontImage.getDrawable() != null)
-                    + " visibility=" + frontImage.getVisibility() + " alpha="
-                    + frontImage.getAlpha() + " x=" + frontImage.getTranslationX());
         });
         updateRecommendation();
     }

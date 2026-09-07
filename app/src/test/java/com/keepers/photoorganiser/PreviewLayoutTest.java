@@ -13,15 +13,14 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
-    @Test public void previewStageKeepsOutgoingPhotoWhileIncomingPhotoLoads() {
+    @Test public void previewUsesOneFreshSurfacePerActivityInstance() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
 
         FrameLayout stage = layout.findViewById(R.id.preview_stage);
 
         assertNotNull(stage);
-        assertEquals(2, stage.getChildCount());
+        assertEquals(1, stage.getChildCount());
         assertNotNull(layout.findViewById(R.id.preview_image));
-        assertNotNull(layout.findViewById(R.id.preview_incoming_image));
     }
 }
