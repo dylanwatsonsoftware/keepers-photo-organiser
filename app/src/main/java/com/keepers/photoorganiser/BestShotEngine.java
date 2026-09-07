@@ -15,7 +15,7 @@ public final class BestShotEngine {
         Set<String> recommendations = new HashSet<>();
         List<PhotoFeatures> group = new ArrayList<>();
         for (PhotoFeatures photo : photos) {
-            if (!group.isEmpty() && !isNearDuplicate(group.get(group.size() - 1), photo)) {
+            if (!group.isEmpty() && !isSameScene(group.get(group.size() - 1), photo)) {
                 addBestIfDuplicateGroup(group, recommendations);
                 group.clear();
             }
@@ -25,14 +25,12 @@ public final class BestShotEngine {
         return recommendations;
     }
 
-    private static boolean isNearDuplicate(PhotoFeatures first, PhotoFeatures second) {
-        return Math.abs(second.takenAtMillis() - first.takenAtMillis()) <= SCENE_WINDOW_MILLIS
-                && Long.bitCount(first.perceptualHash() ^ second.perceptualHash())
-                <= MAX_HASH_DISTANCE;
+    private static boolean isSameScene(PhotoFeatures first, PhotoFeatures second) {
+        return Math.abs(second.takenAtMillis() - first.takenAtMillis()) <= SCENE_WINDOW_MILLIS;
     }
 
     private static void addBestIfDuplicateGroup(List<PhotoFeatures> group, Set<String> result) {
-        if (group.size() < 2) return;
+        if (group.isEmpty()) return;
         PhotoFeatures best = group.get(0);
         for (int index = 1; index < group.size(); index++) {
             if (group.get(index).quality() > best.quality()) best = group.get(index);

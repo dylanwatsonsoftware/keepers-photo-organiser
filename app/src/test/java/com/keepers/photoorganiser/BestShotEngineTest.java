@@ -14,18 +14,18 @@ public class BestShotEngineTest {
         assertEquals(Set.of("sharp"), BestShotEngine.recommend(List.of(softer, sharper)));
     }
 
-    @Test public void doesNotGroupNearbyButVisuallyDifferentPhotos() {
+    @Test public void recommendsBestPhotoFromNearbySceneEvenWhenCompositionChanges() {
         PhotoFeatures first = feature("first", 1_000, 0L, 0.4);
         PhotoFeatures different = feature("different", 20_000, -1L, 0.9);
 
-        assertEquals(Set.of(), BestShotEngine.recommend(List.of(first, different)));
+        assertEquals(Set.of("different"), BestShotEngine.recommend(List.of(first, different)));
     }
 
     @Test public void doesNotGroupSimilarPhotosFromDifferentScenesInTime() {
         PhotoFeatures first = feature("first", 1_000, 7L, 0.4);
         PhotoFeatures later = feature("later", 301_000, 7L, 0.9);
 
-        assertEquals(Set.of(), BestShotEngine.recommend(List.of(first, later)));
+        assertEquals(Set.of("first", "later"), BestShotEngine.recommend(List.of(first, later)));
     }
 
     @Test public void recommendsOneBestPhotoFromAThreeShotSequence() {

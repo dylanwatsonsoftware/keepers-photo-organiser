@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -138,6 +139,10 @@ public final class ReviewActivity extends Activity {
                 Gravity.TOP | Gravity.END);
         markerParams.setMargins(0, dp(7), dp(7), 0);
         tile.addView(marker, markerParams);
+        marker.setOnClickListener(view -> {
+            selectionStore.toggle(photo);
+            updateSelectionDisplay();
+        });
 
         TextView suggestion = new TextView(this);
         suggestion.setText("★");
@@ -149,12 +154,13 @@ public final class ReviewActivity extends Activity {
         suggestionCircle.setColor(Color.rgb(176, 96, 0));
         suggestion.setBackground(suggestionCircle);
         suggestion.setVisibility(View.GONE);
-        tile.addView(suggestion, markerParams);
+        FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+                Gravity.TOP | Gravity.START);
+        suggestionParams.setMargins(dp(7), dp(7), 0, 0);
+        tile.addView(suggestion, suggestionParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
-        tile.setOnClickListener(view -> {
-            selectionStore.toggle((Uri) view.getTag());
-            updateSelectionDisplay();
-        });
+        tile.setOnClickListener(view -> startActivity(
+                new Intent(this, PreviewActivity.class).setData(photo)));
         return tile;
     }
 
@@ -172,7 +178,10 @@ public final class ReviewActivity extends Activity {
             boolean suggested = suggestions.contains(tile.getTag().toString());
             tile.setAlpha(hasSelection ? (keeper ? 1f : FADED_ALPHA)
                     : suggestions.isEmpty() || suggested ? 1f : 0.5f);
-            tile.getChildAt(1).setVisibility(keeper ? View.VISIBLE : View.GONE);
+            TextView heart = (TextView) tile.getChildAt(1);
+            heart.setText(keeper ? "♥" : "♡");
+            heart.setBackgroundColor(keeper ? Color.rgb(11, 87, 208) : 0x66000000);
+            heart.setVisibility(View.VISIBLE);
             tile.getChildAt(2).setVisibility(suggested && !keeper ? View.VISIBLE : View.GONE);
             tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
                     : "Photo. Tap to mark as keeper.");

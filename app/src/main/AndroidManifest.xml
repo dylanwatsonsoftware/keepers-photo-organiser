@@ -18,6 +18,7 @@
         <activity
             android:name=".ReviewActivity"
             android:exported="false" />
+        <activity android:name=".PreviewActivity" android:exported="false" />
         <service
             android:name=".KeepersAccessibilityService"
             android:exported="true"
