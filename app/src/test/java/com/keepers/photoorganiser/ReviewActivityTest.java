@@ -35,6 +35,12 @@ public class ReviewActivityTest {
         assertEquals(ReviewActivity.class.getName(), resolved.activityInfo.name);
     }
 
+    @Test public void appHasAKeepersLauncherIcon() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        assertTrue(activity.getApplicationInfo().icon != 0);
+    }
+
     @Test public void settingsButtonOpensExistingSetupScreen() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
