@@ -24,6 +24,8 @@ public final class PreviewActivity extends Activity {
     private FrameLayout adjacentSurface;
     private CarouselPagePair pages;
     private View analysisSheet;
+    private View previewControls;
+    private View previewClose;
     private boolean analysisDragStarted;
     private boolean analysisWasOpen;
     private FrameLayout previewStage;
@@ -52,6 +54,8 @@ public final class PreviewActivity extends Activity {
         analysisSheet = findViewById(R.id.preview_analysis_sheet);
         analysisSheet.setOnTouchListener((view, event) -> handleSwipe(event));
         previewStage = findViewById(R.id.preview_stage);
+        previewControls = findViewById(R.id.preview_controls);
+        previewClose = findViewById(R.id.preview_close);
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
         loadCurrent();
@@ -88,15 +92,12 @@ public final class PreviewActivity extends Activity {
                     && Math.abs(deltaY) > dp(8)) {
                 if (!analysisDragStarted) {
                     showAnalysis();
-                    analysisSheet.measure(View.MeasureSpec.makeMeasureSpec(
-                            previewStage.getWidth(), View.MeasureSpec.EXACTLY),
-                            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
                     analysisDragStarted = true;
                 }
                 AnalysisSheetTransform sheet = AnalysisSheetTransform.from(deltaY,
-                        Math.max(analysisSheet.getHeight(), analysisSheet.getMeasuredHeight()));
-                analysisSheet.setTranslationY(sheet.translationY());
-                analysisSheet.setAlpha(sheet.alpha());
+                        previewStage.getHeight(), dp(72));
+                setPhotoChromeTranslation(sheet.photoTranslationY());
+                analysisSheet.setTranslationY(sheet.sheetTranslationY());
                 return true;
             }
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
@@ -132,7 +133,7 @@ public final class PreviewActivity extends Activity {
         if (direction == SwipeDirection.DETAILS) {
             resetPosition(image);
             showAnalysis();
-            analysisSheet.animate().translationY(0).alpha(1).setDuration(180).start();
+            openAnalysis();
             return true;
         }
         if (direction == SwipeDirection.NONE) {
@@ -187,6 +188,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void showAnalysis() {
+        boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
         PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
         TextView title = findViewById(R.id.preview_analysis_title);
         TextView body = findViewById(R.id.preview_analysis_body);
@@ -201,17 +203,37 @@ public final class PreviewActivity extends Activity {
             body.setText("Assessment " + insight.assessment().score() + "/100\n" + stack
                     + "\n" + insight.reason() + "\n\n" + insight.assessment().explanation());
         }
+        if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
     }
 
+    private void openAnalysis() {
+        float openPhotoY = -analysisRevealDistance();
+        previewStage.animate().translationY(openPhotoY).setDuration(220).start();
+        previewControls.animate().translationY(openPhotoY).setDuration(220).start();
+        previewClose.animate().translationY(openPhotoY).setDuration(220).start();
+        analysisSheet.animate().translationY(0).setDuration(220).start();
+    }
+
     private void hideAnalysis() {
-        int distance = Math.max(analysisSheet.getHeight(), analysisSheet.getMeasuredHeight());
-        analysisSheet.animate().translationY(distance).alpha(0).setDuration(160)
+        previewStage.animate().translationY(0).setDuration(180).start();
+        previewControls.animate().translationY(0).setDuration(180).start();
+        previewClose.animate().translationY(0).setDuration(180).start();
+        analysisSheet.animate().translationY(analysisRevealDistance()).setDuration(180)
                 .withEndAction(() -> {
                     analysisSheet.setVisibility(View.GONE);
                     analysisSheet.setTranslationY(0);
-                    analysisSheet.setAlpha(1);
                 }).start();
+    }
+
+    private float analysisRevealDistance() {
+        return Math.max(1, previewStage.getHeight() - dp(72));
+    }
+
+    private void setPhotoChromeTranslation(float translationY) {
+        previewStage.setTranslationY(translationY);
+        previewControls.setTranslationY(translationY);
+        previewClose.setTranslationY(translationY);
     }
 
     private void showDragPreview(Uri target) {

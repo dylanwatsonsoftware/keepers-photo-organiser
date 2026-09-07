@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class AnalysisSheetTransformTest {
-    @Test public void sheetFollowsUpwardDragFromBelowTheScreen() {
-        AnalysisSheetTransform halfway = AnalysisSheetTransform.from(-150, 300);
-        AnalysisSheetTransform fullyOpen = AnalysisSheetTransform.from(-400, 300);
+    @Test public void photoAndSheetStayEdgeConnectedDuringUpwardDrag() {
+        AnalysisSheetTransform halfway = AnalysisSheetTransform.from(-150, 300, 60);
+        AnalysisSheetTransform fullyOpen = AnalysisSheetTransform.from(-400, 300, 60);
 
-        assertEquals(150f, halfway.translationY(), 0.001f);
-        assertEquals(0.5f, halfway.alpha(), 0.001f);
-        assertEquals(0f, fullyOpen.translationY(), 0.001f);
-        assertEquals(1f, fullyOpen.alpha(), 0.001f);
+        assertEquals(-150f, halfway.photoTranslationY(), 0.001f);
+        assertEquals(90f, halfway.sheetTranslationY(), 0.001f);
+        assertEquals(-240f, fullyOpen.photoTranslationY(), 0.001f);
+        assertEquals(0f, fullyOpen.sheetTranslationY(), 0.001f);
     }
 }
