@@ -83,6 +83,23 @@ public class ReviewActivityTest {
         assertEquals(photo, started.getData());
     }
 
+    @Test public void photoMarkersUseCompactOpticallyCenteredSizing() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/1")));
+        android.view.ViewGroup tile = (android.view.ViewGroup) activity
+                .<GridLayout>findViewById(R.id.photo_grid).getChildAt(0);
+        TextView heart = (TextView) tile.getChildAt(1);
+        TextView star = (TextView) tile.getChildAt(2);
+        float density = activity.getResources().getDisplayMetrics().density;
+
+        assertEquals(Math.round(30 * density), heart.getLayoutParams().width);
+        assertEquals(1.15f, heart.getTextScaleX(), 0.001f);
+        assertEquals(false, heart.getIncludeFontPadding());
+        assertEquals(Math.round(28 * density), star.getLayoutParams().width);
+        assertEquals(false, star.getIncludeFontPadding());
+        assertEquals(-density, star.getTranslationY(), 0.001f);
+    }
+
     @Test public void duplicatePhotosShowTheirSharedStackAndPosition() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(

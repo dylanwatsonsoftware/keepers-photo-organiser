@@ -141,13 +141,15 @@ public final class ReviewActivity extends Activity {
         marker.setTag("marker");
         marker.setText("♥");
         marker.setTextColor(Color.WHITE);
-        marker.setTextSize(19);
+        marker.setTextSize(17);
+        marker.setTextScaleX(1.15f);
+        marker.setIncludeFontPadding(false);
         marker.setGravity(Gravity.CENTER);
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
         circle.setColor(Color.rgb(11, 87, 208));
         marker.setBackground(circle);
-        FrameLayout.LayoutParams markerParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+        FrameLayout.LayoutParams markerParams = new FrameLayout.LayoutParams(dp(30), dp(30),
                 Gravity.TOP | Gravity.END);
         markerParams.setMargins(0, dp(7), dp(7), 0);
         tile.addView(marker, markerParams);
@@ -159,14 +161,16 @@ public final class ReviewActivity extends Activity {
         TextView suggestion = new TextView(this);
         suggestion.setText("★");
         suggestion.setTextColor(Color.WHITE);
-        suggestion.setTextSize(18);
+        suggestion.setTextSize(15);
+        suggestion.setIncludeFontPadding(false);
+        suggestion.setTranslationY(-dp(1));
         suggestion.setGravity(Gravity.CENTER);
         GradientDrawable suggestionCircle = new GradientDrawable();
         suggestionCircle.setShape(GradientDrawable.OVAL);
         suggestionCircle.setColor(Color.rgb(176, 96, 0));
         suggestion.setBackground(suggestionCircle);
         suggestion.setVisibility(View.GONE);
-        FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+        FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(dp(28), dp(28),
                 Gravity.TOP | Gravity.START);
         suggestionParams.setMargins(dp(7), dp(7), 0, 0);
         tile.addView(suggestion, suggestionParams);
