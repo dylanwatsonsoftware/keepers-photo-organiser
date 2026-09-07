@@ -13,14 +13,15 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
-    @Test public void previewUsesOneFreshSurfacePerActivityInstance() {
+    @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
 
         FrameLayout stage = layout.findViewById(R.id.preview_stage);
 
         assertNotNull(stage);
-        assertEquals(1, stage.getChildCount());
+        assertEquals(2, stage.getChildCount());
         assertNotNull(layout.findViewById(R.id.preview_image));
+        assertNotNull(layout.findViewById(R.id.preview_adjacent_image));
     }
 }

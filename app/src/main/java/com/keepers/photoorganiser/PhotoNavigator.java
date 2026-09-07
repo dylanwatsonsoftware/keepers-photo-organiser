@@ -15,6 +15,8 @@ public final class PhotoNavigator {
     }
 
     public Uri current() { return photos.get(index); }
+    public Uri peekNext() { return photos.get(Math.min(index + 1, photos.size() - 1)); }
+    public Uri peekPrevious() { return photos.get(Math.max(index - 1, 0)); }
     public Uri next() { if (index < photos.size() - 1) index++; return current(); }
     public Uri previous() { if (index > 0) index--; return current(); }
 }

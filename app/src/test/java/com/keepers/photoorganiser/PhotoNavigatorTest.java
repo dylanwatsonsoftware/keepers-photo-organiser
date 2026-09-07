@@ -29,4 +29,15 @@ public class PhotoNavigatorTest {
 
         assertEquals(first, navigator.current());
     }
+
+    @Test public void peekingDoesNotMoveCurrentPhoto() {
+        Uri first = Uri.parse("content://photo/1");
+        Uri middle = Uri.parse("content://photo/2");
+        Uri last = Uri.parse("content://photo/3");
+        PhotoNavigator navigator = new PhotoNavigator(List.of(first, middle, last), middle);
+
+        assertEquals(last, navigator.peekNext());
+        assertEquals(first, navigator.peekPrevious());
+        assertEquals(middle, navigator.current());
+    }
 }

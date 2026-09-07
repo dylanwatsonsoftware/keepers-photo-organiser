@@ -20,6 +20,8 @@ public final class PreviewActivity extends Activity {
     private float touchStartY;
     private SuggestionStore suggestionStore;
     private ImageView frontImage;
+    private ImageView adjacentImage;
+    private Uri dragPreviewPhoto;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -37,6 +39,7 @@ public final class PreviewActivity extends Activity {
         if (photos.isEmpty()) photos.add(photo);
         navigator = new PhotoNavigator(photos, photo);
         frontImage = findViewById(R.id.preview_image);
+        adjacentImage = findViewById(R.id.preview_adjacent_image);
         FrameLayout stage = findViewById(R.id.preview_stage);
         stage.setOnTouchListener((view, event) -> handleSwipe(event));
         loadCurrent();
@@ -56,13 +59,19 @@ public final class PreviewActivity extends Activity {
         ImageView image = frontImage;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             image.animate().cancel();
+            adjacentImage.setVisibility(View.INVISIBLE);
+            dragPreviewPhoto = null;
             touchStartX = event.getX();
             touchStartY = event.getY();
             return true;
         }
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            DragTransform drag = DragTransform.from(event.getX() - touchStartX,
-                    event.getY() - touchStartY, image.getHeight());
+            float deltaX = event.getX() - touchStartX;
+            float deltaY = event.getY() - touchStartY;
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
+                showDragPreview(deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
+            }
+            DragTransform drag = DragTransform.from(deltaX, deltaY, image.getHeight());
             image.setTranslationX(drag.x());
             image.setTranslationY(drag.y());
             image.setAlpha(drag.alpha());
@@ -72,6 +81,7 @@ public final class PreviewActivity extends Activity {
         SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
                 event.getY() - touchStartY, dp(64));
         if (direction == SwipeDirection.BACK) {
+            adjacentImage.setVisibility(View.INVISIBLE);
             image.animate().translationY(image.getHeight()).alpha(0.5f).setDuration(160)
                     .withEndAction(this::finish).start();
             return true;
@@ -103,8 +113,27 @@ public final class PreviewActivity extends Activity {
                 suggestionStore.load().contains(photo.toString()) ? "★ Recommended best shot" : "");
     }
 
+    private void showDragPreview(Uri target) {
+        if (target.equals(photo)) {
+            adjacentImage.setVisibility(View.INVISIBLE);
+            dragPreviewPhoto = null;
+            return;
+        }
+        if (target.equals(dragPreviewPhoto)) return;
+        dragPreviewPhoto = target;
+        adjacentImage.setVisibility(View.INVISIBLE);
+        int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
+                getResources().getDisplayMetrics().heightPixels);
+        loader.load(adjacentImage, target, Math.min(screen, 1600), bitmap -> {
+            if (bitmap != null && target.equals(dragPreviewPhoto)) {
+                adjacentImage.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
     private void resetPosition(ImageView image) {
-        image.animate().translationX(0).translationY(0).alpha(1).setDuration(140).start();
+        image.animate().translationX(0).translationY(0).alpha(1).setDuration(140)
+                .withEndAction(() -> adjacentImage.setVisibility(View.INVISIBLE)).start();
     }
 
     private int dp(int value) {
