@@ -88,6 +88,25 @@ public class BestShotEngineTest {
                 feature("six", 50_000, 0x0FFFFFFFFFFFFFFFL, 0.8))));
     }
 
+    @Test public void goodStackContributesItsBestShotOutsideTheGlobalCutoff() {
+        assertEquals(Set.of("overall-best", "runner-up", "stack-best"),
+                BestShotEngine.recommend(List.of(
+                        feature("stack-soft", 1_000, 0L, 0.35),
+                        feature("stack-best", 2_000, 1L, 0.45),
+                        feature("overall-best", 200_000, -1L, 0.9),
+                        feature("runner-up", 400_000, 0xAAAAAAAAAAAAAAAAL, 0.8),
+                        feature("third", 600_000, 0x5555555555555555L, 0.7))));
+    }
+
+    @Test public void unusableStackDoesNotEarnARecommendationFromAttemptsAlone() {
+        assertEquals(Set.of("overall-best", "runner-up"), BestShotEngine.recommend(List.of(
+                feature("stack-blurrier", 1_000, 0L, 0.01),
+                feature("stack-blurry", 2_000, 1L, 0.02),
+                feature("overall-best", 200_000, -1L, 0.9),
+                feature("runner-up", 400_000, 0xAAAAAAAAAAAAAAAAL, 0.8),
+                feature("third", 600_000, 0x5555555555555555L, 0.7))));
+    }
+
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
         return new PhotoFeatures(id, takenAt, hash, quality);
     }

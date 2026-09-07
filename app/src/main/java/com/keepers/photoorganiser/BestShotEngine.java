@@ -10,6 +10,7 @@ import java.util.Set;
 public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
     static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
+    static final double MIN_USABLE_STACK_QUALITY = 0.03;
 
     private BestShotEngine() {}
 
@@ -22,6 +23,13 @@ public final class BestShotEngine {
         int limit = (candidates.size() + 2) / 3;
         Set<String> recommendations = new HashSet<>();
         for (int index = 0; index < limit; index++) recommendations.add(candidates.get(index).id());
+        for (List<PhotoFeatures> group : groups) {
+            if (group.size() < 2) continue;
+            PhotoFeatures stackBest = best(group);
+            if (stackBest.quality() >= MIN_USABLE_STACK_QUALITY) {
+                recommendations.add(stackBest.id());
+            }
+        }
         return recommendations;
     }
 
