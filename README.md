@@ -40,6 +40,8 @@ The official integration gate is closed as a **no-go**. Remaining options requir
 
 ## Accessibility experiment
 
+**Result on Pixel 7: Favourite automation succeeded.** After explicit arming and manual navigation to a Google Photos item, Keepers located and activated the real Favourite control.
+
 The current build includes an explicitly armed, one-shot Accessibility test:
 
 1. Tap **Enable Keepers Accessibility service** and enable only the Keepers service.
