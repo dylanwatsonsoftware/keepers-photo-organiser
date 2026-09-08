@@ -219,6 +219,36 @@ public class PeopleActivityTest {
                 started.getStringExtra(FaceGroupReviewActivity.EXTRA_GROUP_ID));
     }
 
+    @Test public void likelyPersonButtonConfirmsAHighConfidenceUnreviewedGroup() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save("content://photos/known", List.of(
+                face("content://photos/known", "1,0")));
+        observations.save("content://photos/candidate-a", List.of(
+                face("content://photos/candidate-a", ".65,.76")));
+        observations.save("content://photos/candidate-b", List.of(
+                face("content://photos/candidate-b", ".66,.75")));
+        List<FaceIdentityGroup> groups = FaceClusterer.cluster(observations.loadAll(), .30);
+        FaceIdentityGroup known = groups.stream().filter(group ->
+                group.photoIds().contains("content://photos/known")).findFirst().orElseThrow();
+        FaceIdentityGroup candidate = groups.stream().filter(group ->
+                group.photoIds().contains("content://photos/candidate-a"))
+                .findFirst().orElseThrow();
+        new FaceGroupAssignmentStore(context).save(Map.of(known.id(), "ada"));
+
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        View suggestion = findViewWithText(activity.findViewById(android.R.id.content),
+                "Likely Ada");
+
+        assertEquals(true, suggestion != null);
+        assertEquals(true, suggestion.isClickable());
+        suggestion.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("ada", new FaceGroupAssignmentStore(activity).load().get(candidate.id()));
+    }
+
     private static FaceObservation face(String photo, String descriptor) {
         return new FaceObservation(photo, 0, 0, 0, 1, 1,
                 -1, -1, -1, 0, 0, descriptor);

@@ -104,7 +104,7 @@ public final class PeopleActivity extends Activity {
                         + " your feedback.");
         Map<String, String> predictions = FaceIdentityLearner.predict(
                 new FaceObservationStore(this).loadAll(), groups, assignments,
-                corrections, .15);
+                corrections, FaceGroupSuggestion.MAXIMUM_DISTANCE);
         Map<String, FaceObservation> portraits = portraits(groups, assignments);
         for (FaceIdentityGroup group : groups) {
             if (!showConfirmedFaces && !FaceReviewInbox.needsReview(
@@ -153,14 +153,25 @@ public final class PeopleActivity extends Activity {
         details.addView(count);
 
         String currentAssignment = FaceGroupAssignmentResolver.personFor(group, assignments);
-        String predictedId = predictedPerson(group, predictions);
+        String predictedId = FaceGroupSuggestion.personId(group, predictions);
         if (currentAssignment.isBlank() && !predictedId.isBlank()) {
             TextView suggestion = new TextView(this);
-            suggestion.setText("Suggested: " + personName(predictedId, people)
-                    + " · choose below to confirm");
+            String predictedName = personName(predictedId, people);
+            suggestion.setText("Likely " + predictedName);
             suggestion.setTextColor(0xFFB06000);
-            suggestion.setTextSize(13);
-            details.addView(suggestion);
+            suggestion.setTextSize(14);
+            suggestion.setTypeface(null, android.graphics.Typeface.BOLD);
+            suggestion.setGravity(Gravity.CENTER);
+            suggestion.setBackgroundResource(R.drawable.face_suggestion_action);
+            suggestion.setClickable(true);
+            suggestion.setFocusable(true);
+            suggestion.setContentDescription("Confirm this face group as " + predictedName);
+            suggestion.setOnClickListener(view -> applyGroupChoice(
+                    group, currentAssignment, predictedId));
+            LinearLayout.LayoutParams suggestionParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(40));
+            suggestionParams.setMargins(0, dp(6), 0, dp(3));
+            details.addView(suggestion, suggestionParams);
         }
 
         ArrayList<PersonChoice> choices = new ArrayList<>();
@@ -173,25 +184,29 @@ public final class PeopleActivity extends Activity {
         chooser.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(android.widget.AdapterView<?> parent,
                     android.view.View view, int position, long id) {
-                HashMap<String, String> changed = new HashMap<>(
-                        new FaceGroupAssignmentStore(PeopleActivity.this).load());
                 String selectedId = choices.get(position).id();
                 if (selectedId.equals(currentAssignment)) return;
-                if (selectedId.isBlank()) changed.remove(group.id());
-                else changed.put(group.id(), selectedId);
-                new FaceGroupAssignmentStore(PeopleActivity.this).save(changed);
-                FaceCorrectionStore faceCorrections = new FaceCorrectionStore(
-                        PeopleActivity.this);
-                faceCorrections.save(FaceGroupEvidence.applyChoice(group,
-                        faceCorrections.load(), currentAssignment, selectedId));
-                AlbumApprovalInvalidator.invalidate(PeopleActivity.this);
-                containerForGroups().post(PeopleActivity.this::showDiscoveredGroups);
+                applyGroupChoice(group, currentAssignment, selectedId);
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
         details.addView(chooser, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
         return card;
+    }
+
+    private void applyGroupChoice(FaceIdentityGroup group, String currentAssignment,
+            String selectedId) {
+        HashMap<String, String> changed = new HashMap<>(
+                new FaceGroupAssignmentStore(this).load());
+        if (selectedId.isBlank()) changed.remove(group.id());
+        else changed.put(group.id(), selectedId);
+        new FaceGroupAssignmentStore(this).save(changed);
+        FaceCorrectionStore faceCorrections = new FaceCorrectionStore(this);
+        faceCorrections.save(FaceGroupEvidence.applyChoice(group,
+                faceCorrections.load(), currentAssignment, selectedId));
+        AlbumApprovalInvalidator.invalidate(this);
+        containerForGroups().post(this::showDiscoveredGroups);
     }
 
     private static void showFaceCrop(ImageView view, Bitmap bitmap, FaceObservation face) {
@@ -322,17 +337,6 @@ public final class PeopleActivity extends Activity {
         int bottom = Math.min(bitmap.getHeight(), Math.max(top + 1,
                 (int) ((face.bottom() + marginY) * bitmap.getHeight())));
         view.setImageBitmap(Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top));
-    }
-
-    private static String predictedPerson(FaceIdentityGroup group,
-            Map<String, String> predictions) {
-        HashMap<String, Integer> counts = new HashMap<>();
-        for (FaceObservation face : group.members()) {
-            String person = predictions.get(FaceCorrectionStore.key(face));
-            if (person != null) counts.merge(person, 1, Integer::sum);
-        }
-        return counts.entrySet().stream().max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey).orElse("");
     }
 
     private static String personName(String id, List<TrackedPerson> people) {
