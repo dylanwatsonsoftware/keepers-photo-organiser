@@ -39,6 +39,7 @@ public final class ReviewActivity extends Activity {
     private final ReviewWindow reviewWindow = new ReviewWindow();
     private final InfiniteScrollTrigger infiniteScroll = new InfiniteScrollTrigger(600);
     private boolean hasMorePhotos;
+    private FaceAnalyzer faceAnalyzer;
     private GalleryFilter galleryFilter = GalleryFilter.ALL;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +47,7 @@ public final class ReviewActivity extends Activity {
         setContentView(R.layout.activity_review);
         selectionStore = new KeeperSelectionStore(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
+        faceAnalyzer = createFaceAnalyzer();
         findViewById(R.id.open_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {
@@ -63,6 +65,14 @@ public final class ReviewActivity extends Activity {
                     content.getHeight(), hasMorePhotos)) loadNextPage();
         });
         loadOrRequestPhotos();
+    }
+
+    private static FaceAnalyzer createFaceAnalyzer() {
+        try {
+            return new MlKitFaceAnalyzer();
+        } catch (IllegalStateException unavailable) {
+            return (photoId, bitmap, result) -> result.accept(List.of());
+        }
     }
 
     private void loadOrRequestPhotos() {
@@ -156,23 +166,22 @@ public final class ReviewActivity extends Activity {
         image.setBackgroundColor(Color.rgb(232, 234, 237));
         thumbnailLoader.load(image, photo, size, bitmap -> {
             if (generation != analysisGeneration) return;
-            analyzedCount++;
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
-                features.add(new PhotoFeatures(photo.toString(), recentPhoto.takenAtMillis(),
-                        PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
-                        assessment.exposure(), assessment.composition(), assessment.motionStability()));
+                faceAnalyzer.analyze(photo.toString(), bitmap, faces -> {
+                    if (generation != analysisGeneration) return;
+                    new FaceObservationStore(this).save(photo.toString(), faces);
+                    FaceSignals faceSignals = FaceSignals.from(faces);
+                    features.add(new PhotoFeatures(photo.toString(), recentPhoto.takenAtMillis(),
+                            PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
+                            assessment.exposure(), assessment.composition(), assessment.motionStability(),
+                            faceSignals.faceCount(), faceSignals.averageSmile(),
+                            faceSignals.minimumEyeOpen()));
+                    finishPhotoAnalysis(generation);
+                });
+                return;
             }
-            if (analyzedCount == photos.size()) {
-                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
-                Map<String, List<String>> members = BestShotEngine.stackMembers(features);
-                BestShotResult result = BestShotEngine.classify(features);
-                new PhotoStackStore(this).save(members);
-                new PhotoInsightStore(this).save(features, stacks, result.recommended(),
-                        result.goodAlternatives());
-                showStacks(stacks, members);
-                showSuggestions(result.recommended(), result.goodAlternatives());
-            }
+            finishPhotoAnalysis(generation);
         });
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -224,6 +233,21 @@ public final class ReviewActivity extends Activity {
         tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
                 .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
         return tile;
+    }
+
+    private void finishPhotoAnalysis(int generation) {
+        if (generation != analysisGeneration) return;
+        analyzedCount++;
+        if (analyzedCount == photos.size()) {
+                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
+                Map<String, List<String>> members = BestShotEngine.stackMembers(features);
+                BestShotResult result = BestShotEngine.classify(features);
+                new PhotoStackStore(this).save(members);
+                new PhotoInsightStore(this).save(features, stacks, result.recommended(),
+                        result.goodAlternatives());
+                showStacks(stacks, members);
+                showSuggestions(result.recommended(), result.goodAlternatives());
+        }
     }
 
     private void loadRecentPhotos() {
@@ -360,6 +384,7 @@ public final class ReviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        faceAnalyzer.close();
         thumbnailLoader.close();
         super.onDestroy();
     }

@@ -16,9 +16,12 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
                 "Edge clarity, weighted toward the centre of the photo."));
         rules.add(AssessmentRule.scored("Useful detail", photo.quality(),
                 "Texture and edge information present in the image."));
-        rules.add(AssessmentRule.pending("Smiles and expressions",
-                "Requires face analysis."));
-        rules.add(AssessmentRule.pending("Closed eyes", "Requires face analysis."));
+        rules.add(photo.smile() < 0 ? AssessmentRule.pending("Smiles and expressions",
+                "Requires face analysis.") : AssessmentRule.scored("Smiles and expressions",
+                photo.smile(), "Average smile probability across " + photo.faceCount() + " detected faces."));
+        rules.add(photo.eyesOpen() < 0 ? AssessmentRule.pending("Closed eyes", "Requires face analysis.")
+                : AssessmentRule.scored("Closed eyes", photo.eyesOpen(),
+                "Lowest eye-open probability among detected faces."));
         rules.add(AssessmentRule.pending("Every child looks good",
                 "Requires child profiles plus face and expression analysis."));
         rules.add(AssessmentRule.pending("Action or emotional significance",
@@ -36,8 +39,12 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
         rules.add(AssessmentRule.scored("Your previous Keeper choices", previousKeeper ? 1 : 0,
                 previousKeeper ? "You previously marked this photo as a Keeper."
                         : "No matching Keeper preference has been learned for this photo yet."));
-        double core = (photo.focus() + photo.exposure() + photo.composition()
-                + photo.motionStability() + photo.quality()) / 5d;
+        double total = photo.focus() + photo.exposure() + photo.composition()
+                + photo.motionStability() + photo.quality();
+        int signalCount = 5;
+        if (photo.smile() >= 0) { total += photo.smile(); signalCount++; }
+        if (photo.eyesOpen() >= 0) { total += photo.eyesOpen(); signalCount++; }
+        double core = total / signalCount;
         return new PhotoAssessment((int) Math.round(core * 100), rules);
     }
 

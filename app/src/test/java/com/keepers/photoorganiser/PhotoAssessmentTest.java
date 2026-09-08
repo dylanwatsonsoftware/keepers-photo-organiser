@@ -23,4 +23,14 @@ public class PhotoAssessmentTest {
         assertTrue(assessment.explanation().contains("— Smiles and expressions — Not assessed yet"));
         assertTrue(assessment.explanation().contains("★ Focus — 80%"));
     }
+
+    @Test public void detectedExpressionsReplacePendingSmileAndEyeRules() {
+        PhotoFeatures features = new PhotoFeatures("photo", 1, 2, 0.7,
+                0.8, 0.75, 0.6, 0.9, 3, 0.84, 0.92);
+
+        String explanation = PhotoAssessment.from(features, null, false).explanation();
+
+        assertTrue(explanation.contains("★ Smiles and expressions — 84%"));
+        assertTrue(explanation.contains("★ Closed eyes — 92%"));
+    }
 }

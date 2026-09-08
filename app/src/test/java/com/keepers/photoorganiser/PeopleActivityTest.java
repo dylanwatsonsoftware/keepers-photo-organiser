@@ -25,4 +25,17 @@ public class PeopleActivityTest {
                         new TrackedPerson("person-3", "", "", false)),
                 new TrackedPersonStore(activity).load());
     }
+
+    @Test public void showsFaceObservationProgressFromGalleryAnalysis() {
+        FaceObservationStore observations = new FaceObservationStore(
+                org.robolectric.RuntimeEnvironment.getApplication());
+        observations.save("photo", List.of(new FaceObservation("photo", 0,
+                0.1, 0.1, 0.2, 0.2, 0.5, 0.8, 0.8, 0, 0)));
+
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        assertEquals("1 face observation ready for grouping",
+                ((android.widget.TextView) activity.findViewById(R.id.face_discovery_status))
+                        .getText().toString());
+    }
 }

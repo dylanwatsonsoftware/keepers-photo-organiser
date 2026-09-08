@@ -32,7 +32,8 @@ public final class PhotoInsightStore {
             editor.putString(feature.id(), feature.quality() + "|" + position + "|" + size
                     + "|" + recommended + "|" + feature.focus() + "|" + feature.exposure()
                     + "|" + feature.composition() + "|" + feature.motionStability()
-                    + "|" + alternative);
+                    + "|" + alternative + "|" + feature.faceCount() + "|" + feature.smile()
+                    + "|" + feature.eyesOpen());
         }
         editor.apply();
     }
@@ -41,17 +42,21 @@ public final class PhotoInsightStore {
         String encoded = preferences.getString(id, null);
         if (encoded == null) return null;
         String[] parts = encoded.split("\\|");
-        if (parts.length != 4 && parts.length != 8 && parts.length != 9) return null;
+        if (parts.length != 4 && parts.length != 8 && parts.length != 9
+                && parts.length != 12) return null;
         try {
             double quality = Double.parseDouble(parts[0]);
             int position = Integer.parseInt(parts[1]);
             int size = Integer.parseInt(parts[2]);
             boolean recommended = Boolean.parseBoolean(parts[3]);
-            boolean alternative = parts.length == 9 && Boolean.parseBoolean(parts[8]);
+            boolean alternative = parts.length >= 9 && Boolean.parseBoolean(parts[8]);
             PhotoFeatures features = parts.length >= 8
                     ? new PhotoFeatures(id, 0, 0, quality, Double.parseDouble(parts[4]),
                             Double.parseDouble(parts[5]), Double.parseDouble(parts[6]),
-                            Double.parseDouble(parts[7]))
+                            Double.parseDouble(parts[7]), parts.length == 12
+                            ? Integer.parseInt(parts[9]) : 0, parts.length == 12
+                            ? Double.parseDouble(parts[10]) : -1, parts.length == 12
+                            ? Double.parseDouble(parts[11]) : -1)
                     : new PhotoFeatures(id, 0, 0, quality);
             PhotoStackPosition stack = size > 1 ? new PhotoStackPosition(position, size) : null;
             String reason = alternative ? "A near-identical photo ranked slightly higher"

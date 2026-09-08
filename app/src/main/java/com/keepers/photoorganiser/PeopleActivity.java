@@ -21,6 +21,20 @@ public final class PeopleActivity extends Activity {
         for (int index = 0; index < Math.min(3, saved.size()); index++) fill(index, saved.get(index));
         findViewById(R.id.people_back).setOnClickListener(view -> finish());
         findViewById(R.id.save_people).setOnClickListener(view -> save());
+        showDiscoveryProgress();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        showDiscoveryProgress();
+    }
+
+    private void showDiscoveryProgress() {
+        int count = new FaceObservationStore(this).observationCount();
+        ((TextView) findViewById(R.id.face_discovery_status)).setText(count == 0
+                ? "No face observations yet — review the gallery to analyse photos"
+                : count + (count == 1 ? " face observation" : " face observations")
+                + " ready for grouping");
     }
 
     private void fill(int index, TrackedPerson person) {
