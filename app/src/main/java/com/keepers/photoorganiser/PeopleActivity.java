@@ -152,8 +152,9 @@ public final class PeopleActivity extends Activity {
         count.setTextSize(14);
         details.addView(count);
 
+        String currentAssignment = FaceGroupAssignmentResolver.personFor(group, assignments);
         String predictedId = predictedPerson(group, predictions);
-        if (!assignments.containsKey(group.id()) && !predictedId.isBlank()) {
+        if (currentAssignment.isBlank() && !predictedId.isBlank()) {
             TextView suggestion = new TextView(this);
             suggestion.setText("Suggested: " + personName(predictedId, people)
                     + " · choose below to confirm");
@@ -168,7 +169,6 @@ public final class PeopleActivity extends Activity {
                 person.name().isBlank() ? "Unnamed person" : person.name(), portraits.get(person.id())));
         Spinner chooser = new Spinner(this);
         chooser.setAdapter(new PersonChoiceAdapter(choices));
-        String currentAssignment = assignments.getOrDefault(group.id(), "");
         chooser.setSelection(choiceIndex(choices, currentAssignment));
         chooser.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(android.widget.AdapterView<?> parent,
@@ -286,8 +286,8 @@ public final class PeopleActivity extends Activity {
                 result.putIfAbsent(person, face);
         }
         for (FaceIdentityGroup group : groups) {
-            String person = assignments.get(group.id());
-            if (person != null && !group.members().isEmpty()) result.putIfAbsent(person,
+            String person = FaceGroupAssignmentResolver.personFor(group, assignments);
+            if (!person.isBlank() && !group.members().isEmpty()) result.putIfAbsent(person,
                     group.members().get(0));
         }
         return result;

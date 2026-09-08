@@ -43,6 +43,10 @@ public final class FaceClusterer {
         }
     }
 
+    static String identityId(FaceObservation face) {
+        return stableId(face.descriptor());
+    }
+
     private static double cosineDistance(double[] left, double[] right) {
         if (left.length != right.length) return Double.MAX_VALUE;
         double dot = 0, leftMagnitude = 0, rightMagnitude = 0;

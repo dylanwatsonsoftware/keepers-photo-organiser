@@ -7,8 +7,8 @@ public final class FaceReviewInbox {
 
     public static boolean needsReview(FaceIdentityGroup group,
             Map<String, String> groupAssignments, Map<String, String> faceCorrections) {
-        String assigned = groupAssignments.get(group.id());
-        if (assigned != null && !assigned.isBlank()) return false;
+        String assigned = FaceGroupAssignmentResolver.personFor(group, groupAssignments);
+        if (!assigned.isBlank()) return false;
         if (group.members().isEmpty()) return true;
         for (FaceObservation face : group.members())
             if (!faceCorrections.containsKey(FaceCorrectionStore.key(face))) return true;

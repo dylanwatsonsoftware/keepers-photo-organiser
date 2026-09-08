@@ -190,8 +190,8 @@ public final class PersonDetailActivity extends Activity {
         if (correction != null) return person.id().equals(correction);
         for (FaceIdentityGroup group : groups) if (group.members().stream()
                 .anyMatch(member -> FaceCorrectionStore.key(member).equals(key))) {
-            String assigned = assignments.get(group.id());
-            if (assigned != null) return person.id().equals(assigned);
+            String assigned = FaceGroupAssignmentResolver.personFor(group, assignments);
+            if (!assigned.isBlank()) return person.id().equals(assigned);
             break;
         }
         return person.id().equals(learned.get(key));

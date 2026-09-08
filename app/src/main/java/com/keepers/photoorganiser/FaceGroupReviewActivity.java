@@ -40,8 +40,8 @@ public final class FaceGroupReviewActivity extends Activity {
             return;
         }
         List<TrackedPerson> people = new TrackedPersonStore(this).load();
-        String groupPersonId = new FaceGroupAssignmentStore(this).load()
-                .getOrDefault(group.id(), "");
+        String groupPersonId = FaceGroupAssignmentResolver.personFor(group,
+                new FaceGroupAssignmentStore(this).load());
         for (FaceObservation face : group.members())
             container.addView(faceRow(face, groupPersonId, people));
         ((TextView) findViewById(R.id.face_group_summary)).setText(group.members().size()

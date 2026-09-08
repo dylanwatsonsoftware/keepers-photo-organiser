@@ -224,8 +224,8 @@ public final class AlbumReviewActivity extends Activity {
                 result.putIfAbsent(corrected, face);
         }
         for (FaceIdentityGroup group : groups) {
-            String personId = assignments.get(group.id());
-            if (personId != null && !group.members().isEmpty())
+            String personId = FaceGroupAssignmentResolver.personFor(group, assignments);
+            if (!personId.isBlank() && !group.members().isEmpty())
                 result.putIfAbsent(personId, group.members().get(0));
         }
         return result;

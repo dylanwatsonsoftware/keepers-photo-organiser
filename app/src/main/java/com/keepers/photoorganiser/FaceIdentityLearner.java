@@ -15,8 +15,8 @@ public final class FaceIdentityLearner {
             Map<String, String> corrections, double maximumDistance) {
         HashMap<String, String> evidence = new HashMap<>();
         for (FaceIdentityGroup group : groups) {
-            String personId = groupAssignments.get(group.id());
-            if (personId == null || personId.isBlank()) continue;
+            String personId = FaceGroupAssignmentResolver.personFor(group, groupAssignments);
+            if (personId.isBlank()) continue;
             for (FaceObservation face : group.members())
                 evidence.put(FaceCorrectionStore.key(face), personId);
         }

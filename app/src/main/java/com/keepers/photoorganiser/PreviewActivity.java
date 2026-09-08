@@ -502,8 +502,8 @@ public final class PreviewActivity extends Activity {
             return new FaceDisplay(face, displayName(names.get(corrected)), corrected, false);
         for (FaceIdentityGroup group : groups) if (group.members().stream()
                 .anyMatch(member -> FaceCorrectionStore.key(member).equals(key))) {
-            String assigned = assignments.get(group.id());
-            if (assigned != null && names.containsKey(assigned))
+            String assigned = FaceGroupAssignmentResolver.personFor(group, assignments);
+            if (!assigned.isBlank() && names.containsKey(assigned))
                 return new FaceDisplay(face, displayName(names.get(assigned)), assigned, false);
             break;
         }

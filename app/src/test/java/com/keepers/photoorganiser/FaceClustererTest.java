@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.Test;
 
 public class FaceClustererTest {
@@ -26,6 +27,26 @@ public class FaceClustererTest {
                 sample("a", "0,0,1"), sample("b", "1,0,0")), .15).get(1).id();
 
         assertEquals(original, afterDiscovery);
+    }
+
+    @Test public void olderAssignmentCanBeRecoveredAfterAnEarlierSimilarFaceRegroupsIt() {
+        FaceIdentityGroup original = FaceClusterer.cluster(
+                List.of(sample("b", "1,0,0")), .15).get(0);
+        FaceIdentityGroup regrouped = FaceClusterer.cluster(List.of(
+                sample("a", ".99,.01,0"), sample("b", "1,0,0")), .15).get(0);
+
+        assertEquals("ada", FaceGroupAssignmentResolver.personFor(regrouped,
+                Map.of(original.id(), "ada")));
+    }
+
+    @Test public void conflictingHistoricalAnchorsDoNotGuessAGroupIdentity() {
+        FaceObservation first = sample("a", "1,0,0");
+        FaceObservation second = sample("b", ".99,.01,0");
+        FaceIdentityGroup merged = FaceClusterer.cluster(List.of(first, second), .15).get(0);
+
+        assertEquals("", FaceGroupAssignmentResolver.personFor(merged, Map.of(
+                FaceClusterer.identityId(first), "ada",
+                FaceClusterer.identityId(second), "ben")));
     }
 
     private static FaceObservation sample(String photo, String descriptor) {
