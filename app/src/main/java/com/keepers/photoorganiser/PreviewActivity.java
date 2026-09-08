@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
@@ -14,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
@@ -318,6 +320,10 @@ public final class PreviewActivity extends Activity {
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
         params.setMargins(0, 0, dp(10), dp(12));
         card.setLayoutParams(params);
+        card.setClickable(true);
+        card.setFocusable(true);
+        card.setContentDescription("Identify " + display.name());
+        card.setOnClickListener(view -> showFaceIdentityChooser(display.face()));
         ImageView crop = new ImageView(this);
         crop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         crop.setBackgroundResource(R.drawable.preview_face_crop);
@@ -337,6 +343,35 @@ public final class PreviewActivity extends Activity {
         labelParams.setMargins(0, dp(6), 0, 0);
         card.addView(label, labelParams);
         return card;
+    }
+
+    private void showFaceIdentityChooser(FaceObservation face) {
+        List<TrackedPerson> people = new TrackedPersonStore(this).load();
+        ArrayList<String> labels = new ArrayList<>();
+        ArrayList<String> ids = new ArrayList<>();
+        for (TrackedPerson person : people) {
+            labels.add(displayName(person.name()));
+            ids.add(person.id());
+        }
+        labels.add("Not someone I track");
+        ids.add(FaceCorrectionStore.IGNORE);
+        labels.add("Leave unconfirmed");
+        ids.add("");
+        new AlertDialog.Builder(this)
+                .setTitle("Who is this?")
+                .setSingleChoiceItems(labels.toArray(new String[0]), -1, (dialog, which) -> {
+                    FaceCorrectionStore store = new FaceCorrectionStore(this);
+                    HashMap<String, String> changed = new HashMap<>(store.load());
+                    String key = FaceCorrectionStore.key(face);
+                    String personId = ids.get(which);
+                    if (personId.isBlank()) changed.remove(key); else changed.put(key, personId);
+                    store.save(changed);
+                    AlbumApprovalInvalidator.invalidate(this);
+                    dialog.dismiss();
+                    showAnalysisFaces();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private List<FaceDisplay> resolveFaces(String photoId) {

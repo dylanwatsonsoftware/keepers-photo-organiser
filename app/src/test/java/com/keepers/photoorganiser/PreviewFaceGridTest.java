@@ -2,7 +2,9 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.shadows.ShadowDialog;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewFaceGridTest {
@@ -45,6 +48,35 @@ public class PreviewFaceGridTest {
         assertEquals("Unknown", label(grid, 1));
         ImageView firstFace = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
         assertEquals("Expanded face crop for Ada", firstFace.getContentDescription());
+    }
+
+    @Test public void tappingAnUnknownFaceCanConfirmItAndTeachFutureMatches() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String photo = "content://photos/confirm-face";
+        new FaceObservationStore(context).save(photo, List.of(
+                face(photo, 0, .10, "1,0,0")));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        new FaceCorrectionStore(context).save(Map.of());
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(photo))).setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        assertTrue(grid.getChildAt(0).isClickable());
+        grid.getChildAt(0).performClick();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        dialog.getListView().performItemClick(null, 0, 0);
+
+        assertEquals("ada", new FaceCorrectionStore(activity).load().get(photo + "#0"));
+        assertEquals("Ada", label(grid, 0));
+        FaceObservation future = face("content://photos/future", 0, .10, ".99,.01,0");
+        assertEquals("ada", FaceIdentityLearner.predict(List.of(
+                        new FaceObservationStore(activity).load(photo).get(0), future),
+                new FaceCorrectionStore(activity).load(), .15).get("content://photos/future#0"));
     }
 
     private static String label(GridLayout grid, int index) {
