@@ -18,4 +18,8 @@ public record AnalysisSheetTransform(float photoTranslationY, float sheetTransla
     public static boolean shouldClose(float dragY, float threshold) {
         return dragY >= threshold;
     }
+
+    public static boolean shouldOpen(float dragY, float threshold) {
+        return dragY <= -threshold;
+    }
 }

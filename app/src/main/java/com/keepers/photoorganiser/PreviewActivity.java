@@ -216,8 +216,16 @@ public final class PreviewActivity extends Activity {
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
+        float releaseDeltaX = photoGesture.deltaX(event.getRawX());
+        float releaseDeltaY = photoGesture.deltaY(event.getRawY());
+        if (analysisDragStarted) {
+            resetPosition(image);
+            if (AnalysisSheetTransform.shouldOpen(releaseDeltaY, dp(24))) openAnalysis();
+            else hideAnalysis();
+            return true;
+        }
         SwipeDirection direction = SwipeDirection.classify(
-                photoGesture.deltaX(event.getRawX()), photoGesture.deltaY(event.getRawY()), dp(64));
+                releaseDeltaX, releaseDeltaY, dp(64));
         if (direction == SwipeDirection.BACK) {
             if (analysisSheet.getVisibility() == View.VISIBLE) {
                 hideAnalysis();
@@ -236,7 +244,6 @@ public final class PreviewActivity extends Activity {
             return true;
         }
         if (direction == SwipeDirection.NONE) {
-            if (analysisDragStarted) hideAnalysis();
             resetPosition(image);
             return true;
         }

@@ -22,4 +22,10 @@ public class AnalysisSheetTransformTest {
         assertEquals(true, AnalysisSheetTransform.shouldClose(90, 64));
         assertEquals(false, AnalysisSheetTransform.shouldClose(40, 64));
     }
+
+    @Test public void aShortIntentionalUpwardPullCommitsOnceTheSheetHasStarted() {
+        assertEquals(true, AnalysisSheetTransform.shouldOpen(-28, 24));
+        assertEquals(false, AnalysisSheetTransform.shouldOpen(-12, 24));
+        assertEquals(false, AnalysisSheetTransform.shouldOpen(28, 24));
+    }
 }
