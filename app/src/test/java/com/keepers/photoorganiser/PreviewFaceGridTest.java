@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.EditText;
 import android.widget.TextView;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -82,6 +83,39 @@ public class PreviewFaceGridTest {
         assertEquals("ada", FaceIdentityLearner.predict(List.of(
                         new FaceObservationStore(activity).load(photo).get(0), future),
                 new FaceCorrectionStore(activity).load(), .15).get("content://photos/future#0"));
+    }
+
+    @Test public void unknownFaceCanCreateAndTeachANewTrackedPersonInPlace() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String photo = "content://photos/new-person-face";
+        new FaceObservationStore(context).save(photo, List.of(
+                face(photo, 0, .10, "1,0,0")));
+        new TrackedPersonStore(context).save(List.of());
+        new FaceCorrectionStore(context).save(Map.of());
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(photo))).setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        grid.getChildAt(0).performClick();
+        AlertDialog chooser = (AlertDialog) ShadowDialog.getLatestDialog();
+        chooser.getListView().performItemClick(null, 0, 0);
+
+        AlertDialog create = (AlertDialog) ShadowDialog.getLatestDialog();
+        EditText name = create.getWindow().getDecorView().findViewWithTag("new_person_name");
+        EditText album = create.getWindow().getDecorView().findViewWithTag("new_person_album");
+        name.setText("Charlie");
+        album.setText("Charlie Photos");
+        create.getWindow().getDecorView().findViewWithTag("add_new_person").performClick();
+
+        TrackedPerson person = new TrackedPersonStore(activity).load().get(0);
+        assertEquals("Charlie", person.name());
+        assertEquals("Charlie Photos", person.albumName());
+        assertEquals(person.id(), new FaceCorrectionStore(activity).load().get(photo + "#0"));
+        assertEquals(photo + "#0", new PersonFeatureFaceStore(activity).load(person.id()));
+        assertEquals("Charlie", label(grid, 0));
     }
 
     @Test public void recommendedAssessmentHeadingDisplaysItsStar() throws Exception {

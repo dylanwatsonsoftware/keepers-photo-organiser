@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
@@ -24,6 +25,7 @@ import java.util.Comparator;
 import java.util.Set;
 
 public final class PreviewActivity extends Activity {
+    private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
     private KeeperSelectionStore store;
     private Uri photo;
@@ -369,6 +371,8 @@ public final class PreviewActivity extends Activity {
             labels.add(displayName(person.name()));
             ids.add(person.id());
         }
+        labels.add("Add a new person…");
+        ids.add(ADD_NEW_PERSON);
         labels.add("Not someone I track");
         ids.add(FaceCorrectionStore.IGNORE);
         labels.add("Leave unconfirmed");
@@ -380,6 +384,11 @@ public final class PreviewActivity extends Activity {
                     HashMap<String, String> changed = new HashMap<>(store.load());
                     String key = FaceCorrectionStore.key(face);
                     String personId = ids.get(which);
+                    if (ADD_NEW_PERSON.equals(personId)) {
+                        dialog.dismiss();
+                        showCreatePersonDialog(face);
+                        return;
+                    }
                     if (personId.isBlank()) changed.remove(key); else changed.put(key, personId);
                     store.save(changed);
                     AlbumApprovalInvalidator.invalidate(this);
@@ -388,6 +397,80 @@ public final class PreviewActivity extends Activity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showCreatePersonDialog(FaceObservation face) {
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        fields.setPadding(dp(24), 0, dp(24), 0);
+        EditText name = new EditText(this);
+        name.setTag("new_person_name");
+        name.setHint("Name");
+        name.setSingleLine(true);
+        fields.addView(name, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        EditText album = new EditText(this);
+        album.setTag("new_person_album");
+        album.setHint("Exact Google Photos album name (optional)");
+        album.setSingleLine(true);
+        fields.addView(album, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Add this person")
+                .setMessage("This face will teach Keepers who to suggest in future photos.")
+                .setView(fields)
+                .setNegativeButton("Cancel", null)
+                .create();
+        TextView add = new TextView(this);
+        add.setTag("add_new_person");
+        add.setText("Add person");
+        add.setTextColor(0xFFFFFFFF);
+        add.setTextSize(15);
+        add.setTypeface(null, android.graphics.Typeface.BOLD);
+        add.setGravity(android.view.Gravity.CENTER);
+        add.setBackgroundResource(R.drawable.gallery_primary_action);
+        add.setClickable(true);
+        add.setFocusable(true);
+        LinearLayout.LayoutParams addParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+        addParams.setMargins(0, dp(16), 0, dp(8));
+        fields.addView(add, addParams);
+        add.setOnClickListener(view -> {
+            String enteredName = name.getText().toString().trim();
+            if (enteredName.isEmpty()) {
+                name.setError("Enter a name");
+                return;
+            }
+            createPersonForFace(face, enteredName, album.getText().toString().trim());
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    private void createPersonForFace(FaceObservation face, String name, String album) {
+        TrackedPersonStore peopleStore = new TrackedPersonStore(this);
+        ArrayList<TrackedPerson> people = new ArrayList<>(peopleStore.load());
+        String personId = nextPersonId(people);
+        people.add(new TrackedPerson(personId, name, album, true));
+        peopleStore.save(people);
+
+        String faceKey = FaceCorrectionStore.key(face);
+        FaceCorrectionStore correctionStore = new FaceCorrectionStore(this);
+        HashMap<String, String> corrections = new HashMap<>(correctionStore.load());
+        corrections.put(faceKey, personId);
+        correctionStore.save(corrections);
+        new PersonFeatureFaceStore(this).save(personId, faceKey);
+        AlbumApprovalInvalidator.invalidate(this);
+        showAnalysisFaces();
+    }
+
+    private static String nextPersonId(List<TrackedPerson> people) {
+        Set<String> ids = people.stream().map(TrackedPerson::id)
+                .collect(java.util.stream.Collectors.toSet());
+        int number = 1;
+        while (ids.contains("person-" + number)) number++;
+        return "person-" + number;
     }
 
     private List<FaceDisplay> resolveFaces(String photoId) {
