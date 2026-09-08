@@ -26,6 +26,7 @@ public final class PeopleActivity extends Activity {
     private AsyncThumbnailLoader thumbnailLoader;
     private LinearLayout profiles;
     private int nextPersonNumber = 1;
+    private final Map<String, ImageView> profilePortraitViews = new HashMap<>();
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -208,11 +209,11 @@ public final class PeopleActivity extends Activity {
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView portrait = new ImageView(this);
-        portrait.setTag("person_portrait");
         portrait.setScaleType(ImageView.ScaleType.CENTER_CROP);
         portrait.setBackgroundColor(0xFFE8EAED);
         portrait.setContentDescription("Face photo for " + (person.name().isBlank()
                 ? "unnamed person" : person.name()));
+        profilePortraitViews.put(person.id(), portrait);
         header.addView(portrait, new LinearLayout.LayoutParams(dp(58), dp(58)));
         Switch tracked = new Switch(this);
         tracked.setTag("person_tracked");
@@ -273,7 +274,7 @@ public final class PeopleActivity extends Activity {
             LinearLayout card = (LinearLayout) profiles.getChildAt(index);
             FaceObservation face = portraits.get(card.getTag().toString());
             if (face == null) continue;
-            ImageView portrait = card.findViewWithTag("person_portrait");
+            ImageView portrait = profilePortraitViews.get(card.getTag().toString());
             thumbnailLoader.load(portrait, Uri.parse(face.photoId()), 256,
                     bitmap -> showFaceCrop(portrait, bitmap, face));
         }

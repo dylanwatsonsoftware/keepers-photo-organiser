@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
+import org.robolectric.shadows.ShadowLooper;
 import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
@@ -135,6 +136,34 @@ public class PeopleActivityTest {
 
         assertEquals("Ada", findFirst(personChoice, TextView.class).getText().toString());
         assertEquals(true, findFirst(personChoice, ImageView.class) != null);
+    }
+
+    @Test public void choosingAnotherFaceGroupDoesNotCrashAfterPortraitLoading() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save("content://photos/confirmed", List.of(
+                face("content://photos/confirmed", "1,0,0")));
+        observations.save("content://photos/new", List.of(
+                face("content://photos/new", "0,0,1")));
+        List<FaceIdentityGroup> clustered = FaceClusterer.cluster(observations.loadAll(), .30);
+        String confirmedGroup = clustered.stream()
+                .filter(group -> group.photoIds().contains("content://photos/confirmed"))
+                .findFirst().orElseThrow().id();
+        new FaceGroupAssignmentStore(context).save(Map.of(confirmedGroup, "ada"));
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
+        Spinner unassigned = null;
+        for (int index = 0; index < groups.getChildCount(); index++) {
+            Spinner candidate = findFirst(groups.getChildAt(index), Spinner.class);
+            if (candidate.getSelectedItemPosition() == 0) unassigned = candidate;
+        }
+
+        unassigned.setSelection(1);
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(2, new FaceGroupAssignmentStore(activity).load().size());
     }
 
     @Test public void tappingAGroupOpensAllOfItsFacesForVerification() {
