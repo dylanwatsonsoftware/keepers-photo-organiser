@@ -24,6 +24,7 @@ import org.robolectric.shadows.ShadowDialog;
 import android.app.AlertDialog;
 import android.provider.Settings;
 import android.content.ComponentName;
+import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
@@ -89,6 +90,26 @@ public class AlbumReviewActivityTest {
         AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
         assertEquals("Open accessibility settings",
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+    }
+
+    @Test public void missingAlbumMappingsGuideTheUserToPeopleSetup() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumReviewSelectionStore(context).clear();
+        new KeeperSelectionStore(context).replace(Set.of("content://photos/a"));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "", true)));
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.album_review_setup_people)
+                .getVisibility());
+        assertTrue(!activity.findViewById(R.id.confirm_album_review).isEnabled());
+        assertEquals(0, activity.<LinearLayout>findViewById(R.id.album_review_items)
+                .getChildCount());
+        activity.findViewById(R.id.album_review_setup_people).performClick();
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PeopleActivity.class.getName(), started.getComponent().getClassName());
     }
 
     private static void seed() {

@@ -33,7 +33,13 @@ public final class AlbumReviewActivity extends Activity {
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         reviewStore = new AlbumReviewSelectionStore(this);
         findViewById(R.id.album_review_back).setOnClickListener(view -> finish());
+        findViewById(R.id.album_review_setup_people).setOnClickListener(view ->
+                startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.confirm_album_review).setOnClickListener(view -> confirmReview());
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
         render();
     }
 
@@ -41,6 +47,21 @@ public final class AlbumReviewActivity extends Activity {
         Set<String> keepers = new KeeperSelectionStore(this).load();
         List<TrackedPerson> people = new TrackedPersonStore(this).load().stream()
                 .filter(person -> !person.albumName().isBlank()).toList();
+        LinearLayout container = findViewById(R.id.album_review_items);
+        container.removeAllViews();
+        TextView summary = findViewById(R.id.album_review_summary);
+        android.view.View setup = findViewById(R.id.album_review_setup_people);
+        setup.setVisibility(android.view.View.GONE);
+        findViewById(R.id.confirm_album_review).setEnabled(false);
+        if (keepers.isEmpty()) {
+            summary.setText("Choose some Keepers first. Nothing will be added without your approval.");
+            return;
+        }
+        if (people.isEmpty()) {
+            summary.setText("Before reviewing suggestions, add a person and link their exact Google Photos album name.");
+            setup.setVisibility(android.view.View.VISIBLE);
+            return;
+        }
         List<FaceIdentityGroup> groups = FaceClusterer.cluster(
                 new FaceObservationStore(this).loadAll(), .30);
         List<AlbumAssignment> proposals = AlbumProposalEngine.propose(keepers, groups,
@@ -53,14 +74,11 @@ public final class AlbumReviewActivity extends Activity {
 
         ArrayList<String> photos = new ArrayList<>(keepers);
         photos.sort(String::compareTo);
-        LinearLayout container = findViewById(R.id.album_review_items);
         for (String photo : photos)
             container.addView(photoCard(photo, people, selected, portraits));
-        ((TextView) findViewById(R.id.album_review_summary)).setText(photos.isEmpty()
-                ? "Choose some Keepers first. Nothing will be added without your approval."
-                : photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
+        summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
                 + " · check or uncheck each child before continuing");
-        findViewById(R.id.confirm_album_review).setEnabled(!photos.isEmpty());
+        findViewById(R.id.confirm_album_review).setEnabled(true);
     }
 
     private LinearLayout photoCard(String photo, List<TrackedPerson> people, Set<String> selected,
