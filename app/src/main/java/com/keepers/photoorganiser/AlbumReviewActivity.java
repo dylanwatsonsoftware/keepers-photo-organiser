@@ -133,7 +133,7 @@ public final class AlbumReviewActivity extends Activity {
         int reviewedCount = 0;
         int visibleCount = 0;
         for (String photo : photos) {
-            boolean wasReviewed = reviewed.contains(photo);
+            boolean wasReviewed = reviewed.contains(photo) || completions.hasAny(photo);
             if (wasReviewed) reviewedCount++;
             if (!showReviewed && wasReviewed) continue;
             container.addView(photoCard(photo, people, otherAlbums, selected, proposed,

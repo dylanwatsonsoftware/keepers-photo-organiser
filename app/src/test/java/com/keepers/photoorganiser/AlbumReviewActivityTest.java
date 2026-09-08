@@ -190,6 +190,24 @@ public class AlbumReviewActivityTest {
                 R.id.toggle_reviewed_albums)).getText().toString());
     }
 
+    @Test public void completedPhotoIsHistoricalEvenWhenLegacyReviewedFlagIsMissing() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumCompletionStore(context).mark("content://photos/a", "Ada Photos");
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        LinearLayout items = activity.findViewById(R.id.album_review_items);
+        assertEquals(1, items.getChildCount());
+        TextView toggle = activity.findViewById(R.id.toggle_reviewed_albums);
+        assertEquals(View.VISIBLE, toggle.getVisibility());
+        assertEquals("Show reviewed (1)", toggle.getText().toString());
+
+        toggle.performClick();
+        assertEquals(2, items.getChildCount());
+    }
+
     @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
