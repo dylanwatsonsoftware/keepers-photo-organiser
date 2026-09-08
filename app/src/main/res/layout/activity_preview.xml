@@ -64,6 +64,24 @@
         android:paddingEnd="18dp"
         android:paddingBottom="16dp">
 
+        <HorizontalScrollView
+            android:id="@+id/preview_stack_carousel"
+            android:layout_width="match_parent"
+            android:layout_height="76dp"
+            android:clipToPadding="false"
+            android:fillViewport="false"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/preview_stack_thumbnails"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp" />
+        </HorizontalScrollView>
+
         <TextView
             android:id="@+id/preview_recommendation"
             android:layout_width="wrap_content"

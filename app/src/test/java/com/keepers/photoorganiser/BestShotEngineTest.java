@@ -117,6 +117,17 @@ public class BestShotEngineTest {
         assertEquals(Set.of("almost-as-good"), result.goodAlternatives());
     }
 
+    @Test public void exposesOrderedMembersForEveryPhotoInAStack() {
+        Map<String, List<String>> members = BestShotEngine.stackMembers(List.of(
+                feature("first", 1_000, 1L, 0.5),
+                feature("second", 2_000, 2L, 0.8),
+                feature("separate", 300_000, -1L, 0.9)));
+
+        assertEquals(List.of("first", "second"), members.get("first"));
+        assertEquals(List.of("first", "second"), members.get("second"));
+        assertEquals(null, members.get("separate"));
+    }
+
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
         return new PhotoFeatures(id, takenAt, hash, quality);
     }

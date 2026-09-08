@@ -80,6 +80,16 @@ public final class BestShotEngine {
         return result;
     }
 
+    public static Map<String, List<String>> stackMembers(List<PhotoFeatures> photos) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (List<PhotoFeatures> group : sceneGroups(photos)) {
+            if (group.size() < 2) continue;
+            List<String> ids = group.stream().map(PhotoFeatures::id).toList();
+            for (String id : ids) result.put(id, ids);
+        }
+        return result;
+    }
+
     private static List<List<PhotoFeatures>> sceneGroups(List<PhotoFeatures> photos) {
         List<PhotoFeatures> ordered = ordered(photos);
         List<List<PhotoFeatures>> groups = new ArrayList<>();

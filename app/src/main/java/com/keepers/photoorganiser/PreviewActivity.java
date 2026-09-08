@@ -5,10 +5,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.MotionEvent;
 import android.view.View;
 import java.util.ArrayList;
+import java.util.List;
 
 public final class PreviewActivity extends Activity {
     private AsyncThumbnailLoader loader;
@@ -30,6 +33,7 @@ public final class PreviewActivity extends Activity {
     private boolean analysisWasOpen;
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
+    private List<Uri> allPhotos = List.of();
     private float analysisPullStartY;
     private boolean analysisPulling;
 
@@ -47,6 +51,7 @@ public final class PreviewActivity extends Activity {
             photos.add(recent.uri());
         }
         if (photos.isEmpty()) photos.add(photo);
+        allPhotos = List.copyOf(photos);
         navigator = new PhotoNavigator(photos, photo);
         frontImage = findViewById(R.id.preview_image);
         adjacentImage = findViewById(R.id.preview_adjacent_image);
@@ -202,6 +207,7 @@ public final class PreviewActivity extends Activity {
         dragPreviewPhoto = null;
         updateRecommendation();
         updateButton();
+        showStackCarousel();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
@@ -213,6 +219,7 @@ public final class PreviewActivity extends Activity {
             if (bitmap != null) frontImage.setVisibility(View.VISIBLE);
         });
         updateRecommendation();
+        showStackCarousel();
     }
 
     private void updateRecommendation() {
@@ -222,6 +229,45 @@ public final class PreviewActivity extends Activity {
         recommendation.setText(recommended ? "★  Best shot"
                 : alternative ? "☆  Good alternative" : "");
         recommendation.setVisibility(recommended || alternative ? View.VISIBLE : View.GONE);
+    }
+
+    private void showStackCarousel() {
+        List<String> members = new PhotoStackStore(this).load(photo.toString());
+        HorizontalScrollView carousel = findViewById(R.id.preview_stack_carousel);
+        LinearLayout thumbnails = findViewById(R.id.preview_stack_thumbnails);
+        thumbnails.removeAllViews();
+        if (members.size() < 2) {
+            carousel.setVisibility(View.GONE);
+            return;
+        }
+        for (String member : members) {
+            Uri memberUri = Uri.parse(member);
+            ImageView thumbnail = new ImageView(this);
+            thumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            thumbnail.setContentDescription(memberUri.equals(photo)
+                    ? "Current photo in stack" : "Show photo from stack");
+            thumbnail.setAlpha(memberUri.equals(photo) ? 1f : 0.72f);
+            if (memberUri.equals(photo)) {
+                thumbnail.setBackgroundResource(R.drawable.stack_thumbnail_selected);
+                thumbnail.setPadding(dp(3), dp(3), dp(3), dp(3));
+            }
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(64), dp(64));
+            params.setMargins(dp(4), dp(4), dp(4), dp(4));
+            thumbnails.addView(thumbnail, params);
+            loader.load(thumbnail, memberUri, 160);
+            thumbnail.setOnClickListener(view -> selectStackPhoto(memberUri));
+        }
+        carousel.setVisibility(View.VISIBLE);
+    }
+
+    private void selectStackPhoto(Uri selected) {
+        if (selected.equals(photo)) return;
+        photo = selected;
+        navigator = new PhotoNavigator(allPhotos, photo);
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+        loadCurrent();
+        updateButton();
+        if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
     private void showAnalysis() {

@@ -11,6 +11,7 @@ import android.widget.ScrollView;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.HorizontalScrollView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -85,5 +86,14 @@ public class PreviewLayoutTest {
 
         assertTrue(sheetId != 0);
         assertEquals(View.GONE, layout.findViewById(sheetId).getVisibility());
+    }
+
+    @Test public void photoViewIncludesBottomStackCarousel() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        assertTrue(layout.findViewById(R.id.preview_stack_carousel)
+                instanceof HorizontalScrollView);
+        assertNotNull(layout.findViewById(R.id.preview_stack_thumbnails));
     }
 }

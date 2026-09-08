@@ -33,6 +33,7 @@ public final class ReviewActivity extends Activity {
     private final List<PhotoFeatures> features = new ArrayList<>();
     private Set<String> suggestions = Set.of();
     private Set<String> goodAlternatives = Set.of();
+    private Map<String, List<String>> stackMembers = Map.of();
     private int analyzedCount;
     private int analysisGeneration;
     private final ReviewWindow reviewWindow = new ReviewWindow();
@@ -121,6 +122,7 @@ public final class ReviewActivity extends Activity {
             features.clear();
             suggestions = Set.of();
             goodAlternatives = Set.of();
+            stackMembers = Map.of();
             analyzedCount = 0;
             grid.removeAllViews();
             tiles.clear();
@@ -163,10 +165,12 @@ public final class ReviewActivity extends Activity {
             }
             if (analyzedCount == photos.size()) {
                 Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
+                Map<String, List<String>> members = BestShotEngine.stackMembers(features);
                 BestShotResult result = BestShotEngine.classify(features);
+                new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),
                         result.goodAlternatives());
-                showStacks(stacks);
+                showStacks(stacks, members);
                 showSuggestions(result.recommended(), result.goodAlternatives());
             }
         });
@@ -293,12 +297,19 @@ public final class ReviewActivity extends Activity {
     }
 
     void showStacks(Map<String, PhotoStackPosition> stacks) {
+        showStacks(stacks, Map.of());
+    }
+
+    void showStacks(Map<String, PhotoStackPosition> stacks,
+            Map<String, List<String>> members) {
+        stackMembers = Map.copyOf(members);
         for (FrameLayout tile : tiles) {
             TextView badge = (TextView) tile.getChildAt(3);
             PhotoStackPosition position = stacks.get(tile.getTag().toString());
             badge.setText(position == null ? "" : position.label());
             badge.setVisibility(position == null ? View.GONE : View.VISIBLE);
         }
+        applyFilter();
     }
 
     private void toggleFilter(GalleryFilter requested) {
@@ -310,10 +321,13 @@ public final class ReviewActivity extends Activity {
         Set<String> keepers = selectionStore.load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
+        List<String> orderedIds = photos.stream().map(Uri::toString).toList();
+        Set<String> stackCovers = new HashSet<>(StackPresentation.visibleIds(
+                orderedIds, stackMembers, suggestions));
         int visible = 0;
         for (FrameLayout tile : tiles) {
             String id = tile.getTag().toString();
-            boolean show = galleryFilter == GalleryFilter.ALL
+            boolean show = galleryFilter == GalleryFilter.ALL && stackCovers.contains(id)
                     || galleryFilter == GalleryFilter.KEEPERS && keepers.contains(id)
                     || galleryFilter == GalleryFilter.RECOMMENDED && suggestions.contains(id);
             if (show) {
