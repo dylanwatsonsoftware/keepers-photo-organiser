@@ -32,6 +32,7 @@ public class PeopleActivityTest {
         LinearLayout profiles = findContainerWithContentDescription(
                 activity.findViewById(android.R.id.content), "Tracked people");
         assertEquals(4, profiles.getChildCount());
+        assertEquals(4, new TrackedPersonStore(activity).load().size());
     }
 
     @Test public void advancedLinkKeepsTheProofOfConceptToolsAvailable() {
@@ -45,7 +46,7 @@ public class PeopleActivityTest {
                 R.id.people_back)).getText().toString());
     }
 
-    @Test public void savesThreeEditableTrackedPeopleAndAlbumNames() {
+    @Test public void savesPeopleAndAlbumsImmediatelyWhileEditing() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
         LinearLayout profiles = findContainerWithContentDescription(
                 activity.findViewById(android.R.id.content), "Tracked people");
@@ -53,8 +54,6 @@ public class PeopleActivityTest {
         ((EditText) first.findViewWithTag("person_name")).setText("Ada");
         ((EditText) first.findViewWithTag("person_album")).setText("Ada Photos");
         ((Switch) first.findViewWithTag("person_tracked")).setChecked(true);
-
-        activity.findViewById(R.id.save_people).performClick();
 
         assertEquals(List.of(new TrackedPerson("person-1", "Ada", "Ada Photos", true),
                         new TrackedPerson("person-2", "", "", false),
@@ -69,9 +68,18 @@ public class PeopleActivityTest {
         LinearLayout profiles = findContainerWithContentDescription(
                 activity.findViewById(android.R.id.content), "Tracked people");
         ((EditText) profiles.getChildAt(0).findViewWithTag("person_name")).setText("Ada");
-        activity.findViewById(R.id.save_people).performClick();
 
         assertEquals(false, new AlbumReviewSelectionStore(activity).hasReview());
+    }
+
+    @Test public void peopleSetupHasNoManualSaveStep() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        assertEquals(null, findViewWithText(activity.findViewById(android.R.id.content),
+                "Save people and albums"));
+        assertEquals("Changes save automatically.", findFirstWithId(
+                activity.findViewById(android.R.id.content), R.id.people_status)
+                .getText().toString());
     }
 
     @Test public void showsFaceObservationProgressFromGalleryAnalysis() {
@@ -214,5 +222,9 @@ public class PeopleActivityTest {
             if (found != null) return found;
         }
         return null;
+    }
+
+    private static TextView findFirstWithId(View view, int id) {
+        return view.findViewById(id);
     }
 }

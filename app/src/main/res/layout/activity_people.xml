@@ -23,10 +23,8 @@
         <Button android:id="@+id/add_person" android:layout_width="match_parent"
             android:layout_height="48dp" android:layout_marginTop="10dp"
             android:text="Add another person" />
-        <Button android:id="@+id/save_people" android:layout_width="match_parent" android:layout_height="52dp"
-            android:layout_marginTop="18dp" android:text="Save people and albums" />
         <TextView android:id="@+id/people_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="10dp" android:gravity="center" android:text="Face discovery is the next setup step."
+            android:layout_marginTop="10dp" android:gravity="center" android:text="Changes save automatically."
             android:textColor="#5F6368" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="24dp" android:text="Discovered faces"

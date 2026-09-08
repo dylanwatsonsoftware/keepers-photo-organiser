@@ -13,6 +13,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
 import android.graphics.Bitmap;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.net.Uri;
 import android.content.Intent;
 import java.util.HashMap;
@@ -41,9 +43,10 @@ public final class PeopleActivity extends Activity {
             nextPersonNumber = Math.max(nextPersonNumber, numberAfterPrefix(person.id()) + 1);
         }
         findViewById(R.id.people_back).setOnClickListener(view -> finish());
-        findViewById(R.id.save_people).setOnClickListener(view -> save());
-        findViewById(R.id.add_person).setOnClickListener(view ->
-                addPersonCard(new TrackedPerson(nextPersonId(), "", "", false)));
+        findViewById(R.id.add_person).setOnClickListener(view -> {
+            addPersonCard(new TrackedPerson(nextPersonId(), "", "", false));
+            persistPeople();
+        });
         findViewById(R.id.open_advanced_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
         showDiscoveryProgress();
@@ -186,15 +189,6 @@ public final class PeopleActivity extends Activity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    private void save() {
-        List<TrackedPerson> people = currentPeople();
-        new TrackedPersonStore(this).save(people);
-        AlbumApprovalInvalidator.invalidate(this);
-        showDiscoveredGroups();
-        ((TextView) findViewById(R.id.people_status)).setText(
-                "Saved. Review the discovered faces below.");
-    }
-
     private void addPersonCard(TrackedPerson person) {
         LinearLayout card = new LinearLayout(this);
         card.setTag(person.id());
@@ -219,12 +213,16 @@ public final class PeopleActivity extends Activity {
         tracked.setTag("person_tracked");
         tracked.setText("Track this person");
         tracked.setChecked(person.tracked());
+        tracked.setOnCheckedChangeListener((button, checked) -> persistPeople());
         LinearLayout.LayoutParams trackedParams = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         trackedParams.setMargins(dp(12), 0, 0, 0);
         header.addView(tracked, trackedParams);
         card.addView(header);
         EditText name = field("Name", "person_name", person.name());
+        name.setOnFocusChangeListener((view, focused) -> {
+            if (!focused) showDiscoveredGroups();
+        });
         card.addView(name);
         card.addView(field("Exact Google Photos album name", "person_album", person.albumName()));
     }
@@ -236,9 +234,23 @@ public final class PeopleActivity extends Activity {
         field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
                 | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         field.setText(value);
+        field.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence text, int start, int count,
+                    int after) {}
+            @Override public void onTextChanged(CharSequence text, int start, int before,
+                    int count) {}
+            @Override public void afterTextChanged(Editable text) { persistPeople(); }
+        });
         field.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return field;
+    }
+
+    private void persistPeople() {
+        if (profiles == null) return;
+        new TrackedPersonStore(this).save(currentPeople());
+        AlbumApprovalInvalidator.invalidate(this);
+        ((TextView) findViewById(R.id.people_status)).setText("Changes save automatically.");
     }
 
     private String nextPersonId() { return "person-" + nextPersonNumber++; }
