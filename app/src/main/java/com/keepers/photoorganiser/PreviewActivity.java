@@ -26,8 +26,7 @@ public final class PreviewActivity extends Activity {
     private KeeperSelectionStore store;
     private Uri photo;
     private PhotoNavigator navigator;
-    private float touchStartX;
-    private float touchStartY;
+    private GestureCoordinates photoGesture;
     private SuggestionStore suggestionStore;
     private ImageView frontImage;
     private ImageView adjacentImage;
@@ -42,7 +41,7 @@ public final class PreviewActivity extends Activity {
     private FrameLayout previewStage;
     private Uri dragPreviewPhoto;
     private List<Uri> allPhotos = List.of();
-    private float analysisPullStartY;
+    private GestureCoordinates analysisGesture;
     private boolean analysisPulling;
 
     @Override protected void onCreate(Bundle state) {
@@ -89,11 +88,11 @@ public final class PreviewActivity extends Activity {
 
     private boolean handleAnalysisScroll(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            analysisPullStartY = event.getY();
+            analysisGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
             analysisPulling = false;
             return false;
         }
-        float pull = event.getY() - analysisPullStartY;
+        float pull = analysisGesture == null ? 0 : analysisGesture.deltaY(event.getRawY());
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             if (analysisSheet.getScrollY() > 0 || pull <= dp(4)) return false;
             analysisPulling = true;
@@ -127,15 +126,14 @@ public final class PreviewActivity extends Activity {
             dragPreviewPhoto = null;
             analysisDragStarted = false;
             analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
-            touchStartX = event.getX();
-            touchStartY = event.getY();
+            photoGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
             // Once open, let the analysis ScrollView handle its long factor breakdown.
             return AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen);
         }
         if (!AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen)) return false;
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            float deltaX = event.getX() - touchStartX;
-            float deltaY = event.getY() - touchStartY;
+            float deltaX = photoGesture.deltaX(event.getRawX());
+            float deltaY = photoGesture.deltaY(event.getRawY());
             if (!analysisWasOpen && deltaY < 0 && Math.abs(deltaY) > Math.abs(deltaX)
                     && Math.abs(deltaY) > dp(8)) {
                 if (!analysisDragStarted) {
@@ -165,8 +163,8 @@ public final class PreviewActivity extends Activity {
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
-        SwipeDirection direction = SwipeDirection.classify(event.getX() - touchStartX,
-                event.getY() - touchStartY, dp(64));
+        SwipeDirection direction = SwipeDirection.classify(
+                photoGesture.deltaX(event.getRawX()), photoGesture.deltaY(event.getRawY()), dp(64));
         if (direction == SwipeDirection.BACK) {
             if (analysisSheet.getVisibility() == View.VISIBLE) {
                 hideAnalysis();
