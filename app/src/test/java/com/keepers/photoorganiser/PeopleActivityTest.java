@@ -15,6 +15,17 @@ import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
 public class PeopleActivityTest {
+    @Test public void advancedLinkKeepsTheProofOfConceptToolsAvailable() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        activity.findViewById(R.id.open_advanced_settings).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(MainActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals("‹  Gallery", ((android.widget.TextView) activity.findViewById(
+                R.id.people_back)).getText().toString());
+    }
+
     @Test public void savesThreeEditableTrackedPeopleAndAlbumNames() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
         ((EditText) activity.findViewById(R.id.person_1_name)).setText("Ada");

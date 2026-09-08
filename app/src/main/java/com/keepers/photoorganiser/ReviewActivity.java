@@ -49,7 +49,7 @@ public final class ReviewActivity extends Activity {
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         faceAnalyzer = createFaceAnalyzer();
         findViewById(R.id.open_settings).setOnClickListener(view ->
-                startActivity(new Intent(this, MainActivity.class)));
+                startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.open_album_review).setOnClickListener(view ->
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {

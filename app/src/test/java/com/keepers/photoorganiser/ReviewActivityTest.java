@@ -42,13 +42,13 @@ public class ReviewActivityTest {
         assertTrue(activity.getApplicationInfo().icon != 0);
     }
 
-    @Test public void settingsButtonOpensExistingSetupScreen() {
+    @Test public void settingsButtonOpensGuidedPeopleSetupDirectly() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
         activity.findViewById(R.id.open_settings).performClick();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
-        assertEquals(MainActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals(PeopleActivity.class.getName(), started.getComponent().getClassName());
     }
 
     @Test public void albumReviewButtonOpensTheGuidedQueue() {

@@ -34,6 +34,8 @@ public final class PeopleActivity extends Activity {
         for (int index = 0; index < Math.min(3, saved.size()); index++) fill(index, saved.get(index));
         findViewById(R.id.people_back).setOnClickListener(view -> finish());
         findViewById(R.id.save_people).setOnClickListener(view -> save());
+        findViewById(R.id.open_advanced_settings).setOnClickListener(view ->
+                startActivity(new Intent(this, MainActivity.class)));
         showDiscoveryProgress();
         showDiscoveredGroups();
     }
@@ -165,7 +167,7 @@ public final class PeopleActivity extends Activity {
         new TrackedPersonStore(this).save(people);
         showDiscoveredGroups();
         ((TextView) findViewById(R.id.people_status)).setText(
-                "Saved. Face groups will be linked to these profiles next.");
+                "Saved. Review the discovered faces below.");
     }
 
     private String text(int id) {
