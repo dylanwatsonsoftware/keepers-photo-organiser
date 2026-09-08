@@ -1,17 +1,20 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Intent;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.shadows.ShadowLooper;
 
 @RunWith(RobolectricTestRunner.class)
 public class FaceGroupReviewActivityTest {
@@ -39,6 +42,27 @@ public class FaceGroupReviewActivityTest {
         firstChoice.setSelection(2);
         assertEquals(FaceCorrectionStore.IGNORE,
                 new FaceCorrectionStore(activity).load().get("content://photos/a#0"));
+    }
+
+    @Test public void openingFaceReviewDoesNotEraseAnApprovedAlbumReview() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save("content://photos/a", List.of(face("content://photos/a", "1,0")));
+        FaceIdentityGroup group = FaceClusterer.cluster(observations.loadAll(), .30).get(0);
+        new FaceGroupAssignmentStore(context).save(Map.of(group.id(), "ada"));
+        AlbumReviewSelectionStore review = new AlbumReviewSelectionStore(context);
+        review.save(Set.of(AlbumReviewSelectionStore.key("content://photos/a", "ada")));
+
+        Robolectric.buildActivity(FaceGroupReviewActivity.class,
+                new Intent(context, FaceGroupReviewActivity.class)
+                        .putExtra(FaceGroupReviewActivity.EXTRA_GROUP_ID, group.id())).setup();
+        ShadowLooper.idleMainLooper();
+
+        assertTrue(review.hasReview());
+        assertEquals(Set.of(AlbumReviewSelectionStore.key("content://photos/a", "ada")),
+                review.load());
     }
 
     private static FaceObservation face(String photo, String descriptor) {

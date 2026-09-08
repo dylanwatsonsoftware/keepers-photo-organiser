@@ -88,8 +88,11 @@ public final class FaceGroupReviewActivity extends Activity {
                     android.view.View view, int position, long id) {
                 FaceCorrectionStore store = new FaceCorrectionStore(FaceGroupReviewActivity.this);
                 HashMap<String, String> changes = new HashMap<>(store.load());
-                if (ids.get(position).isBlank()) changes.remove(key);
-                else changes.put(key, ids.get(position));
+                String selected = ids.get(position);
+                String existing = changes.getOrDefault(key, "");
+                if (selected.equals(existing)) return;
+                if (selected.isBlank()) changes.remove(key);
+                else changes.put(key, selected);
                 store.save(changes);
                 AlbumApprovalInvalidator.invalidate(FaceGroupReviewActivity.this);
             }
