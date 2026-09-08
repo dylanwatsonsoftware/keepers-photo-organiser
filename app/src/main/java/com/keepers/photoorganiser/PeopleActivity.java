@@ -180,6 +180,10 @@ public final class PeopleActivity extends Activity {
                 if (selectedId.isBlank()) changed.remove(group.id());
                 else changed.put(group.id(), selectedId);
                 new FaceGroupAssignmentStore(PeopleActivity.this).save(changed);
+                FaceCorrectionStore faceCorrections = new FaceCorrectionStore(
+                        PeopleActivity.this);
+                faceCorrections.save(FaceGroupEvidence.applyChoice(group,
+                        faceCorrections.load(), currentAssignment, selectedId));
                 AlbumApprovalInvalidator.invalidate(PeopleActivity.this);
                 containerForGroups().post(PeopleActivity.this::showDiscoveredGroups);
             }

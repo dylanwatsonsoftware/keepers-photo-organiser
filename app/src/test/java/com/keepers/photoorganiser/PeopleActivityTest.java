@@ -201,6 +201,8 @@ public class PeopleActivityTest {
         ShadowLooper.idleMainLooper();
 
         assertEquals(2, new FaceGroupAssignmentStore(activity).load().size());
+        assertEquals("ada", new FaceCorrectionStore(activity).load()
+                .get("content://photos/new#0"));
     }
 
     @Test public void tappingAGroupOpensAllOfItsFacesForVerification() {
