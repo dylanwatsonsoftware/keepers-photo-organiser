@@ -14,6 +14,14 @@
     <TextView android:id="@+id/album_review_summary" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingHorizontal="20dp"
         android:paddingBottom="14dp" android:textColor="#5F6368" android:textSize="15sp" />
+    <TextView android:id="@+id/toggle_reviewed_albums"
+        android:layout_width="wrap_content" android:layout_height="36dp"
+        android:layout_gravity="end" android:layout_marginEnd="20dp"
+        android:layout_marginBottom="12dp" android:background="@drawable/gallery_filter_chip"
+        android:clickable="true" android:focusable="true" android:gravity="center"
+        android:paddingHorizontal="14dp" android:text="Show reviewed"
+        android:textColor="@color/gallery_filter_text" android:textSize="13sp"
+        android:textStyle="bold" android:visibility="gone" />
     <TextView android:id="@+id/album_review_run_status"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp" android:layout_marginBottom="14dp"

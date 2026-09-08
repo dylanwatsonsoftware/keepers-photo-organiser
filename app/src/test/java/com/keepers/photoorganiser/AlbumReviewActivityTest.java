@@ -140,25 +140,38 @@ public class AlbumReviewActivityTest {
         assertTrue(!confirm.isEnabled());
     }
 
-    @Test public void completedAlbumAssignmentIsShownAsAddedAndCannotBeQueuedAgain() {
+    @Test public void completedPhotoIsHiddenButCanBeShownAndRetried() {
         seed();
         android.content.Context context = RuntimeEnvironment.getApplication();
         new AlbumReviewSelectionStore(context).save(Set.of(
                 AlbumReviewSelectionStore.key("content://photos/a", "ada")));
         new AlbumCompletionStore(context).mark("content://photos/a", "Ada Photos");
+        new ReviewedPhotoStore(context).mark("content://photos/a");
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
                 .setup().get();
-        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
-                R.id.album_review_items).getChildAt(0);
+        LinearLayout items = activity.findViewById(R.id.album_review_items);
+        assertEquals(1, items.getChildCount());
+        TextView toggle = activity.findViewById(R.id.toggle_reviewed_albums);
+        assertEquals("Show reviewed (1)", toggle.getText().toString());
+        toggle.performClick();
+        LinearLayout first = (LinearLayout) items.getChildAt(0);
         View ada = ((GridLayout) first.getChildAt(2)).getChildAt(0);
 
         assertTrue(!ada.isSelected());
         assertEquals("Added", ((TextView) ada.findViewWithTag("assignment_source"))
                 .getText().toString());
         ada.performClick();
-        assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
-        assertEquals("No album changes selected",
-                ((TextView) activity.findViewById(R.id.confirm_album_review)).getText().toString());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals("Retry this album change?", ((TextView) dialog.findViewById(
+                activity.getResources().getIdentifier("alertTitle", "id", "android")))
+                .getText().toString());
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertTrue(!new AlbumCompletionStore(activity).contains(
+                "content://photos/a", "Ada Photos"));
+        assertTrue(!new ReviewedPhotoStore(activity).contains("content://photos/a"));
+        assertTrue(new AlbumReviewSelectionStore(activity).load().contains(
+                AlbumReviewSelectionStore.key("content://photos/a", "ada")));
     }
 
     @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
@@ -273,6 +286,7 @@ public class AlbumReviewActivityTest {
                 new ComponentName(context, KeepersAccessibilityService.class).flattenToString());
         new AlbumReviewSelectionStore(context).clear();
         new AlbumActionQueueStore(context).cancel();
+        new ReviewedPhotoStore(context).clear();
         new RegisteredAlbumStore(context).save(List.of());
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a", "content://photos/b"));
         new TrackedPersonStore(context).save(List.of(

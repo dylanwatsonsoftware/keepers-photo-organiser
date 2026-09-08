@@ -27,6 +27,7 @@ public final class AlbumReviewActivity extends Activity {
     public static final String EXTRA_COMPLETED_COUNT = "completed_album_change_count";
     private AsyncThumbnailLoader thumbnailLoader;
     private AlbumReviewSelectionStore reviewStore;
+    private boolean showReviewed;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -39,6 +40,10 @@ public final class AlbumReviewActivity extends Activity {
         findViewById(R.id.confirm_album_review).setOnClickListener(view -> confirmReview());
         findViewById(R.id.resume_album_review).setOnClickListener(view -> resumeApprovedQueue());
         findViewById(R.id.stop_album_review).setOnClickListener(view -> stopApprovedQueue());
+        findViewById(R.id.toggle_reviewed_albums).setOnClickListener(view -> {
+            showReviewed = !showReviewed;
+            render();
+        });
         showAutomationResult();
     }
 
@@ -109,6 +114,7 @@ public final class AlbumReviewActivity extends Activity {
         AlbumCompletionStore completions = new AlbumCompletionStore(this);
         Set<String> proposed = proposalKeys(proposals.stream().filter(proposal ->
                 !completions.contains(proposal.photoId(), proposal.albumName())).toList());
+        Set<String> reviewed = new ReviewedPhotoStore(this).load();
         Set<String> selected = reviewStore.hasReview() ? reviewStore.load() : proposed;
         HashSet<String> eligible = new HashSet<>();
         for (String photo : keepers) for (TrackedPerson person : people)
@@ -124,10 +130,25 @@ public final class AlbumReviewActivity extends Activity {
 
         ArrayList<String> photos = new ArrayList<>(keepers);
         photos.sort(String::compareTo);
-        for (String photo : photos)
+        int reviewedCount = 0;
+        int visibleCount = 0;
+        for (String photo : photos) {
+            boolean wasReviewed = reviewed.contains(photo);
+            if (wasReviewed) reviewedCount++;
+            boolean hasNewSuggestion = proposed.stream().anyMatch(key ->
+                    key.startsWith(photo + "\n"));
+            if (!showReviewed && wasReviewed && !hasNewSuggestion) continue;
             container.addView(photoCard(photo, people, otherAlbums, selected, proposed,
                     portraits, completions));
-        summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
+            visibleCount++;
+        }
+        TextView reviewedToggle = findViewById(R.id.toggle_reviewed_albums);
+        reviewedToggle.setVisibility(reviewedCount > 0
+                ? android.view.View.VISIBLE : android.view.View.GONE);
+        reviewedToggle.setSelected(showReviewed);
+        reviewedToggle.setText(showReviewed ? "Hide reviewed"
+                : "Show reviewed (" + reviewedCount + ")");
+        summary.setText(visibleCount + (visibleCount == 1 ? " Keeper" : " Keepers")
                 + " · choose every album this photo belongs in");
         updateConfirmAction(selected);
     }
@@ -180,6 +201,12 @@ public final class AlbumReviewActivity extends Activity {
                 updateChoice(choice, person, checked, proposed.contains(key), false);
                 updateConfirmAction(changed);
             });
+            else if (showReviewed) {
+                choice.setClickable(true);
+                choice.setFocusable(true);
+                choice.setOnClickListener(view -> confirmRetry(
+                        photo, person.id(), person.albumName()));
+            }
             choices.addView(choice);
         }
         for (RegisteredAlbum album : otherAlbums) {
@@ -196,9 +223,30 @@ public final class AlbumReviewActivity extends Activity {
                 updateAlbumChoice(choice, album, checked, false);
                 updateConfirmAction(changed);
             });
+            else if (showReviewed) {
+                choice.setClickable(true);
+                choice.setFocusable(true);
+                choice.setOnClickListener(view -> confirmRetry(
+                        photo, albumKey(album), album.albumName()));
+            }
             choices.addView(choice);
         }
         return card;
+    }
+
+    private void confirmRetry(String photoId, String destinationId, String albumName) {
+        new AlertDialog.Builder(this).setTitle("Retry this album change?")
+                .setMessage("Keepers will offer " + albumName
+                        + " again in the next approved run. Google Photos may already contain it.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Retry", (dialog, which) -> {
+                    new AlbumCompletionStore(this).remove(photoId, albumName);
+                    new ReviewedPhotoStore(this).unmark(photoId);
+                    HashSet<String> changed = new HashSet<>(reviewStore.load());
+                    changed.add(AlbumReviewSelectionStore.key(photoId, destinationId));
+                    reviewStore.save(changed);
+                    render();
+                }).show();
     }
 
     private LinearLayout albumChoice(RegisteredAlbum album, boolean selected, boolean completed) {

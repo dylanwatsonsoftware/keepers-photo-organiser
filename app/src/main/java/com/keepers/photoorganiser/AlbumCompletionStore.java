@@ -23,6 +23,12 @@ public final class AlbumCompletionStore {
         preferences.edit().putStringSet(COMPLETED, completed).apply();
     }
 
+    public void remove(String photoId, String albumName) {
+        Set<String> completed = load();
+        completed.remove(key(photoId, albumName));
+        preferences.edit().putStringSet(COMPLETED, completed).apply();
+    }
+
     public void clear() { preferences.edit().clear().apply(); }
 
     private Set<String> load() {

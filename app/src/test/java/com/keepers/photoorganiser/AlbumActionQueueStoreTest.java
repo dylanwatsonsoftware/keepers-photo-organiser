@@ -29,9 +29,11 @@ public class AlbumActionQueueStoreTest {
         assertEquals(second, store.completeCurrent());
         assertEquals(1, store.completedCount());
         assertTrue(completions.contains("photo-a", "Ada Photos"));
+        assertTrue(new ReviewedPhotoStore(context).contains("photo-a"));
         assertEquals(second, store.current());
         assertEquals(null, store.completeCurrent());
         assertTrue(completions.contains("photo-b", "Ben Photos"));
+        assertTrue(new ReviewedPhotoStore(context).contains("photo-b"));
         assertFalse(store.isActive());
         assertEquals(2, store.completedCount());
     }
