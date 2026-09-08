@@ -238,8 +238,17 @@ public final class AlbumReviewActivity extends Activity {
         sourceParams.setMargins(0, dp(4), 0, 0);
         choice.addView(source, sourceParams);
         updateChoice(choice, person, selected, suggested, completed);
-        if (face != null) thumbnailLoader.loadProgressive(portrait, Uri.parse(face.photoId()),
-                520, 1200, bitmap -> showLooseCrop(portrait, bitmap, face));
+        if (face != null) {
+            String featureKey = new PersonFeatureFaceStore(this).load(person.id());
+            if (FaceCorrectionStore.key(face).equals(featureKey)) {
+                thumbnailLoader.loadProgressive(portrait, Uri.parse(face.photoId()),
+                        FeaturePortrait.PREVIEW_PIXELS, FeaturePortrait.FULL_PIXELS,
+                        bitmap -> portrait.setImageBitmap(FeaturePortrait.crop(bitmap, face)));
+            } else {
+                thumbnailLoader.load(portrait, Uri.parse(face.photoId()), 520,
+                        bitmap -> showLooseCrop(portrait, bitmap, face));
+            }
+        }
         return choice;
     }
 

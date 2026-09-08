@@ -409,8 +409,15 @@ public final class PreviewActivity extends Activity {
         crop.setClipToOutline(true);
         crop.setContentDescription("Expanded face crop for " + display.name());
         card.addView(crop, new LinearLayout.LayoutParams(dp(78), dp(78)));
-        loader.load(crop, Uri.parse(display.face().photoId()), 480,
-                bitmap -> showExpandedFaceCrop(crop, bitmap, display.face()));
+        FaceObservation portrait = featurePortrait(display);
+        if (portrait != display.face()) {
+            loader.loadProgressive(crop, Uri.parse(portrait.photoId()),
+                    FeaturePortrait.PREVIEW_PIXELS, FeaturePortrait.FULL_PIXELS,
+                    bitmap -> crop.setImageBitmap(FeaturePortrait.crop(bitmap, portrait)));
+        } else {
+            loader.load(crop, Uri.parse(display.face().photoId()), 480,
+                    bitmap -> showExpandedFaceCrop(crop, bitmap, display.face()));
+        }
         TextView label = new TextView(this);
         label.setText(display.suggested() ? display.name() + "\nSuggested" : display.name());
         label.setTextColor(display.suggested() ? 0xFFB06000 : 0xFF3C4043);
@@ -422,6 +429,14 @@ public final class PreviewActivity extends Activity {
         labelParams.setMargins(0, dp(6), 0, 0);
         card.addView(label, labelParams);
         return card;
+    }
+
+    private FaceObservation featurePortrait(FaceDisplay display) {
+        if (display.personId() == null) return display.face();
+        String key = new PersonFeatureFaceStore(this).load(display.personId());
+        FaceObservation feature = FeaturePortrait.resolve(display.personId(),
+                new FaceObservationStore(this).loadAll(), Map.of(display.personId(), key));
+        return feature == null ? display.face() : feature;
     }
 
     private void showFaceIdentityChooser(FaceObservation face) {

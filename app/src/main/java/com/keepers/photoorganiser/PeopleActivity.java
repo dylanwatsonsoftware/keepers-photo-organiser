@@ -299,8 +299,15 @@ public final class PeopleActivity extends Activity {
             FaceObservation face = portraits.get(card.getTag().toString());
             if (face == null) continue;
             ImageView portrait = profilePortraitViews.get(card.getTag().toString());
-            thumbnailLoader.load(portrait, Uri.parse(face.photoId()), 256,
-                    bitmap -> showPortraitCrop(portrait, bitmap, face));
+            String featureKey = new PersonFeatureFaceStore(this).load(card.getTag().toString());
+            if (FaceCorrectionStore.key(face).equals(featureKey)) {
+                thumbnailLoader.loadProgressive(portrait, Uri.parse(face.photoId()),
+                        FeaturePortrait.PREVIEW_PIXELS, FeaturePortrait.FULL_PIXELS,
+                        bitmap -> portrait.setImageBitmap(FeaturePortrait.crop(bitmap, face)));
+            } else {
+                thumbnailLoader.load(portrait, Uri.parse(face.photoId()), 256,
+                        bitmap -> showPortraitCrop(portrait, bitmap, face));
+            }
         }
     }
 

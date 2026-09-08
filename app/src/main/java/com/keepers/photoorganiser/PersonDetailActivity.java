@@ -224,8 +224,9 @@ public final class PersonDetailActivity extends Activity {
                 .filter(candidate -> FaceCorrectionStore.key(candidate).equals(selected))
                 .findFirst().orElse(faces.isEmpty() ? null : faces.get(0));
         if (face == null) { feature.setImageDrawable(null); return; }
-        thumbnailLoader.load(feature, Uri.parse(face.photoId()), 520,
-                bitmap -> showLooseCrop(feature, bitmap, face));
+        thumbnailLoader.loadProgressive(feature, Uri.parse(face.photoId()),
+                FeaturePortrait.PREVIEW_PIXELS, FeaturePortrait.FULL_PIXELS,
+                bitmap -> feature.setImageBitmap(FeaturePortrait.crop(bitmap, face)));
     }
 
     private static void showLooseCrop(ImageView view, Bitmap bitmap, FaceObservation face) {
