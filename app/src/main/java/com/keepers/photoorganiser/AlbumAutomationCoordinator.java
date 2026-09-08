@@ -11,7 +11,8 @@ public final class AlbumAutomationCoordinator {
                 .putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL,
                         System.currentTimeMillis() + 120_000)
                 .putString(KeepersAccessibilityService.ALBUM_NAME, action.albumName())
-                .putInt(KeepersAccessibilityService.ALBUM_PHASE, 0).apply();
+                .putInt(KeepersAccessibilityService.ALBUM_PHASE,
+                        KeepersAccessibilityService.PHASE_ADD_TO).apply();
         return GooglePhotosIntentFactory.openExisting(Uri.parse(action.photoId()));
     }
 

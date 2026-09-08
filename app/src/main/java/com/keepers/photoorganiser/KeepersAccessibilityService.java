@@ -14,14 +14,12 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String ALBUM_ARMED_UNTIL = "album_armed_until";
     public static final String ALBUM_NAME = "album_name";
     public static final String ALBUM_PHASE = "album_phase";
-    private static final int PHASE_FAVOURITE = 0;
-    private static final int PHASE_FAVOURITE_MENU = 1;
-    private static final int PHASE_ADD_TO = 2;
-    private static final int PHASE_ALBUM_PICKER = 3;
-    private static final int PHASE_FIND_OR_SEARCH = 4;
-    private static final int PHASE_TYPE_SEARCH = 5;
-    private static final int PHASE_SELECT_RESULT = 6;
-    private static final int PHASE_CONFIRM_ALBUM = 7;
+    static final int PHASE_ADD_TO = 0;
+    private static final int PHASE_ALBUM_PICKER = 1;
+    private static final int PHASE_FIND_OR_SEARCH = 2;
+    private static final int PHASE_TYPE_SEARCH = 3;
+    private static final int PHASE_SELECT_RESULT = 4;
+    private static final int PHASE_CONFIRM_ALBUM = 5;
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (runAlbumStep()) return;
@@ -41,33 +39,6 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return false;
 
-        if (phase == PHASE_FAVOURITE || phase == PHASE_FAVOURITE_MENU) {
-            AccessibilityNodeInfo favourite = findFavourite(root);
-            if (favourite != null) {
-                if (!click(favourite)) return actionFailed("Favourite control was not clickable");
-                advance(prefs, PHASE_ADD_TO);
-                toast("Keepers favourited this photo");
-                return true;
-            }
-            if (findAlreadyFavourite(root) != null) {
-                advance(prefs, PHASE_ADD_TO);
-                toast("Photo is already a favourite");
-                if (phase == PHASE_FAVOURITE_MENU) {
-                    performGlobalAction(GLOBAL_ACTION_BACK);
-                    return true;
-                }
-                return runAddStep(root, prefs);
-            }
-            if (phase == PHASE_FAVOURITE) {
-                AccessibilityNodeInfo more = findMoreOptions(root);
-                if (more == null) return false;
-                if (!click(more)) return actionFailed("More options was not clickable");
-                advance(prefs, PHASE_FAVOURITE_MENU);
-                toast("Keepers opened photo options");
-                return true;
-            }
-            return false;
-        }
         if (phase == PHASE_ADD_TO) return runAddStep(root, prefs);
         if (phase == PHASE_ALBUM_PICKER) {
             AccessibilityNodeInfo picker = findAlbumPickerOption(root);
