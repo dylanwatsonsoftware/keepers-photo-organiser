@@ -127,6 +127,31 @@ public class PeopleActivityTest {
         assertEquals("Seen in 1 photo", groups.getChildAt(1).getContentDescription());
     }
 
+    @Test public void discoveryDefaultsToGroupsNeedingFeedbackAndCanRevealConfirmedOnes() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save("content://photos/confirmed", List.of(
+                face("content://photos/confirmed", "1,0,0")));
+        observations.save("content://photos/new", List.of(
+                face("content://photos/new", "0,1,0")));
+        List<FaceIdentityGroup> clustered = FaceClusterer.cluster(observations.loadAll(), .30);
+        String confirmed = clustered.stream()
+                .filter(group -> group.photoIds().contains("content://photos/confirmed"))
+                .findFirst().orElseThrow().id();
+        new FaceGroupAssignmentStore(context).save(Map.of(confirmed, "ada"));
+
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
+        TextView toggle = activity.findViewById(R.id.toggle_confirmed_faces);
+
+        assertEquals(1, groups.getChildCount());
+        assertEquals("Seen in 1 photo", groups.getChildAt(0).getContentDescription());
+        assertEquals("Show confirmed (1)", toggle.getText().toString());
+        toggle.performClick();
+        assertEquals(2, groups.getChildCount());
+        assertEquals("Hide confirmed", toggle.getText().toString());
+    }
+
     @Test public void personChoicesShowTheSavedNameAndAFacePhoto() {
         android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
         new TrackedPersonStore(context).save(List.of(
@@ -138,6 +163,7 @@ public class PeopleActivityTest {
         new FaceGroupAssignmentStore(context).save(Map.of(group.id(), "ada"));
 
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.toggle_confirmed_faces).performClick();
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
         Spinner chooser = findFirst(groups.getChildAt(0), Spinner.class);
         View personChoice = chooser.getAdapter().getDropDownView(1, null, chooser);

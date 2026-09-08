@@ -24,6 +24,7 @@ public final class PeopleActivity extends Activity {
     private AsyncThumbnailLoader thumbnailLoader;
     private LinearLayout profiles;
     private int nextPersonNumber = 1;
+    private boolean showConfirmedFaces;
     private final Map<String, ImageView> profilePortraitViews = new HashMap<>();
 
     @Override protected void onCreate(Bundle state) {
@@ -47,6 +48,10 @@ public final class PeopleActivity extends Activity {
         });
         findViewById(R.id.open_advanced_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
+        findViewById(R.id.toggle_confirmed_faces).setOnClickListener(view -> {
+            showConfirmedFaces = !showConfirmedFaces;
+            showDiscoveredGroups();
+        });
     }
 
     @Override protected void onResume() {
@@ -75,17 +80,37 @@ public final class PeopleActivity extends Activity {
         container.removeAllViews();
         List<FaceIdentityGroup> groups = FaceClusterer.cluster(
                 new FaceObservationStore(this).loadAll(), .30);
-        groups = groups.stream().sorted(Comparator
-                .comparingLong((FaceIdentityGroup group) -> group.photoIds().stream().distinct().count())
-                .reversed().thenComparing(FaceIdentityGroup::id)).toList();
         List<TrackedPerson> people = currentPeople();
         Map<String, String> assignments = new FaceGroupAssignmentStore(this).load();
+        Map<String, String> corrections = new FaceCorrectionStore(this).load();
+        groups = groups.stream().sorted(Comparator
+                .comparingInt((FaceIdentityGroup group) -> FaceReviewInbox.needsReview(
+                        group, assignments, corrections) ? 0 : 1)
+                .thenComparing(Comparator.comparingLong((FaceIdentityGroup group) ->
+                        group.photoIds().stream().distinct().count()).reversed())
+                .thenComparing(FaceIdentityGroup::id)).toList();
+        long needsReview = groups.stream().filter(group -> FaceReviewInbox.needsReview(
+                group, assignments, corrections)).count();
+        int confirmed = groups.size() - (int) needsReview;
+        TextView toggle = findViewById(R.id.toggle_confirmed_faces);
+        toggle.setVisibility(confirmed > 0 ? View.VISIBLE : View.GONE);
+        toggle.setSelected(showConfirmedFaces);
+        toggle.setText(showConfirmedFaces ? "Hide confirmed" : "Show confirmed (" + confirmed + ")");
+        TextView summary = findViewById(R.id.discovered_faces_summary);
+        summary.setText(needsReview == 0
+                ? groups.isEmpty() ? "No discovered face groups yet."
+                        : "All discovered face groups have feedback."
+                : needsReview + (needsReview == 1 ? " group needs" : " groups need")
+                        + " your feedback.");
         Map<String, String> predictions = FaceIdentityLearner.predict(
                 new FaceObservationStore(this).loadAll(), groups, assignments,
-                new FaceCorrectionStore(this).load(), .15);
+                corrections, .15);
         Map<String, FaceObservation> portraits = portraits(groups, assignments);
-        for (FaceIdentityGroup group : groups)
+        for (FaceIdentityGroup group : groups) {
+            if (!showConfirmedFaces && !FaceReviewInbox.needsReview(
+                    group, assignments, corrections)) continue;
             container.addView(groupCard(group, people, assignments, predictions, portraits));
+        }
         refreshProfilePortraits(portraits);
     }
 
