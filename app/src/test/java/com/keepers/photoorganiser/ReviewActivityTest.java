@@ -51,6 +51,15 @@ public class ReviewActivityTest {
         assertEquals(MainActivity.class.getName(), started.getComponent().getClassName());
     }
 
+    @Test public void albumReviewButtonOpensTheGuidedQueue() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        activity.findViewById(R.id.open_album_review).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
+    }
+
     @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(

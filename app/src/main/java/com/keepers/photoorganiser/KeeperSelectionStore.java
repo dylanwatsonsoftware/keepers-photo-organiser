@@ -30,4 +30,8 @@ public final class KeeperSelectionStore {
     public void clear() {
         preferences.edit().remove(SELECTED_URIS).apply();
     }
+
+    void replace(Set<String> selected) {
+        preferences.edit().putStringSet(SELECTED_URIS, new HashSet<>(selected)).apply();
+    }
 }

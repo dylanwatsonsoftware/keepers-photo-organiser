@@ -50,6 +50,8 @@ public final class ReviewActivity extends Activity {
         faceAnalyzer = createFaceAnalyzer();
         findViewById(R.id.open_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
+        findViewById(R.id.open_album_review).setOnClickListener(view ->
+                startActivity(new Intent(this, AlbumReviewActivity.class)));
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {
             selectionStore.clear();
             updateSelectionDisplay();
@@ -197,6 +199,7 @@ public final class ReviewActivity extends Activity {
         tile.addView(marker, markerParams);
         marker.setOnClickListener(view -> {
             selectionStore.toggle(photo);
+            new AlbumReviewSelectionStore(this).clear();
             updateSelectionDisplay();
         });
 
