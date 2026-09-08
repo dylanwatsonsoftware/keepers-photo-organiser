@@ -11,6 +11,7 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
@@ -83,17 +84,21 @@ public final class PersonDetailActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER_HORIZONTAL);
+        tile.setPadding(dp(8), dp(8), dp(8), dp(8));
+        tile.setBackgroundResource(R.drawable.person_setup_card);
         GridLayout.LayoutParams tileParams = new GridLayout.LayoutParams();
-        tileParams.width = dp(104);
+        tileParams.width = 0;
         tileParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        tileParams.setMargins(0, 0, dp(6), dp(12));
+        tileParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        tileParams.setMargins(dp(4), 0, dp(4), dp(10));
         tile.setLayoutParams(tileParams);
 
         FrameLayout frame = new FrameLayout(this);
         frame.setSelected(featureFace);
         frame.setPadding(dp(3), dp(3), dp(3), dp(3));
         frame.setBackgroundResource(R.drawable.album_person_choice);
-        tile.addView(frame, new LinearLayout.LayoutParams(dp(96), dp(96)));
+        tile.addView(frame, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(148)));
         ImageView crop = new ImageView(this);
         crop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         crop.setBackgroundResource(R.drawable.preview_face_crop);
@@ -111,20 +116,35 @@ public final class PersonDetailActivity extends Activity {
         };
         if (!featureFace) crop.setOnClickListener(view -> selectFeature.run());
 
-        TextView feature = compactAction(featureFace ? "Feature photo" : "Use as feature");
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView feature = compactAction(featureFace
+                ? "Current feature photo" : "Use as feature");
         feature.setTextColor(featureFace ? 0xFF174EA6 : 0xFF3C4043);
-        feature.setBackgroundResource(featureFace ? R.drawable.keeper_summary_chip
-                : R.drawable.gallery_filter_chip);
+        feature.setBackgroundResource(R.drawable.person_feature_action);
+        feature.setEnabled(!featureFace);
         feature.setClickable(!featureFace);
         feature.setFocusable(!featureFace);
         if (!featureFace) feature.setOnClickListener(view -> selectFeature.run());
-        tile.addView(feature, actionLayoutParams());
+        LinearLayout.LayoutParams featureParams = new LinearLayout.LayoutParams(
+                0, dp(40), 1f);
+        featureParams.setMargins(0, dp(8), dp(6), 0);
+        actions.addView(feature, featureParams);
 
-        TextView remove = compactAction("Remove");
-        remove.setTextColor(0xFFB3261E);
+        ImageButton remove = new ImageButton(this);
+        remove.setImageResource(R.drawable.ic_close);
+        remove.setColorFilter(0xFFB3261E);
+        remove.setPadding(dp(10), dp(10), dp(10), dp(10));
         remove.setBackgroundResource(R.drawable.person_remove_action);
+        remove.setContentDescription("Remove face from " + name);
         remove.setOnClickListener(view -> confirmRemoval(face, name));
-        tile.addView(remove, actionLayoutParams());
+        LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(dp(40), dp(40));
+        removeParams.setMargins(0, dp(8), 0, 0);
+        actions.addView(remove, removeParams);
+        tile.addView(actions, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return tile;
     }
 
@@ -159,13 +179,6 @@ public final class PersonDetailActivity extends Activity {
         action.setClickable(true);
         action.setFocusable(true);
         return action;
-    }
-
-    private LinearLayout.LayoutParams actionLayoutParams() {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
-        params.setMargins(dp(2), dp(5), dp(2), 0);
-        return params;
     }
 
     private List<FaceObservation> associatedFaces() {

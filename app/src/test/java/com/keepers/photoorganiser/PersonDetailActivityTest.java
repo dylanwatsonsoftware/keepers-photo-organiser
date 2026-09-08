@@ -1,8 +1,10 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.app.AlertDialog;
 import android.app.Activity;
@@ -13,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -63,19 +66,29 @@ public class PersonDetailActivityTest {
         Activity activity = launch(context, "ada");
         GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
 
-        assertEquals(3, faces.getColumnCount());
+        assertEquals(2, faces.getColumnCount());
         assertEquals(2, faces.getChildCount());
+        assertEquals(0, faces.getChildAt(0).getLayoutParams().width);
         ImageView crop = findFirst(faces.getChildAt(0), ImageView.class);
         assertNotNull(crop);
-        assertNotNull(findText(faces.getChildAt(0), "Feature photo"));
+        TextView current = findText(faces.getChildAt(0), "Current feature photo");
+        assertNotNull(current);
+        assertFalse(current.isEnabled());
+        assertFalse(current.isClickable());
         assertNull(findText(faces.getChildAt(0), "Use as feature"));
-        findText(faces.getChildAt(1), "Use as feature").performClick();
+        TextView choose = findText(faces.getChildAt(1), "Use as feature");
+        assertTrue(choose.isEnabled());
+        assertTrue(choose.isClickable());
+        choose.performClick();
         assertEquals(secondPhoto + "#0", context.getSharedPreferences(
                 "person_feature_faces", Context.MODE_PRIVATE).getString("ada", ""));
-        assertNotNull(findText(faces.getChildAt(1), "Feature photo"));
+        assertNotNull(findText(faces.getChildAt(1), "Current feature photo"));
         assertNull(findText(faces.getChildAt(1), "Use as feature"));
 
-        findText(faces.getChildAt(1), "Remove").performClick();
+        ImageButton remove = findFirst(faces.getChildAt(1), ImageButton.class);
+        assertNotNull(remove);
+        assertEquals("Remove face from Ada", remove.getContentDescription().toString());
+        remove.performClick();
         assertNull(new FaceCorrectionStore(context).load().get(secondPhoto + "#0"));
         AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
         assertEquals("Remove", dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());

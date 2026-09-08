@@ -30,7 +30,7 @@
             android:textColor="#5F6368" android:textSize="14sp" />
         <GridLayout android:id="@+id/person_detail_faces" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="12dp"
-            android:alignmentMode="alignMargins" android:columnCount="3"
+            android:alignmentMode="alignMargins" android:columnCount="2"
             android:orientation="horizontal" android:paddingBottom="24dp"
             android:useDefaultMargins="false" />
     </LinearLayout>
