@@ -6,8 +6,10 @@ import java.util.List;
 
 public final class AlbumActionQueueStore {
     private final SharedPreferences preferences;
+    private final AlbumCompletionStore completions;
     public AlbumActionQueueStore(Context context) {
         preferences = context.getSharedPreferences("album_action_queue", Context.MODE_PRIVATE);
+        completions = new AlbumCompletionStore(context);
     }
     public void begin(List<AlbumAction> actions) {
         SharedPreferences.Editor editor = preferences.edit().clear()
@@ -22,6 +24,7 @@ public final class AlbumActionQueueStore {
         editor.apply();
     }
     public boolean isActive() { return preferences.getBoolean("active", false); }
+    public int totalCount() { return preferences.getInt("count", 0); }
     public AlbumAction current() {
         if (!isActive()) return null;
         int index = preferences.getInt("index", 0);
@@ -29,6 +32,8 @@ public final class AlbumActionQueueStore {
     }
     public AlbumAction completeCurrent() {
         if (!isActive()) return null;
+        AlbumAction completed = current();
+        if (completed != null) completions.mark(completed.photoId(), completed.albumName());
         int next = preferences.getInt("index", 0) + 1;
         if (next >= preferences.getInt("count", 0)) {
             preferences.edit().putBoolean("active", false).apply();

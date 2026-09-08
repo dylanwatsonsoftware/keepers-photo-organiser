@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class AlbumReviewActivity extends Activity {
+    public static final String EXTRA_COMPLETED_COUNT = "completed_album_change_count";
     private AsyncThumbnailLoader thumbnailLoader;
     private AlbumReviewSelectionStore reviewStore;
 
@@ -36,6 +37,19 @@ public final class AlbumReviewActivity extends Activity {
         findViewById(R.id.album_review_setup_people).setOnClickListener(view ->
                 startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.confirm_album_review).setOnClickListener(view -> confirmReview());
+        showAutomationResult();
+    }
+
+    private void showAutomationResult() {
+        int count = getIntent().getIntExtra(EXTRA_COMPLETED_COUNT, 0);
+        TextView status = findViewById(R.id.album_review_run_status);
+        if (count <= 0) {
+            status.setVisibility(android.view.View.GONE);
+            return;
+        }
+        status.setText("Done — " + count + (count == 1
+                ? " album change completed" : " album changes completed"));
+        status.setVisibility(android.view.View.VISIBLE);
     }
 
     @Override protected void onResume() {
@@ -66,23 +80,31 @@ public final class AlbumReviewActivity extends Activity {
                 new FaceObservationStore(this).loadAll(), .30);
         List<AlbumAssignment> proposals = AlbumProposalEngine.propose(keepers, groups,
                 new FaceGroupAssignmentStore(this).load(), new FaceCorrectionStore(this).load(), people);
-        Set<String> proposed = proposalKeys(proposals);
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
+        Set<String> proposed = proposalKeys(proposals.stream().filter(proposal ->
+                !completions.contains(proposal.photoId(), proposal.albumName())).toList());
         Set<String> selected = reviewStore.hasReview() ? reviewStore.load() : proposed;
-        if (!reviewStore.hasReview()) reviewStore.save(selected);
+        HashSet<String> eligible = new HashSet<>();
+        for (String photo : keepers) for (TrackedPerson person : people)
+            if (!completions.contains(photo, person.albumName()))
+                eligible.add(AlbumReviewSelectionStore.key(photo, person.id()));
+        boolean removedCompleted = selected.retainAll(eligible);
+        if (!reviewStore.hasReview() || removedCompleted) reviewStore.save(selected);
         Map<String, FaceObservation> portraits = portraits(people, groups,
                 new FaceGroupAssignmentStore(this).load(), new FaceCorrectionStore(this).load());
 
         ArrayList<String> photos = new ArrayList<>(keepers);
         photos.sort(String::compareTo);
         for (String photo : photos)
-            container.addView(photoCard(photo, people, selected, proposed, portraits));
+            container.addView(photoCard(photo, people, selected, proposed, portraits, completions));
         summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
                 + " · check or uncheck each child before continuing");
         updateConfirmAction(selected);
     }
 
     private LinearLayout photoCard(String photo, List<TrackedPerson> people, Set<String> selected,
-            Set<String> proposed, Map<String, FaceObservation> portraits) {
+            Set<String> proposed, Map<String, FaceObservation> portraits,
+            AlbumCompletionStore completions) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
@@ -110,15 +132,16 @@ public final class AlbumReviewActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         for (TrackedPerson person : people) {
             String key = AlbumReviewSelectionStore.key(photo, person.id());
+            boolean completed = completions.contains(photo, person.albumName());
             LinearLayout choice = personChoice(person, portraits.get(person.id()),
-                    selected.contains(key), proposed.contains(key));
-            choice.setOnClickListener(view -> {
+                    selected.contains(key) && !completed, proposed.contains(key), completed);
+            if (!completed) choice.setOnClickListener(view -> {
                 boolean checked = !choice.isSelected();
                 HashSet<String> changed = new HashSet<>(reviewStore.load());
                 if (checked) changed.add(key); else changed.remove(key);
                 AlbumApprovalInvalidator.invalidate(this);
                 reviewStore.save(changed);
-                updateChoice(choice, person, checked, proposed.contains(key));
+                updateChoice(choice, person, checked, proposed.contains(key), false);
                 updateConfirmAction(changed);
             });
             choices.addView(choice);
@@ -127,7 +150,7 @@ public final class AlbumReviewActivity extends Activity {
     }
 
     private LinearLayout personChoice(TrackedPerson person, FaceObservation face,
-            boolean selected, boolean suggested) {
+            boolean selected, boolean suggested, boolean completed) {
         LinearLayout choice = new LinearLayout(this);
         choice.setOrientation(LinearLayout.VERTICAL);
         choice.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
@@ -185,25 +208,27 @@ public final class AlbumReviewActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(22));
         sourceParams.setMargins(0, dp(4), 0, 0);
         choice.addView(source, sourceParams);
-        updateChoice(choice, person, selected, suggested);
+        updateChoice(choice, person, selected, suggested, completed);
         if (face != null) thumbnailLoader.loadProgressive(portrait, Uri.parse(face.photoId()),
                 520, 1200, bitmap -> showLooseCrop(portrait, bitmap, face));
         return choice;
     }
 
     private void updateChoice(LinearLayout choice, TrackedPerson person, boolean selected,
-            boolean suggested) {
+            boolean suggested, boolean completed) {
         choice.setSelected(selected);
         FrameLayout frame = choice.findViewWithTag("portrait_frame");
         frame.setSelected(selected);
         TextView check = choice.findViewWithTag("selection_check");
         check.setVisibility(selected ? android.view.View.VISIBLE : android.view.View.GONE);
         TextView source = choice.findViewWithTag("assignment_source");
-        source.setText(suggested ? "Suggested" : "Your choice");
-        source.setVisibility(suggested || selected ? android.view.View.VISIBLE
+        source.setText(completed ? "Added" : suggested ? "Suggested" : "Your choice");
+        source.setVisibility(completed || suggested || selected ? android.view.View.VISIBLE
                 : android.view.View.GONE);
-        choice.setContentDescription(displayName(person) + (selected ? " selected for "
-                : " not selected for ") + person.albumName());
+        choice.setContentDescription(displayName(person) + (completed ? " already added to "
+                : selected ? " selected for " : " not selected for ") + person.albumName());
+        choice.setClickable(!completed);
+        choice.setFocusable(!completed);
     }
 
     private Map<String, FaceObservation> portraits(List<TrackedPerson> people,
@@ -287,13 +312,16 @@ public final class AlbumReviewActivity extends Activity {
         }
         HashMap<String, TrackedPerson> people = new HashMap<>();
         for (TrackedPerson person : new TrackedPersonStore(this).load()) people.put(person.id(), person);
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
         ArrayList<AlbumAction> actions = new ArrayList<>();
         for (String key : reviewStore.load()) {
             int split = key.lastIndexOf('\n');
             if (split < 0) continue;
             TrackedPerson person = people.get(key.substring(split + 1));
             if (person == null || person.albumName().isBlank()) continue;
-            actions.add(new AlbumAction(key.substring(0, split), person.name(), person.albumName()));
+            String photoId = key.substring(0, split);
+            if (completions.contains(photoId, person.albumName())) continue;
+            actions.add(new AlbumAction(photoId, person.name(), person.albumName()));
         }
         actions.sort(Comparator.comparing(AlbumAction::photoId).thenComparing(AlbumAction::albumName));
         AlbumActionQueueStore queue = new AlbumActionQueueStore(this);

@@ -13,17 +13,23 @@ import org.robolectric.RuntimeEnvironment;
 @RunWith(RobolectricTestRunner.class)
 public class AlbumActionQueueStoreTest {
     @Test public void approvedQueueAdvancesInOrderAndStopsAfterTheLastAction() {
-        AlbumActionQueueStore store = new AlbumActionQueueStore(RuntimeEnvironment.getApplication());
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        AlbumCompletionStore completions = new AlbumCompletionStore(context);
+        completions.clear();
+        AlbumActionQueueStore store = new AlbumActionQueueStore(context);
         AlbumAction first = new AlbumAction("photo-a", "Ada", "Ada Photos");
         AlbumAction second = new AlbumAction("photo-b", "Ben", "Ben Photos");
 
         store.begin(List.of(first, second));
 
         assertTrue(store.isActive());
+        assertEquals(2, store.totalCount());
         assertEquals(first, store.current());
         assertEquals(second, store.completeCurrent());
+        assertTrue(completions.contains("photo-a", "Ada Photos"));
         assertEquals(second, store.current());
         assertEquals(null, store.completeCurrent());
+        assertTrue(completions.contains("photo-b", "Ben Photos"));
         assertFalse(store.isActive());
     }
 }

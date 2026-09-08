@@ -29,6 +29,20 @@ import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
+    @Test public void completedAutomationReturnsToAClearResultBanner() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        Intent intent = new Intent(context, AlbumReviewActivity.class)
+                .putExtra(AlbumReviewActivity.EXTRA_COMPLETED_COUNT, 2);
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(
+                AlbumReviewActivity.class, intent).setup().get();
+
+        TextView result = activity.findViewById(R.id.album_review_run_status);
+        assertEquals(View.VISIBLE, result.getVisibility());
+        assertEquals("Done — 2 album changes completed", result.getText().toString());
+    }
+
     @Test public void everyKeeperIsShownAndDetectedPersonStartsSelected() {
         seed();
 
@@ -87,6 +101,27 @@ public class AlbumReviewActivityTest {
         assertTrue(!confirm.isEnabled());
     }
 
+    @Test public void completedAlbumAssignmentIsShownAsAddedAndCannotBeQueuedAgain() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumReviewSelectionStore(context).save(Set.of(
+                AlbumReviewSelectionStore.key("content://photos/a", "ada")));
+        new AlbumCompletionStore(context).mark("content://photos/a", "Ada Photos");
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        View ada = ((GridLayout) first.getChildAt(2)).getChildAt(0);
+
+        assertTrue(!ada.isSelected());
+        assertEquals("Added", ((TextView) ada.findViewWithTag("assignment_source"))
+                .getText().toString());
+        ada.performClick();
+        assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
+        assertEquals("No album changes selected",
+                ((TextView) activity.findViewById(R.id.confirm_album_review)).getText().toString());
+    }
+
     @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
@@ -122,6 +157,7 @@ public class AlbumReviewActivityTest {
     @Test public void missingAlbumMappingsGuideTheUserToPeopleSetup() {
         android.content.Context context = RuntimeEnvironment.getApplication();
         new AlbumReviewSelectionStore(context).clear();
+        new AlbumCompletionStore(context).clear();
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a"));
         new TrackedPersonStore(context).save(List.of(
                 new TrackedPerson("ada", "Ada", "", true)));

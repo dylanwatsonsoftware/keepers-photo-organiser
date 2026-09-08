@@ -124,9 +124,13 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     private void startNextApprovedAlbumAction() {
         AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
         if (!queue.isActive()) return;
+        int totalCount = queue.totalCount();
         AlbumAction next = queue.completeCurrent();
         if (next == null) {
             toast("All approved album changes are complete");
+            startActivity(new Intent(this, AlbumReviewActivity.class)
+                    .putExtra(AlbumReviewActivity.EXTRA_COMPLETED_COUNT, totalCount)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
             return;
         }
         Intent intent = AlbumAutomationCoordinator.arm(this, next)
