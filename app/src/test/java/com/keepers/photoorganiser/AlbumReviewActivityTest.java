@@ -174,6 +174,22 @@ public class AlbumReviewActivityTest {
                 AlbumReviewSelectionStore.key("content://photos/a", "ada")));
     }
 
+    @Test public void reviewedPhotoStaysHiddenWhenFaceAnalysisSuggestsAnotherAlbum() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumCompletionStore(context).mark(
+                "content://photos/a", "Family adventures");
+        new ReviewedPhotoStore(context).mark("content://photos/a");
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        LinearLayout items = activity.findViewById(R.id.album_review_items);
+        assertEquals(1, items.getChildCount());
+        assertEquals("Show reviewed (1)", ((TextView) activity.findViewById(
+                R.id.toggle_reviewed_albums)).getText().toString());
+    }
+
     @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
@@ -285,6 +301,7 @@ public class AlbumReviewActivityTest {
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
                 new ComponentName(context, KeepersAccessibilityService.class).flattenToString());
         new AlbumReviewSelectionStore(context).clear();
+        new AlbumCompletionStore(context).clear();
         new AlbumActionQueueStore(context).cancel();
         new ReviewedPhotoStore(context).clear();
         new RegisteredAlbumStore(context).save(List.of());

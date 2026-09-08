@@ -135,9 +135,7 @@ public final class AlbumReviewActivity extends Activity {
         for (String photo : photos) {
             boolean wasReviewed = reviewed.contains(photo);
             if (wasReviewed) reviewedCount++;
-            boolean hasNewSuggestion = proposed.stream().anyMatch(key ->
-                    key.startsWith(photo + "\n"));
-            if (!showReviewed && wasReviewed && !hasNewSuggestion) continue;
+            if (!showReviewed && wasReviewed) continue;
             container.addView(photoCard(photo, people, otherAlbums, selected, proposed,
                     portraits, completions));
             visibleCount++;
