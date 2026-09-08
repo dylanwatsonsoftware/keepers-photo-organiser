@@ -2,6 +2,8 @@ package com.keepers.photoorganiser;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
@@ -291,10 +293,13 @@ public final class PreviewActivity extends Activity {
         TextView body = findViewById(R.id.preview_analysis_body);
         if (insight == null) {
             title.setText("Analysis pending");
+            applyAssessmentIcon(title, 0);
             body.setText("This photo has not finished being analysed yet.");
         } else {
             title.setText(insight.recommended() ? "Recommended best shot"
                     : insight.goodAlternative() ? "Good alternative" : "Not recommended");
+            applyAssessmentIcon(title, AssessmentStatusStyle.iconRes(
+                    insight.recommended(), insight.goodAlternative()));
             String stack = insight.stack() == null ? "Distinct photo"
                     : "Photo " + insight.stack().position() + " of " + insight.stack().size()
                     + " in this detected stack";
@@ -327,8 +332,14 @@ public final class PreviewActivity extends Activity {
         card.setLayoutParams(params);
         card.setClickable(true);
         card.setFocusable(true);
-        card.setContentDescription("Identify " + display.name());
-        card.setOnClickListener(view -> showFaceIdentityChooser(display.face()));
+        boolean confirmed = display.personId() != null && !display.suggested();
+        card.setContentDescription(confirmed ? "Open " + display.name() + " settings"
+                : "Identify " + display.name());
+        card.setOnClickListener(view -> {
+            if (confirmed) startActivity(new Intent(this, PersonDetailActivity.class)
+                    .putExtra(PersonDetailActivity.EXTRA_PERSON_ID, display.personId()));
+            else showFaceIdentityChooser(display.face());
+        });
         ImageView crop = new ImageView(this);
         crop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         crop.setBackgroundResource(R.drawable.preview_face_crop);
@@ -402,20 +413,21 @@ public final class PreviewActivity extends Activity {
             Map<String, String> learned, Map<String, String> names) {
         String key = FaceCorrectionStore.key(face);
         String corrected = corrections.get(key);
-        if (FaceCorrectionStore.IGNORE.equals(corrected)) return new FaceDisplay(face, "Unknown", false);
+        if (FaceCorrectionStore.IGNORE.equals(corrected))
+            return new FaceDisplay(face, "Unknown", null, false);
         if (corrected != null && names.containsKey(corrected))
-            return new FaceDisplay(face, displayName(names.get(corrected)), false);
+            return new FaceDisplay(face, displayName(names.get(corrected)), corrected, false);
         for (FaceIdentityGroup group : groups) if (group.members().stream()
                 .anyMatch(member -> FaceCorrectionStore.key(member).equals(key))) {
             String assigned = assignments.get(group.id());
             if (assigned != null && names.containsKey(assigned))
-                return new FaceDisplay(face, displayName(names.get(assigned)), false);
+                return new FaceDisplay(face, displayName(names.get(assigned)), assigned, false);
             break;
         }
         String predicted = learned.get(key);
         if (predicted != null && names.containsKey(predicted))
-            return new FaceDisplay(face, displayName(names.get(predicted)), true);
-        return new FaceDisplay(face, "Unknown", false);
+            return new FaceDisplay(face, displayName(names.get(predicted)), predicted, true);
+        return new FaceDisplay(face, "Unknown", null, false);
     }
 
     private static String displayName(String name) {
@@ -437,7 +449,21 @@ public final class PreviewActivity extends Activity {
         view.setImageBitmap(Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top));
     }
 
-    private record FaceDisplay(FaceObservation face, String name, boolean suggested) {}
+    private record FaceDisplay(FaceObservation face, String name, String personId,
+            boolean suggested) {}
+
+    private void applyAssessmentIcon(TextView title, int iconRes) {
+        if (iconRes == 0) {
+            title.setCompoundDrawablesRelative(null, null, null, null);
+            return;
+        }
+        Drawable icon = getDrawable(iconRes).mutate();
+        icon.setTint(0xFFB06000);
+        int size = dp(23);
+        icon.setBounds(0, 0, size, size);
+        title.setCompoundDrawablePadding(dp(8));
+        title.setCompoundDrawablesRelative(icon, null, null, null);
+    }
 
     private void openAnalysis() {
         float openPhotoY = -analysisRevealDistance();

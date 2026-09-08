@@ -15,6 +15,7 @@ import android.widget.TextView;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -48,6 +49,10 @@ public class PreviewFaceGridTest {
         assertEquals("Unknown", label(grid, 1));
         ImageView firstFace = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
         assertEquals("Expanded face crop for Ada", firstFace.getContentDescription());
+        grid.getChildAt(0).performClick();
+        Intent started = org.robolectric.Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PersonDetailActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals("ada", started.getStringExtra(PersonDetailActivity.EXTRA_PERSON_ID));
     }
 
     @Test public void tappingAnUnknownFaceCanConfirmItAndTeachFutureMatches() throws Exception {
@@ -77,6 +82,23 @@ public class PreviewFaceGridTest {
         assertEquals("ada", FaceIdentityLearner.predict(List.of(
                         new FaceObservationStore(activity).load(photo).get(0), future),
                 new FaceCorrectionStore(activity).load(), .15).get("content://photos/future#0"));
+    }
+
+    @Test public void recommendedAssessmentHeadingDisplaysItsStar() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String photo = "content://photos/recommended-heading";
+        new PhotoInsightStore(context).save(List.of(new PhotoFeatures(photo, 0, 0, .8)),
+                Map.of(), Set.of(photo));
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(photo))).setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+
+        TextView heading = activity.findViewById(R.id.preview_analysis_title);
+        assertEquals("Recommended best shot", heading.getText().toString());
+        assertNotNull(heading.getCompoundDrawablesRelative()[0]);
     }
 
     private static String label(GridLayout grid, int index) {
