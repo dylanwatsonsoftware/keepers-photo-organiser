@@ -26,12 +26,14 @@ public final class FaceIdentityLearner {
 
     public static Map<String, String> predict(List<FaceObservation> observations,
             Map<String, String> corrections, double maximumDistance) {
-        ArrayList<Example> examples = new ArrayList<>();
+        HashMap<String, Profile> profiles = new HashMap<>();
         for (FaceObservation face : observations) {
             String person = corrections.get(FaceCorrectionStore.key(face));
             double[] descriptor = FaceDescriptor.decode(face.descriptor());
             if (person != null && !FaceCorrectionStore.IGNORE.equals(person)
-                    && descriptor.length > 0) examples.add(new Example(person, descriptor));
+                    && descriptor.length > 0)
+                profiles.computeIfAbsent(person, ignored -> new Profile(descriptor.length))
+                        .add(descriptor);
         }
         HashMap<String, String> result = new HashMap<>();
         for (FaceObservation face : observations) {
@@ -39,12 +41,12 @@ public final class FaceIdentityLearner {
             if (corrections.containsKey(key)) continue;
             double[] descriptor = FaceDescriptor.decode(face.descriptor());
             HashMap<String, Double> nearestByPerson = new HashMap<>();
-            for (Example example : examples) {
-                double distance = distance(descriptor, example.descriptor);
-                nearestByPerson.merge(example.personId, distance, Math::min);
-            }
+            for (Map.Entry<String, Profile> profile : profiles.entrySet())
+                nearestByPerson.put(profile.getKey(),
+                        distance(descriptor, profile.getValue().centroid()));
             List<Map.Entry<String, Double>> nearest = nearestByPerson.entrySet().stream()
-                    .sorted(Comparator.comparingDouble(Map.Entry::getValue)).toList();
+                    .sorted(Comparator.<Map.Entry<String, Double>>comparingDouble(
+                            Map.Entry::getValue).thenComparing(Map.Entry::getKey)).toList();
             if (nearest.isEmpty() || nearest.get(0).getValue() > maximumDistance) continue;
             if (nearest.size() > 1 && nearest.get(1).getValue() - nearest.get(0).getValue()
                     < AMBIGUITY_MARGIN) continue;
@@ -65,5 +67,23 @@ public final class FaceIdentityLearner {
         return 1 - dot / Math.sqrt(leftSize * rightSize);
     }
 
-    private record Example(String personId, double[] descriptor) {}
+    private static final class Profile {
+        private final double[] total;
+        private int count;
+
+        Profile(int dimensions) { total = new double[dimensions]; }
+
+        void add(double[] descriptor) {
+            if (descriptor.length != total.length) return;
+            for (int index = 0; index < total.length; index++) total[index] += descriptor[index];
+            count++;
+        }
+
+        double[] centroid() {
+            double[] centroid = total.clone();
+            if (count > 0) for (int index = 0; index < centroid.length; index++)
+                centroid[index] /= count;
+            return centroid;
+        }
+    }
 }

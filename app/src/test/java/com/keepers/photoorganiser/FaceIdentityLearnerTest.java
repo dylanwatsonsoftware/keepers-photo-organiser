@@ -46,6 +46,20 @@ public class FaceIdentityLearnerTest {
         assertEquals("ada", learned.get("unknown#0"));
     }
 
+    @Test public void repeatedConfirmationsFormAPersonProfileInsteadOfUsingOneNearestFace() {
+        FaceObservation adaLeft = face("ada-left", ".8,.6");
+        FaceObservation adaRight = face("ada-right", ".8,-.6");
+        FaceObservation misleadingBen = face("ben", ".95,.31225");
+        FaceObservation unknown = face("unknown", "1,0");
+
+        Map<String, String> learned = FaceIdentityLearner.predict(
+                List.of(adaLeft, adaRight, misleadingBen, unknown),
+                Map.of("ada-left#0", "ada", "ada-right#0", "ada",
+                        "ben#0", "ben"), .25);
+
+        assertEquals("ada", learned.get("unknown#0"));
+    }
+
     private static FaceObservation face(String photo, String descriptor) {
         return new FaceObservation(photo, 0, 0, 0, 1, 1,
                 -1, -1, -1, 0, 0, descriptor);
