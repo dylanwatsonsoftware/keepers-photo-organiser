@@ -34,6 +34,8 @@ public final class MainActivity extends Activity {
         findViewById(R.id.check_media_favorites).setOnClickListener(view -> checkMediaFavorites());
         findViewById(R.id.open_review).setOnClickListener(view ->
                 startActivity(new Intent(this, ReviewActivity.class)));
+        findViewById(R.id.open_people).setOnClickListener(view ->
+                startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.open_existing).setOnClickListener(view -> openFirstPhoto());
         findViewById(R.id.request_favourite).setOnClickListener(view -> requestFavourite());
         findViewById(R.id.share_experiment).setOnClickListener(view -> confirmShareExperiment());

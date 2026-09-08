@@ -33,6 +33,13 @@
             android:layout_marginTop="20dp"
             android:text="Review recent photos" />
 
+        <Button
+            android:id="@+id/open_people"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="People and album setup" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

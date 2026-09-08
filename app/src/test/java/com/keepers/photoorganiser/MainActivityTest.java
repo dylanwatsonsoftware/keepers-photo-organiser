@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class MainActivityTest {
@@ -49,6 +50,15 @@ public class MainActivityTest {
 
         assertEquals("MediaStore reports 1 favourite among 12 recent local camera photos.",
                 text(activity, R.id.favorite_diagnostic_status));
+    }
+
+    @Test public void peopleSetupOpensGuidedProfileScreen() {
+        MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
+
+        activity.findViewById(R.id.open_people).performClick();
+
+        assertEquals(PeopleActivity.class.getName(), Shadows.shadowOf(activity)
+                .getNextStartedActivity().getComponent().getClassName());
     }
 
     private static Button button(MainActivity activity, int id) {
