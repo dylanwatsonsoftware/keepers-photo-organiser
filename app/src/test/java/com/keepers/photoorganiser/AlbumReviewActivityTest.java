@@ -6,6 +6,11 @@ import static org.junit.Assert.assertNull;
 
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.GridLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.view.View;
+import android.view.ViewGroup;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,9 +36,15 @@ public class AlbumReviewActivityTest {
 
         assertEquals(2, queue.getChildCount());
         LinearLayout first = (LinearLayout) queue.getChildAt(0);
-        CheckBox ada = (CheckBox) first.getChildAt(2);
-        assertEquals("Ada · Ada Photos", ada.getText().toString());
-        assertTrue(ada.isChecked());
+        GridLayout people = (GridLayout) first.getChildAt(2);
+        assertEquals(3, people.getChildCount());
+        View ada = people.getChildAt(0);
+        assertEquals("Ada", ((TextView) ((ViewGroup) ada).getChildAt(1)).getText().toString());
+        assertEquals("Loosely cropped face for Ada",
+                findFirst(ada, ImageView.class).getContentDescription());
+        assertEquals("Ada selected for Ada Photos", ada.getContentDescription());
+        assertTrue(ada.isSelected());
+        assertEquals(null, findFirst(people, CheckBox.class));
     }
 
     @Test public void correctionIsPersistedImmediately() {
@@ -43,7 +54,7 @@ public class AlbumReviewActivityTest {
         LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
                 R.id.album_review_items).getChildAt(0);
 
-        ((CheckBox) first.getChildAt(2)).performClick();
+        ((GridLayout) first.getChildAt(2)).getChildAt(0).performClick();
 
         assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
     }
@@ -90,7 +101,9 @@ public class AlbumReviewActivityTest {
         new AlbumActionQueueStore(context).cancel();
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a", "content://photos/b"));
         new TrackedPersonStore(context).save(List.of(
-                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+                new TrackedPerson("ada", "Ada", "Ada Photos", true),
+                new TrackedPerson("ben", "Ben", "Ben Photos", true),
+                new TrackedPerson("cam", "Cam", "Cam Photos", true)));
         new FaceObservationStore(context).save("content://photos/a", List.of(
                 new FaceObservation("content://photos/a", 0, 0, 0, 1, 1,
                         -1, -1, -1, 0, 0, "1,0")));
@@ -98,5 +111,16 @@ public class AlbumReviewActivityTest {
                 .stream().filter(group -> group.photoIds().contains("content://photos/a"))
                 .findFirst().orElseThrow().id();
         new FaceGroupAssignmentStore(context).save(Map.of(groupId, "ada"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends View> T findFirst(View root, Class<T> type) {
+        if (type.isInstance(root)) return (T) root;
+        if (root instanceof ViewGroup) for (int index = 0;
+                index < ((ViewGroup) root).getChildCount(); index++) {
+            T found = findFirst(((ViewGroup) root).getChildAt(index), type);
+            if (found != null) return found;
+        }
+        return null;
     }
 }
