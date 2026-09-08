@@ -3,6 +3,8 @@ package com.keepers.photoorganiser;
 import android.accessibilityservice.AccessibilityService;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
@@ -20,15 +22,42 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     private static final int PHASE_TYPE_SEARCH = 3;
     private static final int PHASE_SELECT_RESULT = 4;
     private static final int PHASE_CONFIRM_ALBUM = 5;
+    private AlbumStepRetryScheduler albumRetry;
+
+    @Override protected void onServiceConnected() {
+        super.onServiceConnected();
+        albumRetry = new AlbumStepRetryScheduler(new Handler(Looper.getMainLooper()),
+                this::retryAlbumStep);
+        keepAlbumRetryAlive();
+    }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (runAlbumStep()) return;
+        if (runAlbumStep()) {
+            keepAlbumRetryAlive();
+            return;
+        }
+        keepAlbumRetryAlive();
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         if (System.currentTimeMillis() > prefs.getLong(ARMED_UNTIL, 0)) return;
         AccessibilityNodeInfo target = findFavourite(getRootInActiveWindow());
         if (target == null) return;
         prefs.edit().remove(ARMED_UNTIL).apply();
         toast(click(target) ? "Keepers tapped Favourite" : "Favourite control was not clickable");
+    }
+
+    private void retryAlbumStep() {
+        if (!albumActionIsArmed()) return;
+        runAlbumStep();
+        keepAlbumRetryAlive();
+    }
+
+    private void keepAlbumRetryAlive() {
+        if (albumRetry != null) albumRetry.ensureScheduled(albumActionIsArmed());
+    }
+
+    private boolean albumActionIsArmed() {
+        return System.currentTimeMillis() <= getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getLong(ALBUM_ARMED_UNTIL, 0);
     }
 
     private boolean runAlbumStep() {
@@ -235,5 +264,12 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     }
 
     private void toast(String message) { Toast.makeText(this, message, Toast.LENGTH_LONG).show(); }
-    @Override public void onInterrupt() {}
+    @Override public void onInterrupt() {
+        if (albumRetry != null) albumRetry.cancel();
+    }
+
+    @Override public void onDestroy() {
+        if (albumRetry != null) albumRetry.cancel();
+        super.onDestroy();
+    }
 }
