@@ -393,11 +393,11 @@ public final class PreviewActivity extends Activity {
         card.setLayoutParams(params);
         card.setClickable(true);
         card.setFocusable(true);
-        boolean confirmed = display.personId() != null && !display.suggested();
-        card.setContentDescription(confirmed ? "Open " + display.name() + " settings"
+        boolean knownPerson = display.personId() != null;
+        card.setContentDescription(knownPerson ? "Open " + display.name() + " associated faces"
                 : "Identify " + display.name());
         card.setOnClickListener(view -> {
-            if (confirmed) startActivity(new Intent(this, PersonDetailActivity.class)
+            if (knownPerson) startActivity(new Intent(this, PersonDetailActivity.class)
                     .putExtra(PersonDetailActivity.EXTRA_PERSON_ID, display.personId()));
             else showFaceIdentityChooser(display.face());
         });

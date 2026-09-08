@@ -85,6 +85,34 @@ public class PreviewFaceGridTest {
                 new FaceCorrectionStore(activity).load(), .15).get("content://photos/future#0"));
     }
 
+    @Test public void tappingALearnedChildOpensTheirAssociatedFacesScreen() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String confirmedPhoto = "content://photos/confirmed-child";
+        String currentPhoto = "content://photos/suggested-child";
+        new FaceObservationStore(context).save(confirmedPhoto, List.of(
+                face(confirmedPhoto, 0, .10, "1,0,0")));
+        new FaceObservationStore(context).save(currentPhoto, List.of(
+                face(currentPhoto, 0, .10, ".99,.01,0")));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        new FaceCorrectionStore(context).save(Map.of(confirmedPhoto + "#0", "ada"));
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(currentPhoto)))
+                .setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        assertEquals("Ada\nSuggested", label(grid, 0));
+        grid.getChildAt(0).performClick();
+
+        Intent started = org.robolectric.Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(PersonDetailActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals("ada", started.getStringExtra(PersonDetailActivity.EXTRA_PERSON_ID));
+    }
+
     @Test public void unknownFaceCanCreateAndTeachANewTrackedPersonInPlace() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         String photo = "content://photos/new-person-face";
