@@ -21,6 +21,23 @@
         android:minHeight="44dp" android:paddingHorizontal="14dp"
         android:textColor="#174EA6" android:textSize="14sp" android:textStyle="bold"
         android:visibility="gone" />
+    <LinearLayout android:id="@+id/album_review_recovery_actions"
+        android:layout_width="match_parent" android:layout_height="48dp"
+        android:layout_marginHorizontal="20dp" android:layout_marginBottom="16dp"
+        android:orientation="horizontal" android:visibility="gone">
+        <TextView android:id="@+id/resume_album_review"
+            android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:background="@drawable/gallery_primary_action"
+            android:clickable="true" android:focusable="true" android:gravity="center"
+            android:text="Resume current change" android:textColor="#FFFFFFFF"
+            android:textSize="14sp" android:textStyle="bold" />
+        <TextView android:id="@+id/stop_album_review"
+            android:layout_width="96dp" android:layout_height="match_parent"
+            android:layout_marginStart="10dp" android:background="@drawable/gallery_filter_chip"
+            android:clickable="true" android:focusable="true" android:gravity="center"
+            android:text="Stop" android:textColor="#3C4043" android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
     <TextView android:id="@+id/album_review_setup_people"
         android:layout_width="match_parent" android:layout_height="48dp"
         android:layout_marginHorizontal="20dp" android:layout_marginBottom="16dp"

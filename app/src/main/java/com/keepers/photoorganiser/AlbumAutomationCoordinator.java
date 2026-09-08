@@ -14,4 +14,11 @@ public final class AlbumAutomationCoordinator {
                 .putInt(KeepersAccessibilityService.ALBUM_PHASE, 0).apply();
         return GooglePhotosIntentFactory.openExisting(Uri.parse(action.photoId()));
     }
+
+    public static void disarm(Context context) {
+        context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE).edit()
+                .remove(KeepersAccessibilityService.ALBUM_ARMED_UNTIL)
+                .remove(KeepersAccessibilityService.ALBUM_NAME)
+                .remove(KeepersAccessibilityService.ALBUM_PHASE).apply();
+    }
 }

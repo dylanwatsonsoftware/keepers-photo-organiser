@@ -25,6 +25,11 @@ public final class AlbumActionQueueStore {
     }
     public boolean isActive() { return preferences.getBoolean("active", false); }
     public int totalCount() { return preferences.getInt("count", 0); }
+    public int completedCount() {
+        int count = preferences.getInt("count", 0);
+        if (count == 0) return 0;
+        return isActive() ? preferences.getInt("index", 0) : count;
+    }
     public AlbumAction current() {
         if (!isActive()) return null;
         int index = preferences.getInt("index", 0);

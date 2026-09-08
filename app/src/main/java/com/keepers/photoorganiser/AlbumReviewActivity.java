@@ -37,12 +37,24 @@ public final class AlbumReviewActivity extends Activity {
         findViewById(R.id.album_review_setup_people).setOnClickListener(view ->
                 startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.confirm_album_review).setOnClickListener(view -> confirmReview());
+        findViewById(R.id.resume_album_review).setOnClickListener(view -> resumeApprovedQueue());
+        findViewById(R.id.stop_album_review).setOnClickListener(view -> stopApprovedQueue());
         showAutomationResult();
     }
 
     private void showAutomationResult() {
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
         int count = getIntent().getIntExtra(EXTRA_COMPLETED_COUNT, 0);
         TextView status = findViewById(R.id.album_review_run_status);
+        android.view.View actions = findViewById(R.id.album_review_recovery_actions);
+        if (queue.isActive() && queue.current() != null) {
+            status.setText("Album changes paused before " + (queue.completedCount() + 1)
+                    + " of " + queue.totalCount());
+            status.setVisibility(android.view.View.VISIBLE);
+            actions.setVisibility(android.view.View.VISIBLE);
+            return;
+        }
+        actions.setVisibility(android.view.View.GONE);
         if (count <= 0) {
             status.setVisibility(android.view.View.GONE);
             return;
@@ -54,7 +66,19 @@ public final class AlbumReviewActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        showAutomationResult();
         render();
+    }
+
+    private void resumeApprovedQueue() {
+        AlbumAction current = new AlbumActionQueueStore(this).current();
+        if (current != null) startActivity(AlbumAutomationCoordinator.arm(this, current));
+    }
+
+    private void stopApprovedQueue() {
+        new AlbumActionQueueStore(this).cancel();
+        AlbumAutomationCoordinator.disarm(this);
+        showAutomationResult();
     }
 
     private void render() {

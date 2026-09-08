@@ -191,6 +191,57 @@ public class AlbumReviewActivityTest {
         assertEquals(PeopleActivity.class.getName(), started.getComponent().getClassName());
     }
 
+    @Test public void returningWithAnUnfinishedQueueShowsExplicitRecoveryActions() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        AlbumAction current = new AlbumAction("content://photos/a", "Ada", "Ada Photos");
+        new AlbumActionQueueStore(context).begin(List.of(current,
+                new AlbumAction("content://photos/b", "Ben", "Ben Photos")));
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        TextView status = activity.findViewById(R.id.album_review_run_status);
+        assertEquals(View.VISIBLE, status.getVisibility());
+        assertEquals("Album changes paused before 1 of 2", status.getText().toString());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.resume_album_review).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.stop_album_review).getVisibility());
+    }
+
+    @Test public void resumeRequiresATapAndReopensOnlyTheCurrentApprovedChange() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumActionQueueStore(context).begin(List.of(
+                new AlbumAction("content://photos/a", "Ada", "Ada Photos")));
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        activity.findViewById(R.id.resume_album_review).performClick();
+
+        Intent resumed = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals("content://photos/a", resumed.getDataString());
+        assertTrue(context.getSharedPreferences(KeepersAccessibilityService.PREFS,
+                android.content.Context.MODE_PRIVATE).getLong(
+                        KeepersAccessibilityService.ALBUM_ARMED_UNTIL, 0)
+                > System.currentTimeMillis());
+    }
+
+    @Test public void stopCancelsTheQueueButKeepsReviewedSelections() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(context);
+        queue.begin(List.of(new AlbumAction("content://photos/a", "Ada", "Ada Photos")));
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        activity.findViewById(R.id.stop_album_review).performClick();
+
+        assertTrue(!queue.isActive());
+        assertEquals(Set.of(AlbumReviewSelectionStore.key("content://photos/a", "ada")),
+                new AlbumReviewSelectionStore(context).load());
+    }
+
     private static void seed() {
         android.content.Context context = RuntimeEnvironment.getApplication();
         Settings.Secure.putInt(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 1);

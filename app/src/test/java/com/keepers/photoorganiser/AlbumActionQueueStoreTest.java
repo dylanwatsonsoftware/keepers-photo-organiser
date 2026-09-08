@@ -24,12 +24,15 @@ public class AlbumActionQueueStoreTest {
 
         assertTrue(store.isActive());
         assertEquals(2, store.totalCount());
+        assertEquals(0, store.completedCount());
         assertEquals(first, store.current());
         assertEquals(second, store.completeCurrent());
+        assertEquals(1, store.completedCount());
         assertTrue(completions.contains("photo-a", "Ada Photos"));
         assertEquals(second, store.current());
         assertEquals(null, store.completeCurrent());
         assertTrue(completions.contains("photo-b", "Ben Photos"));
         assertFalse(store.isActive());
+        assertEquals(2, store.completedCount());
     }
 }
