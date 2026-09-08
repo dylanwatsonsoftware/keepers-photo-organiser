@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
@@ -63,10 +64,15 @@ public final class PreviewActivity extends Activity {
         loader = AsyncThumbnailLoader.forResolver(getContentResolver());
         int limit = getIntent().getIntExtra(ReviewActivity.EXTRA_REVIEW_LIMIT,
                 ReviewWindow.PAGE_SIZE);
+        ArrayList<RecentPhoto> galleryPhotos = new ArrayList<>(
+                RecentCameraQuery.loadRecent(getContentResolver(), limit));
+        for (ImportedPhoto imported : new ImportedPhotoStore(this).load())
+            galleryPhotos.add(new RecentPhoto(imported.uri(), imported.takenAtMillis()));
+        galleryPhotos.sort(Comparator.comparingLong(RecentPhoto::takenAtMillis).reversed());
         ArrayList<Uri> photos = new ArrayList<>();
-        for (RecentPhoto recent : RecentCameraQuery.loadRecent(getContentResolver(), limit)) {
+        HashSet<String> seenPhotos = new HashSet<>();
+        for (RecentPhoto recent : galleryPhotos) if (seenPhotos.add(recent.uri().toString()))
             photos.add(recent.uri());
-        }
         if (photos.isEmpty()) photos.add(photo);
         allPhotos = List.copyOf(photos);
         navigator = new PhotoNavigator(photos, photo);

@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -58,6 +59,17 @@ public class ReviewActivityTest {
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
+    }
+
+    @Test public void importButtonOpensAndroidsMultiPhotoPicker() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        activity.findViewById(R.id.import_photos).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivityForResult().intent;
+        assertEquals(android.provider.MediaStore.ACTION_PICK_IMAGES, started.getAction());
+        assertEquals("image/*", started.getType());
+        assertTrue(started.getIntExtra(android.provider.MediaStore.EXTRA_PICK_IMAGES_MAX, 0) > 1);
     }
 
     @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {
@@ -170,6 +182,31 @@ public class ReviewActivityTest {
         assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
         assertEquals("content://media/photo/2", grid.getChildAt(1).getTag().toString());
         assertEquals("content://media/photo/3", grid.getChildAt(2).getTag().toString());
+    }
+
+    @Test public void originFiltersSeparateLocalAndCloudPhotos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri local = Uri.parse("content://media/local/1");
+        Uri cloud = Uri.parse("content://media/picker/cloud/2");
+        activity.showPhotos(List.of(local, cloud), Map.of(
+                local.toString(), PhotoOrigin.LOCAL,
+                cloud.toString(), PhotoOrigin.CLOUD));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.filter_origin_cloud).performClick();
+        assertEquals(1, grid.getChildCount());
+        assertEquals(cloud.toString(), grid.getChildAt(0).getTag().toString());
+        assertEquals("Cloud-only photo", ((ViewGroup) grid.getChildAt(0)).getChildAt(4)
+                .getContentDescription());
+        assertEquals(View.VISIBLE, ((ViewGroup) grid.getChildAt(0)).getChildAt(4)
+                .getVisibility());
+
+        activity.findViewById(R.id.filter_origin_local).performClick();
+        assertEquals(1, grid.getChildCount());
+        assertEquals(local.toString(), grid.getChildAt(0).getTag().toString());
+
+        activity.findViewById(R.id.filter_origin_all).performClick();
+        assertEquals(2, grid.getChildCount());
     }
 
     @Test public void tappingPhotoOpensLargePreview() {

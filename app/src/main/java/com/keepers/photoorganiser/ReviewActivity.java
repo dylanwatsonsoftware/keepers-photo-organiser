@@ -4,11 +4,14 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.Intent;
+import android.content.ClipData;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -22,8 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 
 public final class ReviewActivity extends Activity {
+    private static final int IMPORT_PHOTOS = 201;
     private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     private static final int PHOTO_PERMISSION = 200;
@@ -42,6 +48,8 @@ public final class ReviewActivity extends Activity {
     private boolean hasMorePhotos;
     private FaceAnalyzer faceAnalyzer;
     private GalleryFilter galleryFilter = GalleryFilter.ALL;
+    private PhotoOrigin originFilter;
+    private Map<String, PhotoOrigin> photoOrigins = Map.of();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +70,12 @@ public final class ReviewActivity extends Activity {
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.RECOMMENDED));
+        findViewById(R.id.import_photos).setOnClickListener(view -> openPhotoPicker());
+        findViewById(R.id.filter_origin_all).setOnClickListener(view -> setOriginFilter(null));
+        findViewById(R.id.filter_origin_local).setOnClickListener(view ->
+                setOriginFilter(PhotoOrigin.LOCAL));
+        findViewById(R.id.filter_origin_cloud).setOnClickListener(view ->
+                setOriginFilter(PhotoOrigin.CLOUD));
         ScrollView scroll = findViewById(R.id.review_scroll);
         scroll.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
             View content = scroll.getChildAt(0);
@@ -115,14 +129,21 @@ public final class ReviewActivity extends Activity {
     }
 
     void showPhotos(List<Uri> recentPhotos) {
+        HashMap<String, PhotoOrigin> origins = new HashMap<>();
+        for (Uri photo : recentPhotos) origins.put(photo.toString(), PhotoOrigin.LOCAL);
+        showPhotos(recentPhotos, origins);
+    }
+
+    void showPhotos(List<Uri> recentPhotos, Map<String, PhotoOrigin> origins) {
         ArrayList<RecentPhoto> details = new ArrayList<>();
         long timestamp = 0;
         for (Uri photo : recentPhotos) details.add(new RecentPhoto(photo, timestamp++));
+        photoOrigins = Map.copyOf(origins);
+        hasMorePhotos = false;
         showRecentPhotos(details);
     }
 
     private void showRecentPhotos(List<RecentPhoto> recentPhotos) {
-        hasMorePhotos = recentPhotos.size() == reviewWindow.limit();
         findViewById(R.id.review_loading).setVisibility(View.GONE);
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
@@ -236,6 +257,23 @@ public final class ReviewActivity extends Activity {
                 Gravity.BOTTOM | Gravity.START);
         stackParams.setMargins(dp(7), 0, 0, dp(7));
         tile.addView(stack, stackParams);
+
+        TextView origin = new TextView(this);
+        origin.setText("☁");
+        origin.setTextColor(Color.WHITE);
+        origin.setTextSize(15);
+        origin.setGravity(Gravity.CENTER);
+        GradientDrawable originBackground = new GradientDrawable();
+        originBackground.setColor(0xCC303134);
+        originBackground.setCornerRadius(dp(14));
+        origin.setBackground(originBackground);
+        origin.setContentDescription("Cloud-only photo");
+        origin.setVisibility(photoOrigins.getOrDefault(photo.toString(), PhotoOrigin.LOCAL)
+                == PhotoOrigin.CLOUD ? View.VISIBLE : View.GONE);
+        FrameLayout.LayoutParams originParams = new FrameLayout.LayoutParams(dp(28), dp(28),
+                Gravity.BOTTOM | Gravity.END);
+        originParams.setMargins(0, 0, dp(7), dp(7));
+        tile.addView(origin, originParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
                 .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
@@ -258,7 +296,73 @@ public final class ReviewActivity extends Activity {
     }
 
     private void loadRecentPhotos() {
-        showRecentPhotos(RecentCameraQuery.loadRecent(getContentResolver(), reviewWindow.limit()));
+        List<RecentPhoto> local = RecentCameraQuery.loadRecent(
+                getContentResolver(), reviewWindow.limit());
+        hasMorePhotos = local.size() == reviewWindow.limit();
+        LinkedHashMap<String, RecentPhoto> combined = new LinkedHashMap<>();
+        HashMap<String, PhotoOrigin> origins = new HashMap<>();
+        for (RecentPhoto photo : local) {
+            combined.put(photo.uri().toString(), photo);
+            origins.put(photo.uri().toString(), PhotoOrigin.LOCAL);
+        }
+        for (ImportedPhoto imported : new ImportedPhotoStore(this).load()) {
+            combined.put(imported.uri().toString(),
+                    new RecentPhoto(imported.uri(), imported.takenAtMillis()));
+            origins.put(imported.uri().toString(), imported.origin());
+        }
+        ArrayList<RecentPhoto> ordered = new ArrayList<>(combined.values());
+        ordered.sort(Comparator.comparingLong(RecentPhoto::takenAtMillis).reversed());
+        photoOrigins = Map.copyOf(origins);
+        showRecentPhotos(ordered);
+    }
+
+    private void openPhotoPicker() {
+        Intent picker = new Intent(MediaStore.ACTION_PICK_IMAGES)
+                .setType("image/*")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
+                        Math.min(250, MediaStore.getPickImagesMaxLimit()));
+        startActivityForResult(picker, IMPORT_PHOTOS);
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != IMPORT_PHOTOS || resultCode != RESULT_OK || data == null) return;
+        ArrayList<Uri> picked = new ArrayList<>();
+        ClipData clip = data.getClipData();
+        if (clip != null) for (int index = 0; index < clip.getItemCount(); index++)
+            picked.add(clip.getItemAt(index).getUri());
+        else if (data.getData() != null) picked.add(data.getData());
+        ImportedPhotoStore imports = new ImportedPhotoStore(this);
+        long fallbackTime = System.currentTimeMillis();
+        for (Uri pickerUri : picked) {
+            try {
+                getContentResolver().takePersistableUriPermission(pickerUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException ignored) {}
+            ImportedPhoto imported = resolvePickedPhoto(pickerUri, fallbackTime--);
+            imports.add(imported);
+        }
+        loadRecentPhotos();
+    }
+
+    private ImportedPhoto resolvePickedPhoto(Uri pickerUri, long fallbackTime) {
+        if ("media".equals(pickerUri.getAuthority())
+                && !pickerUri.toString().contains("/picker/"))
+            return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.LOCAL);
+        try (Cursor cursor = getContentResolver().query(pickerUri,
+                new String[]{android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI,
+                        android.provider.CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS},
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String local = cursor.getString(0);
+                long taken = cursor.isNull(1) ? fallbackTime : cursor.getLong(1);
+                return new ImportedPhoto(local == null ? pickerUri : Uri.parse(local), taken,
+                        local == null ? PhotoOrigin.CLOUD : PhotoOrigin.LOCAL);
+            }
+        } catch (RuntimeException ignored) {}
+        return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.CLOUD);
     }
 
     void loadNextPage() {
@@ -354,6 +458,11 @@ public final class ReviewActivity extends Activity {
         applyFilter();
     }
 
+    private void setOriginFilter(PhotoOrigin requested) {
+        originFilter = requested;
+        applyFilter();
+    }
+
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
         GridLayout grid = findViewById(R.id.photo_grid);
@@ -364,9 +473,10 @@ public final class ReviewActivity extends Activity {
         Map<String, FrameLayout> tilesById = new HashMap<>();
         for (FrameLayout tile : tiles) tilesById.put(tile.getTag().toString(), tile);
         int visible = 0;
-        List<String> visibleIds = galleryFilter == GalleryFilter.ALL ? stackCovers
+        List<String> typeFiltered = galleryFilter == GalleryFilter.ALL ? stackCovers
                 : orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
                         ? keepers.contains(id) : suggestions.contains(id)).toList();
+        List<String> visibleIds = PhotoOriginFilter.apply(typeFiltered, photoOrigins, originFilter);
         for (String id : visibleIds) {
             FrameLayout tile = tilesById.get(id);
             if (tile != null) grid.addView(tile);
@@ -376,9 +486,14 @@ public final class ReviewActivity extends Activity {
         View recommendedFilter = findViewById(R.id.filter_recommended);
         keeperFilter.setSelected(galleryFilter == GalleryFilter.KEEPERS);
         recommendedFilter.setSelected(galleryFilter == GalleryFilter.RECOMMENDED);
+        findViewById(R.id.filter_origin_all).setSelected(originFilter == null);
+        findViewById(R.id.filter_origin_local).setSelected(originFilter == PhotoOrigin.LOCAL);
+        findViewById(R.id.filter_origin_cloud).setSelected(originFilter == PhotoOrigin.CLOUD);
         TextView empty = findViewById(R.id.review_empty);
         if (!photos.isEmpty() && visible == 0) {
-            empty.setText(galleryFilter == GalleryFilter.KEEPERS
+            empty.setText(originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."
+                    : originFilter == PhotoOrigin.LOCAL ? "No local photos in this view."
+                    : galleryFilter == GalleryFilter.KEEPERS
                     ? "No Keepers in the loaded photos yet."
                     : "No recommended photos in the loaded photos yet.");
             empty.setVisibility(View.VISIBLE);
