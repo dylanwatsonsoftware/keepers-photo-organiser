@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.net.Uri;
 import java.util.Set;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -34,5 +35,25 @@ public class KeeperSelectionStoreTest {
         store.clear();
 
         assertTrue(store.load().isEmpty());
+    }
+
+    @Test public void changingAKeeperInvalidatesReviewedAndArmedAlbumChanges() {
+        Context context = RuntimeEnvironment.getApplication();
+        KeeperSelectionStore keepers = new KeeperSelectionStore(context);
+        AlbumReviewSelectionStore review = new AlbumReviewSelectionStore(context);
+        review.save(Set.of("content://media/photo/1\nperson-1"));
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(context);
+        queue.begin(List.of(new AlbumAction("content://media/photo/1", "Ada", "Ada Photos")));
+        context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE)
+                .edit().putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL, Long.MAX_VALUE)
+                .apply();
+
+        keepers.toggle(Uri.parse("content://media/photo/1"));
+
+        assertFalse(review.hasReview());
+        assertFalse(queue.isActive());
+        assertEquals(0, context.getSharedPreferences(KeepersAccessibilityService.PREFS,
+                Context.MODE_PRIVATE).getLong(
+                        KeepersAccessibilityService.ALBUM_ARMED_UNTIL, 0));
     }
 }
