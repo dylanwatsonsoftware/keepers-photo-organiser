@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#FAF9F7" android:fitsSystemWindows="true" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <TextView android:id="@+id/person_detail_back" android:layout_width="wrap_content"
+            android:layout_height="44dp" android:gravity="center_vertical" android:text="‹  People"
+            android:textColor="#5F6368" android:textSize="16sp" android:clickable="true" />
+        <ImageView android:id="@+id/person_detail_feature" android:layout_width="112dp"
+            android:layout_height="112dp" android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp" android:background="@drawable/preview_face_crop"
+            android:clipToOutline="true" android:contentDescription="Feature face"
+            android:scaleType="centerCrop" />
+        <EditText android:id="@+id/person_detail_name" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="14dp"
+            android:hint="Name" android:inputType="textCapWords" android:textSize="22sp" />
+        <EditText android:id="@+id/person_detail_album" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:hint="Exact Google Photos album name" android:inputType="textCapWords" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="Changes save automatically. Album actions still require review and confirmation."
+            android:textColor="#5F6368" android:textSize="13sp" />
+        <TextView android:id="@+id/person_detail_faces_title" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="24dp"
+            android:text="Faces associated with this person" android:textColor="#202124"
+            android:textSize="20sp" android:textStyle="bold" />
+        <TextView android:id="@+id/person_detail_faces_summary" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:textColor="#5F6368" android:textSize="14sp" />
+        <LinearLayout android:id="@+id/person_detail_faces" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:orientation="vertical" android:paddingBottom="24dp" />
+    </LinearLayout>
+</ScrollView>

@@ -36,7 +36,7 @@ public final class AlbumReviewActivity extends Activity {
     private void render() {
         Set<String> keepers = new KeeperSelectionStore(this).load();
         List<TrackedPerson> people = new TrackedPersonStore(this).load().stream()
-                .filter(person -> person.tracked() && !person.albumName().isBlank()).toList();
+                .filter(person -> !person.albumName().isBlank()).toList();
         List<FaceIdentityGroup> groups = FaceClusterer.cluster(
                 new FaceObservationStore(this).loadAll(), .30);
         List<AlbumAssignment> proposals = AlbumProposalEngine.propose(keepers, groups,
@@ -126,7 +126,7 @@ public final class AlbumReviewActivity extends Activity {
             int split = key.lastIndexOf('\n');
             if (split < 0) continue;
             TrackedPerson person = people.get(key.substring(split + 1));
-            if (person == null || !person.tracked() || person.albumName().isBlank()) continue;
+            if (person == null || person.albumName().isBlank()) continue;
             actions.add(new AlbumAction(key.substring(0, split), person.name(), person.albumName()));
         }
         actions.sort(Comparator.comparing(AlbumAction::photoId).thenComparing(AlbumAction::albumName));

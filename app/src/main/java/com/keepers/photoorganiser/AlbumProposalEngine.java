@@ -21,7 +21,7 @@ public final class AlbumProposalEngine {
             List<FaceIdentityGroup> groups, Map<String, String> groupAssignments,
             Map<String, String> faceCorrections, List<TrackedPerson> people) {
         HashMap<String, TrackedPerson> eligiblePeople = new HashMap<>();
-        for (TrackedPerson person : people) if (person.tracked() && !person.albumName().isBlank())
+        for (TrackedPerson person : people) if (!person.albumName().isBlank())
             eligiblePeople.put(person.id(), person);
 
         ArrayList<AlbumAssignment> result = new ArrayList<>();

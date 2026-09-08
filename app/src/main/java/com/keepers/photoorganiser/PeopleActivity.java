@@ -2,8 +2,6 @@ package com.keepers.photoorganiser;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.widget.EditText;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
@@ -13,8 +11,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
 import android.graphics.Bitmap;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.net.Uri;
 import android.content.Intent;
 import java.util.HashMap;
@@ -36,26 +32,34 @@ public final class PeopleActivity extends Activity {
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         profiles = findViewById(R.id.people_profiles);
         List<TrackedPerson> saved = new TrackedPersonStore(this).load();
-        if (saved.isEmpty()) for (int index = 0; index < 3; index++)
-            addPersonCard(new TrackedPerson(nextPersonId(), "", "", false));
-        else for (TrackedPerson person : saved) {
-            addPersonCard(person);
+        for (TrackedPerson person : saved) {
             nextPersonNumber = Math.max(nextPersonNumber, numberAfterPrefix(person.id()) + 1);
         }
         findViewById(R.id.people_back).setOnClickListener(view -> finish());
         findViewById(R.id.add_person).setOnClickListener(view -> {
-            addPersonCard(new TrackedPerson(nextPersonId(), "", "", false));
-            persistPeople();
+            TrackedPerson person = new TrackedPerson(nextPersonId(), "", "", true);
+            ArrayList<TrackedPerson> changed = new ArrayList<>(new TrackedPersonStore(this).load());
+            changed.add(person);
+            new TrackedPersonStore(this).save(changed);
+            AlbumApprovalInvalidator.invalidate(this);
+            showPeople();
+            openPerson(person.id());
         });
         findViewById(R.id.open_advanced_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
-        showDiscoveryProgress();
-        showDiscoveredGroups();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        showPeople();
         showDiscoveryProgress();
+        showDiscoveredGroups();
+    }
+
+    private void showPeople() {
+        profiles.removeAllViews();
+        profilePortraitViews.clear();
+        for (TrackedPerson person : new TrackedPersonStore(this).load()) addPersonCard(person);
     }
 
     private void showDiscoveryProgress() {
@@ -175,14 +179,7 @@ public final class PeopleActivity extends Activity {
     }
 
     private List<TrackedPerson> currentPeople() {
-        ArrayList<TrackedPerson> people = new ArrayList<>();
-        for (int index = 0; index < profiles.getChildCount(); index++) {
-            LinearLayout card = (LinearLayout) profiles.getChildAt(index);
-            people.add(new TrackedPerson(card.getTag().toString(), taggedText(card, "person_name"),
-                    taggedText(card, "person_album"),
-                    ((Switch) card.findViewWithTag("person_tracked")).isChecked()));
-        }
-        return people;
+        return new TrackedPersonStore(this).load();
     }
 
     private int dp(int value) {
@@ -192,65 +189,47 @@ public final class PeopleActivity extends Activity {
     private void addPersonCard(TrackedPerson person) {
         LinearLayout card = new LinearLayout(this);
         card.setTag(person.id());
-        card.setOrientation(LinearLayout.VERTICAL);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(14), dp(12), dp(14), dp(12));
         card.setBackgroundResource(R.drawable.person_setup_card);
+        card.setClickable(true);
+        card.setFocusable(true);
+        String name = person.name().isBlank() ? "Unnamed person" : person.name();
+        card.setContentDescription("Edit " + name);
+        card.setOnClickListener(view -> openPerson(person.id()));
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         cardParams.setMargins(0, 0, 0, dp(10));
         profiles.addView(card, cardParams);
 
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView portrait = new ImageView(this);
         portrait.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        portrait.setBackgroundColor(0xFFE8EAED);
-        portrait.setContentDescription("Face photo for " + (person.name().isBlank()
-                ? "unnamed person" : person.name()));
+        portrait.setBackgroundResource(R.drawable.preview_face_crop);
+        portrait.setClipToOutline(true);
+        portrait.setContentDescription("Face photo for " + name);
         profilePortraitViews.put(person.id(), portrait);
-        header.addView(portrait, new LinearLayout.LayoutParams(dp(58), dp(58)));
-        Switch tracked = new Switch(this);
-        tracked.setTag("person_tracked");
-        tracked.setText("Track this person");
-        tracked.setChecked(person.tracked());
-        tracked.setOnCheckedChangeListener((button, checked) -> persistPeople());
-        LinearLayout.LayoutParams trackedParams = new LinearLayout.LayoutParams(0,
+        card.addView(portrait, new LinearLayout.LayoutParams(dp(64), dp(64)));
+        TextView label = new TextView(this);
+        label.setText(name);
+        label.setTextColor(0xFF202124);
+        label.setTextSize(18);
+        label.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1);
-        trackedParams.setMargins(dp(12), 0, 0, 0);
-        header.addView(tracked, trackedParams);
-        card.addView(header);
-        EditText name = field("Name", "person_name", person.name());
-        name.setOnFocusChangeListener((view, focused) -> {
-            if (!focused) showDiscoveredGroups();
-        });
-        card.addView(name);
-        card.addView(field("Exact Google Photos album name", "person_album", person.albumName()));
+        labelParams.setMargins(dp(14), 0, 0, 0);
+        card.addView(label, labelParams);
+        TextView arrow = new TextView(this);
+        arrow.setText("›");
+        arrow.setTextColor(0xFF5F6368);
+        arrow.setTextSize(28);
+        card.addView(arrow, new LinearLayout.LayoutParams(dp(28),
+                ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    private EditText field(String hint, String tag, String value) {
-        EditText field = new EditText(this);
-        field.setTag(tag);
-        field.setHint(hint);
-        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        field.setText(value);
-        field.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence text, int start, int count,
-                    int after) {}
-            @Override public void onTextChanged(CharSequence text, int start, int before,
-                    int count) {}
-            @Override public void afterTextChanged(Editable text) { persistPeople(); }
-        });
-        field.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return field;
-    }
-
-    private void persistPeople() {
-        if (profiles == null) return;
-        new TrackedPersonStore(this).save(currentPeople());
-        AlbumApprovalInvalidator.invalidate(this);
-        ((TextView) findViewById(R.id.people_status)).setText("Changes save automatically.");
+    private void openPerson(String personId) {
+        startActivity(new Intent(this, PersonDetailActivity.class)
+                .putExtra(PersonDetailActivity.EXTRA_PERSON_ID, personId));
     }
 
     private String nextPersonId() { return "person-" + nextPersonNumber++; }
@@ -260,13 +239,17 @@ public final class PeopleActivity extends Activity {
         catch (NumberFormatException ignored) { return 0; }
     }
 
-    private static String taggedText(LinearLayout card, String tag) {
-        return ((EditText) card.findViewWithTag(tag)).getText().toString().trim();
-    }
-
     private Map<String, FaceObservation> portraits(List<FaceIdentityGroup> groups,
             Map<String, String> assignments) {
         LinkedHashMap<String, FaceObservation> result = new LinkedHashMap<>();
+        Map<String, FaceObservation> byKey = new HashMap<>();
+        for (FaceIdentityGroup group : groups) for (FaceObservation face : group.members())
+            byKey.put(FaceCorrectionStore.key(face), face);
+        PersonFeatureFaceStore featureFaces = new PersonFeatureFaceStore(this);
+        for (TrackedPerson person : currentPeople()) {
+            FaceObservation preferred = byKey.get(featureFaces.load(person.id()));
+            if (preferred != null) result.put(person.id(), preferred);
+        }
         Map<String, String> corrections = new FaceCorrectionStore(this).load();
         for (FaceIdentityGroup group : groups) for (FaceObservation face : group.members()) {
             String person = corrections.get(FaceCorrectionStore.key(face));
@@ -288,8 +271,21 @@ public final class PeopleActivity extends Activity {
             if (face == null) continue;
             ImageView portrait = profilePortraitViews.get(card.getTag().toString());
             thumbnailLoader.load(portrait, Uri.parse(face.photoId()), 256,
-                    bitmap -> showFaceCrop(portrait, bitmap, face));
+                    bitmap -> showPortraitCrop(portrait, bitmap, face));
         }
+    }
+
+    private static void showPortraitCrop(ImageView view, Bitmap bitmap, FaceObservation face) {
+        if (bitmap == null) return;
+        double marginX = (face.right() - face.left()) * .38;
+        double marginY = (face.bottom() - face.top()) * .38;
+        int left = Math.max(0, (int) ((face.left() - marginX) * bitmap.getWidth()));
+        int top = Math.max(0, (int) ((face.top() - marginY) * bitmap.getHeight()));
+        int right = Math.min(bitmap.getWidth(), Math.max(left + 1,
+                (int) ((face.right() + marginX) * bitmap.getWidth())));
+        int bottom = Math.min(bitmap.getHeight(), Math.max(top + 1,
+                (int) ((face.bottom() + marginY) * bitmap.getHeight())));
+        view.setImageBitmap(Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top));
     }
 
     private static String predictedPerson(FaceIdentityGroup group,

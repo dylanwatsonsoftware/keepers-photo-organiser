@@ -8,7 +8,7 @@ import java.util.Set;
 import org.junit.Test;
 
 public class AlbumProposalEngineTest {
-    @Test public void proposesAlbumsOnlyForTrackedPeopleSeenInKeeperPhotos() {
+    @Test public void proposesAlbumsForEveryAddedPersonSeenInKeeperPhotos() {
         FaceIdentityGroup adaFaces = group("ada-group", "keeper-a", "other");
         FaceIdentityGroup benFaces = group("ben-group", "keeper-a");
         List<TrackedPerson> people = List.of(
@@ -19,8 +19,9 @@ public class AlbumProposalEngineTest {
                 List.of(adaFaces, benFaces), Map.of("ada-group", "ada", "ben-group", "ben"),
                 people);
 
-        assertEquals(List.of(new AlbumAssignment("keeper-a", "ada", "Ada",
-                "Ada Photos", true)), result);
+        assertEquals(List.of(
+                new AlbumAssignment("keeper-a", "ada", "Ada", "Ada Photos", true),
+                new AlbumAssignment("keeper-a", "ben", "Ben", "Ben Photos", true)), result);
     }
 
     @Test public void oneGroupCanProposeTheSameChildAcrossSeveralKeepers() {
@@ -35,6 +36,17 @@ public class AlbumProposalEngineTest {
         assertEquals(List.of(), AlbumProposalEngine.propose(Set.of("keeper"),
                 List.of(group("unknown", "keeper")), Map.of(),
                 List.of(new TrackedPerson("ada", "Ada", "", true))));
+    }
+
+    @Test public void everyAddedPersonWithAnAlbumIsEligibleWithoutATrackToggle() {
+        FaceIdentityGroup ada = group("ada-group", "keeper");
+
+        List<AlbumAssignment> result = AlbumProposalEngine.propose(Set.of("keeper"),
+                List.of(ada), Map.of("ada-group", "ada"),
+                List.of(new TrackedPerson("ada", "Ada", "Ada Photos", false)));
+
+        assertEquals(1, result.size());
+        assertEquals("ada", result.get(0).personId());
     }
 
     @Test public void perFaceCorrectionOverridesItsGroupForAlbumSafety() {

@@ -11,7 +11,7 @@
             android:text="People to keep" android:textColor="#202124" android:textSize="30sp"
             android:textStyle="bold" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="6dp" android:text="Choose who Keepers should learn. Album names must exactly match existing Google Photos albums. Nothing is added without review."
+            android:layout_marginTop="6dp" android:text="People you add are learned automatically. Tap a person to edit their name, feature face, linked Google Photos album, or face matches. Nothing is added without review."
             android:textColor="#5F6368" android:textSize="15sp" />
         <TextView android:id="@+id/face_discovery_status" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="14dp"
@@ -24,7 +24,7 @@
             android:layout_height="48dp" android:layout_marginTop="10dp"
             android:text="Add another person" />
         <TextView android:id="@+id/people_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="10dp" android:gravity="center" android:text="Changes save automatically."
+            android:layout_marginTop="10dp" android:gravity="center" android:text="People and face choices save automatically."
             android:textColor="#5F6368" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="24dp" android:text="Discovered faces"

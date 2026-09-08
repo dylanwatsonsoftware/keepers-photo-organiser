@@ -23,6 +23,11 @@ import android.content.Intent;
 @RunWith(RobolectricTestRunner.class)
 public class PeopleActivityTest {
     @Test public void canAddMoreThanThreePeople() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("person-1", "Ada", "", true),
+                new TrackedPerson("person-2", "Ben", "", true),
+                new TrackedPerson("person-3", "Cam", "", true)));
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 
         View add = findViewWithText(activity.findViewById(android.R.id.content), "Add another person");
@@ -46,40 +51,35 @@ public class PeopleActivityTest {
                 R.id.people_back)).getText().toString());
     }
 
-    @Test public void savesPeopleAndAlbumsImmediatelyWhileEditing() {
-        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
-        LinearLayout profiles = findContainerWithContentDescription(
-                activity.findViewById(android.R.id.content), "Tracked people");
-        LinearLayout first = (LinearLayout) profiles.getChildAt(0);
-        ((EditText) first.findViewWithTag("person_name")).setText("Ada");
-        ((EditText) first.findViewWithTag("person_album")).setText("Ada Photos");
-        ((Switch) first.findViewWithTag("person_tracked")).setChecked(true);
-
-        assertEquals(List.of(new TrackedPerson("person-1", "Ada", "Ada Photos", true),
-                        new TrackedPerson("person-2", "", "", false),
-                        new TrackedPerson("person-3", "", "", false)),
-                new TrackedPersonStore(activity).load());
-    }
-
-    @Test public void changingPeopleInvalidatesAnEarlierAlbumReview() {
-        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
-        new AlbumReviewSelectionStore(activity).save(java.util.Set.of("photo\nperson-1"));
-
-        LinearLayout profiles = findContainerWithContentDescription(
-                activity.findViewById(android.R.id.content), "Tracked people");
-        ((EditText) profiles.getChildAt(0).findViewWithTag("person_name")).setText("Ada");
-
-        assertEquals(false, new AlbumReviewSelectionStore(activity).hasReview());
-    }
-
     @Test public void peopleSetupHasNoManualSaveStep() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 
         assertEquals(null, findViewWithText(activity.findViewById(android.R.id.content),
                 "Save people and albums"));
-        assertEquals("Changes save automatically.", findFirstWithId(
+        assertEquals("People and face choices save automatically.", findFirstWithId(
                 activity.findViewById(android.R.id.content), R.id.people_status)
                 .getText().toString());
+    }
+
+    @Test public void savedPeopleAppearAsCompactFaceAndNameCards() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", false)));
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        LinearLayout profiles = findContainerWithContentDescription(
+                activity.findViewById(android.R.id.content), "Tracked people");
+        View card = profiles.getChildAt(0);
+
+        assertEquals(null, findFirst(card, EditText.class));
+        assertEquals(null, findFirst(card, Switch.class));
+        assertEquals("Ada", findFirst(card, TextView.class).getText().toString());
+        assertEquals("Edit Ada", card.getContentDescription());
+
+        card.performClick();
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals("com.keepers.photoorganiser.PersonDetailActivity",
+                started.getComponent().getClassName());
+        assertEquals("ada", started.getStringExtra("person_id"));
     }
 
     @Test public void showsFaceObservationProgressFromGalleryAnalysis() {
