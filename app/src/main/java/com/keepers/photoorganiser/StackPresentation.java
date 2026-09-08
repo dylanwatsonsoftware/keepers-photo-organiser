@@ -10,7 +10,7 @@ public final class StackPresentation {
     private StackPresentation() {}
 
     public static List<String> visibleIds(List<String> orderedIds,
-            Map<String, List<String>> stacks, Set<String> recommended) {
+            Map<String, List<String>> stacks, Set<String> recommended, Set<String> keepers) {
         ArrayList<String> visible = new ArrayList<>();
         Set<List<String>> handled = new HashSet<>();
         for (String id : orderedIds) {
@@ -20,8 +20,9 @@ public final class StackPresentation {
                 continue;
             }
             if (!handled.add(stack)) continue;
-            String cover = stack.stream().filter(recommended::contains).findFirst()
-                    .orElse(stack.get(0));
+            String cover = stack.stream().filter(keepers::contains).findFirst()
+                    .orElseGet(() -> stack.stream().filter(recommended::contains).findFirst()
+                            .orElse(stack.get(0)));
             visible.add(cover);
         }
         return visible;

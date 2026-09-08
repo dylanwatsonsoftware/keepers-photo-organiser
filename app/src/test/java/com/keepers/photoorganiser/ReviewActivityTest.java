@@ -185,7 +185,7 @@ public class ReviewActivityTest {
         assertEquals(0f, star.getTranslationY(), 0.001f);
     }
 
-    @Test public void duplicatePhotosShowTheirSharedStackAndPosition() {
+    @Test public void duplicatePhotosCollapseToOneCoverWithStackCount() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
                 Uri.parse("content://media/photo/1"),
@@ -193,16 +193,44 @@ public class ReviewActivityTest {
                 Uri.parse("content://media/photo/3")));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
+        List<String> stack = List.of("content://media/photo/1", "content://media/photo/2");
+        activity.showSuggestions(Set.of("content://media/photo/2"));
         activity.showStacks(Map.of(
                 "content://media/photo/1", new PhotoStackPosition(1, 2),
-                "content://media/photo/2", new PhotoStackPosition(2, 2)));
+                "content://media/photo/2", new PhotoStackPosition(2, 2)), Map.of(
+                "content://media/photo/1", stack, "content://media/photo/2", stack));
 
-        assertEquals("1/2", ((TextView) ((android.view.ViewGroup)
-                grid.getChildAt(0)).getChildAt(3)).getText());
-        assertEquals("2/2", ((TextView) ((android.view.ViewGroup)
-                grid.getChildAt(1)).getChildAt(3)).getText());
+        assertEquals(2, grid.getChildCount());
+        assertEquals("content://media/photo/2", grid.getChildAt(0).getTag().toString());
+        TextView badge = (TextView) ((android.view.ViewGroup)
+                grid.getChildAt(0)).getChildAt(3);
+        assertEquals("2", badge.getText());
+        assertEquals("Stack of 2 photos", badge.getContentDescription());
+        assertNotNull(badge.getCompoundDrawables()[0]);
         assertEquals(View.GONE, ((android.view.ViewGroup)
-                grid.getChildAt(2)).getChildAt(3).getVisibility());
+                grid.getChildAt(1)).getChildAt(3).getVisibility());
+    }
+
+    @Test public void keeperBecomesTheGalleryCoverForItsStack() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String first = "content://media/photo/1";
+        String recommended = "content://media/photo/2";
+        activity.showPhotos(List.of(Uri.parse(first), Uri.parse(recommended)));
+        List<String> stack = List.of(first, recommended);
+        activity.showSuggestions(Set.of(recommended));
+        activity.showStacks(Map.of(
+                first, new PhotoStackPosition(1, 2),
+                recommended, new PhotoStackPosition(2, 2)),
+                Map.of(first, stack, recommended, stack));
+        new KeeperSelectionStore(activity).toggle(Uri.parse(first));
+
+        activity.onResume();
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(first, grid.getChildAt(0).getTag().toString());
+        assertEquals("2", ((TextView) ((android.view.ViewGroup)
+                grid.getChildAt(0)).getChildAt(3)).getText());
     }
 
     @Test public void infiniteScrollExpandsTheReviewWindow() {

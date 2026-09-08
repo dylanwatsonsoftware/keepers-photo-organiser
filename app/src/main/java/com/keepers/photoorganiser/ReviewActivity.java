@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public final class ReviewActivity extends Activity {
     private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
@@ -223,6 +224,8 @@ public final class ReviewActivity extends Activity {
         stack.setTextSize(12);
         stack.setGravity(Gravity.CENTER);
         stack.setPadding(dp(7), dp(4), dp(7), dp(4));
+        stack.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_stack, 0, 0, 0);
+        stack.setCompoundDrawablePadding(dp(4));
         GradientDrawable stackBackground = new GradientDrawable();
         stackBackground.setColor(0xCC303134);
         stackBackground.setCornerRadius(dp(12));
@@ -334,7 +337,9 @@ public final class ReviewActivity extends Activity {
         for (FrameLayout tile : tiles) {
             TextView badge = (TextView) tile.getChildAt(3);
             PhotoStackPosition position = stacks.get(tile.getTag().toString());
-            badge.setText(position == null ? "" : position.label());
+            badge.setText(position == null ? "" : Integer.toString(position.size()));
+            badge.setContentDescription(position == null ? null
+                    : "Stack of " + position.size() + " photos");
             badge.setVisibility(position == null ? View.GONE : View.VISIBLE);
         }
         applyFilter();
@@ -350,18 +355,18 @@ public final class ReviewActivity extends Activity {
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
         List<String> orderedIds = photos.stream().map(Uri::toString).toList();
-        Set<String> stackCovers = new HashSet<>(StackPresentation.visibleIds(
-                orderedIds, stackMembers, suggestions));
+        List<String> stackCovers = StackPresentation.visibleIds(
+                orderedIds, stackMembers, suggestions, keepers);
+        Map<String, FrameLayout> tilesById = new HashMap<>();
+        for (FrameLayout tile : tiles) tilesById.put(tile.getTag().toString(), tile);
         int visible = 0;
-        for (FrameLayout tile : tiles) {
-            String id = tile.getTag().toString();
-            boolean show = galleryFilter == GalleryFilter.ALL && stackCovers.contains(id)
-                    || galleryFilter == GalleryFilter.KEEPERS && keepers.contains(id)
-                    || galleryFilter == GalleryFilter.RECOMMENDED && suggestions.contains(id);
-            if (show) {
-                grid.addView(tile);
-                visible++;
-            }
+        List<String> visibleIds = galleryFilter == GalleryFilter.ALL ? stackCovers
+                : orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
+                        ? keepers.contains(id) : suggestions.contains(id)).toList();
+        for (String id : visibleIds) {
+            FrameLayout tile = tilesById.get(id);
+            if (tile != null) grid.addView(tile);
+            if (tile != null) visible++;
         }
         View keeperFilter = findViewById(R.id.filter_keepers);
         View recommendedFilter = findViewById(R.id.filter_recommended);
