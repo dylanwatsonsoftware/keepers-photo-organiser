@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,6 +11,8 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.util.ArrayList;
@@ -63,72 +66,106 @@ public final class PersonDetailActivity extends Activity {
 
     private void renderFaces() {
         List<FaceObservation> faces = associatedFaces();
-        LinearLayout container = findViewById(R.id.person_detail_faces);
+        GridLayout container = findViewById(R.id.person_detail_faces);
         container.removeAllViews();
         String name = displayName();
         ((TextView) findViewById(R.id.person_detail_faces_summary)).setText(faces.isEmpty()
                 ? "No confirmed or suggested faces yet. Assign a discovered group first."
                 : faces.size() + (faces.size() == 1 ? " associated face" : " associated faces")
-                + " · remove any incorrect matches");
-        for (FaceObservation face : faces) container.addView(faceCard(face, name));
-        showFeatureFace(faces);
+                + " · choose a feature or remove incorrect matches");
+        String featureKey = effectiveFeatureKey(faces);
+        for (FaceObservation face : faces) container.addView(faceTile(face, name,
+                FaceCorrectionStore.key(face).equals(featureKey)));
+        showFeatureFace(faces, featureKey);
     }
 
-    private LinearLayout faceCard(FaceObservation face, String name) {
-        LinearLayout card = new LinearLayout(this);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(10), dp(10), dp(10), dp(10));
-        card.setBackgroundResource(R.drawable.person_setup_card);
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        cardParams.setMargins(0, 0, 0, dp(10));
-        card.setLayoutParams(cardParams);
+    private LinearLayout faceTile(FaceObservation face, String name, boolean featureFace) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER_HORIZONTAL);
+        GridLayout.LayoutParams tileParams = new GridLayout.LayoutParams();
+        tileParams.width = dp(104);
+        tileParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        tileParams.setMargins(0, 0, dp(6), dp(12));
+        tile.setLayoutParams(tileParams);
+
+        FrameLayout frame = new FrameLayout(this);
+        frame.setSelected(featureFace);
+        frame.setPadding(dp(3), dp(3), dp(3), dp(3));
+        frame.setBackgroundResource(R.drawable.album_person_choice);
+        tile.addView(frame, new LinearLayout.LayoutParams(dp(96), dp(96)));
         ImageView crop = new ImageView(this);
         crop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         crop.setBackgroundResource(R.drawable.preview_face_crop);
         crop.setClipToOutline(true);
-        card.addView(crop, new LinearLayout.LayoutParams(dp(86), dp(86)));
-        thumbnailLoader.load(crop, Uri.parse(face.photoId()), 420,
+        crop.setContentDescription(featureFace ? "Feature face for " + name
+                : "Face for " + name + ". Tap to use as feature.");
+        frame.addView(crop, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        thumbnailLoader.load(crop, Uri.parse(face.photoId()), 520,
                 bitmap -> showLooseCrop(crop, bitmap, face));
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1);
-        actionParams.setMargins(dp(12), 0, 0, 0);
-        card.addView(actions, actionParams);
         String key = FaceCorrectionStore.key(face);
-        TextView feature = action("Use as feature");
-        feature.setOnClickListener(view -> {
+        Runnable selectFeature = () -> {
             new PersonFeatureFaceStore(this).save(person.id(), key);
-            showFeatureFace(associatedFaces());
-        });
-        actions.addView(feature);
-        TextView remove = action("Remove from " + name);
-        remove.setTextColor(0xFFB3261E);
-        remove.setOnClickListener(view -> {
-            FaceCorrectionStore store = new FaceCorrectionStore(this);
-            HashMap<String, String> corrections = new HashMap<>(store.load());
-            corrections.put(key, FaceCorrectionStore.IGNORE);
-            store.save(corrections);
-            PersonFeatureFaceStore features = new PersonFeatureFaceStore(this);
-            if (key.equals(features.load(person.id()))) features.clear(person.id());
-            AlbumApprovalInvalidator.invalidate(this);
             renderFaces();
-        });
-        actions.addView(remove);
-        return card;
+        };
+        if (!featureFace) crop.setOnClickListener(view -> selectFeature.run());
+
+        TextView feature = compactAction(featureFace ? "Feature photo" : "Use as feature");
+        feature.setTextColor(featureFace ? 0xFF174EA6 : 0xFF3C4043);
+        feature.setBackgroundResource(featureFace ? R.drawable.keeper_summary_chip
+                : R.drawable.gallery_filter_chip);
+        feature.setClickable(!featureFace);
+        feature.setFocusable(!featureFace);
+        if (!featureFace) feature.setOnClickListener(view -> selectFeature.run());
+        tile.addView(feature, actionLayoutParams());
+
+        TextView remove = compactAction("Remove");
+        remove.setTextColor(0xFFB3261E);
+        remove.setBackgroundResource(R.drawable.person_remove_action);
+        remove.setOnClickListener(view -> confirmRemoval(face, name));
+        tile.addView(remove, actionLayoutParams());
+        return tile;
     }
 
-    private TextView action(String text) {
+    private void confirmRemoval(FaceObservation face, String name) {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove this face?")
+                .setMessage("Keepers will stop treating this face as " + name
+                        + ". You can identify it again later.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Remove", (dialog, which) -> removeFace(face))
+                .show();
+    }
+
+    private void removeFace(FaceObservation face) {
+        FaceCorrectionStore store = new FaceCorrectionStore(this);
+        HashMap<String, String> corrections = new HashMap<>(store.load());
+        String key = FaceCorrectionStore.key(face);
+        corrections.put(key, FaceCorrectionStore.IGNORE);
+        store.save(corrections);
+        PersonFeatureFaceStore features = new PersonFeatureFaceStore(this);
+        if (key.equals(features.load(person.id()))) features.clear(person.id());
+        AlbumApprovalInvalidator.invalidate(this);
+        renderFaces();
+    }
+
+    private TextView compactAction(String text) {
         TextView action = new TextView(this);
         action.setText(text);
-        action.setTextColor(0xFF1A73E8);
-        action.setTextSize(15);
-        action.setGravity(Gravity.CENTER_VERTICAL);
-        action.setMinHeight(dp(40));
+        action.setTextSize(12);
+        action.setGravity(Gravity.CENTER);
+        action.setMinHeight(dp(32));
         action.setClickable(true);
         action.setFocusable(true);
         return action;
+    }
+
+    private LinearLayout.LayoutParams actionLayoutParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
+        params.setMargins(dp(2), dp(5), dp(2), 0);
+        return params;
     }
 
     private List<FaceObservation> associatedFaces() {
@@ -160,9 +197,16 @@ public final class PersonDetailActivity extends Activity {
         return person.id().equals(learned.get(key));
     }
 
-    private void showFeatureFace(List<FaceObservation> faces) {
-        ImageView feature = findViewById(R.id.person_detail_feature);
+    private String effectiveFeatureKey(List<FaceObservation> faces) {
         String selected = new PersonFeatureFaceStore(this).load(person.id());
+        boolean stillAssociated = faces.stream().anyMatch(face ->
+                FaceCorrectionStore.key(face).equals(selected));
+        return stillAssociated ? selected : faces.isEmpty()
+                ? "" : FaceCorrectionStore.key(faces.get(0));
+    }
+
+    private void showFeatureFace(List<FaceObservation> faces, String selected) {
+        ImageView feature = findViewById(R.id.person_detail_feature);
         FaceObservation face = faces.stream()
                 .filter(candidate -> FaceCorrectionStore.key(candidate).equals(selected))
                 .findFirst().orElse(faces.isEmpty() ? null : faces.get(0));

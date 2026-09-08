@@ -28,8 +28,10 @@
         <TextView android:id="@+id/person_detail_faces_summary" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="4dp"
             android:textColor="#5F6368" android:textSize="14sp" />
-        <LinearLayout android:id="@+id/person_detail_faces" android:layout_width="match_parent"
+        <GridLayout android:id="@+id/person_detail_faces" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="12dp"
-            android:orientation="vertical" android:paddingBottom="24dp" />
+            android:alignmentMode="alignMargins" android:columnCount="3"
+            android:orientation="horizontal" android:paddingBottom="24dp"
+            android:useDefaultMargins="false" />
     </LinearLayout>
 </ScrollView>

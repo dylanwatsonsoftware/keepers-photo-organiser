@@ -2,7 +2,9 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
+import android.app.AlertDialog;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.util.List;
@@ -20,6 +23,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.shadows.ShadowDialog;
+import org.robolectric.shadows.ShadowLooper;
 
 @RunWith(RobolectricTestRunner.class)
 public class PersonDetailActivityTest {
@@ -45,28 +50,40 @@ public class PersonDetailActivityTest {
 
     @Test public void canChooseAFeatureFaceAndRemoveAWrongFace() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
-        String photo = "content://photos/ada-face";
-        FaceObservation face = new FaceObservation(photo, 0, .2, .2, .6, .7,
-                -1, -1, -1, 0, 0, "1,0,0");
+        String firstPhoto = "content://photos/ada-a";
+        String secondPhoto = "content://photos/ada-b";
         new TrackedPersonStore(context).save(List.of(
                 new TrackedPerson("ada", "Ada", "Ada Photos", true)));
-        new FaceObservationStore(context).save(photo, List.of(face));
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save(firstPhoto, List.of(face(firstPhoto, 0, "1,0,0")));
+        observations.save(secondPhoto, List.of(face(secondPhoto, 0, ".99,.01,0")));
         FaceIdentityGroup group = FaceClusterer.cluster(
-                new FaceObservationStore(context).loadAll(), .30).get(0);
+                observations.loadAll(), .30).get(0);
         new FaceGroupAssignmentStore(context).save(Map.of(group.id(), "ada"));
         Activity activity = launch(context, "ada");
-        LinearLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
+        GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
 
-        assertEquals(1, faces.getChildCount());
+        assertEquals(3, faces.getColumnCount());
+        assertEquals(2, faces.getChildCount());
         ImageView crop = findFirst(faces.getChildAt(0), ImageView.class);
         assertNotNull(crop);
-        findText(faces.getChildAt(0), "Use as feature").performClick();
-        assertEquals(photo + "#0", context.getSharedPreferences(
+        assertNotNull(findText(faces.getChildAt(0), "Feature photo"));
+        assertNull(findText(faces.getChildAt(0), "Use as feature"));
+        findText(faces.getChildAt(1), "Use as feature").performClick();
+        assertEquals(secondPhoto + "#0", context.getSharedPreferences(
                 "person_feature_faces", Context.MODE_PRIVATE).getString("ada", ""));
+        assertNotNull(findText(faces.getChildAt(1), "Feature photo"));
+        assertNull(findText(faces.getChildAt(1), "Use as feature"));
 
-        findText(faces.getChildAt(0), "Remove from Ada").performClick();
+        findText(faces.getChildAt(1), "Remove").performClick();
+        assertNull(new FaceCorrectionStore(context).load().get(secondPhoto + "#0"));
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals("Remove", dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        ShadowLooper.idleMainLooper();
         assertEquals(FaceCorrectionStore.IGNORE,
-                new FaceCorrectionStore(context).load().get(photo + "#0"));
+                new FaceCorrectionStore(context).load().get(secondPhoto + "#0"));
+        assertEquals(1, faces.getChildCount());
     }
 
     @Test public void showsFacesLearnedFromConfirmedExamplesForCorrection() throws Exception {
@@ -80,7 +97,7 @@ public class PersonDetailActivityTest {
         new FaceCorrectionStore(context).save(Map.of("content://photos/confirmed#0", "ada"));
 
         Activity activity = launch(context, "ada");
-        LinearLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
+        GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
 
         assertEquals(2, faces.getChildCount());
     }
