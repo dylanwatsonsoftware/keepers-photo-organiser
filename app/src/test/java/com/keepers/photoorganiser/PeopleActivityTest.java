@@ -3,6 +3,7 @@ package com.keepers.photoorganiser;
 import static org.junit.Assert.assertEquals;
 
 import android.widget.EditText;
+import android.widget.Button;
 import android.widget.Switch;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
@@ -32,6 +33,8 @@ public class PeopleActivityTest {
 
         View add = findViewWithText(activity.findViewById(android.R.id.content), "Add another person");
         assertEquals(true, add != null);
+        assertEquals(false, add instanceof Button);
+        assertEquals(true, add.getBackground() != null);
         add.performClick();
 
         LinearLayout profiles = findContainerWithContentDescription(

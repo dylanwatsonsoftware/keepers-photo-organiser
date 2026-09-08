@@ -20,9 +20,12 @@
         <LinearLayout android:id="@+id/people_profiles" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="20dp"
             android:contentDescription="Tracked people" android:orientation="vertical" />
-        <Button android:id="@+id/add_person" android:layout_width="match_parent"
+        <TextView android:id="@+id/add_person" android:layout_width="match_parent"
             android:layout_height="48dp" android:layout_marginTop="10dp"
-            android:text="Add another person" />
+            android:background="@drawable/gallery_primary_action" android:clickable="true"
+            android:focusable="true" android:gravity="center"
+            android:text="Add another person" android:textColor="#FFFFFFFF"
+            android:textSize="15sp" android:textStyle="bold" />
         <TextView android:id="@+id/people_status" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="10dp" android:gravity="center" android:text="People and face choices save automatically."
             android:textColor="#5F6368" />
