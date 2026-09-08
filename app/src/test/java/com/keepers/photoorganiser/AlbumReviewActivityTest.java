@@ -46,7 +46,26 @@ public class AlbumReviewActivityTest {
                 findFirst(ada, ImageView.class).getContentDescription());
         assertEquals("Ada selected for Ada Photos", ada.getContentDescription());
         assertTrue(ada.isSelected());
+        assertEquals("Suggested", ((TextView) ada.findViewWithTag("assignment_source"))
+                .getText().toString());
         assertEquals(null, findFirst(people, CheckBox.class));
+    }
+
+    @Test public void manualCorrectionIsClearlyDistinguishedFromAFaceSuggestion() {
+        seed();
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        GridLayout people = (GridLayout) first.getChildAt(2);
+        View ben = people.getChildAt(1);
+
+        assertEquals(View.GONE, ben.findViewWithTag("assignment_source").getVisibility());
+        ben.performClick();
+
+        TextView source = ben.findViewWithTag("assignment_source");
+        assertEquals(View.VISIBLE, source.getVisibility());
+        assertEquals("Your choice", source.getText().toString());
     }
 
     @Test public void correctionIsPersistedImmediately() {

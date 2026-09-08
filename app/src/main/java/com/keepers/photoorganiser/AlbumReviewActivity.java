@@ -75,14 +75,14 @@ public final class AlbumReviewActivity extends Activity {
         ArrayList<String> photos = new ArrayList<>(keepers);
         photos.sort(String::compareTo);
         for (String photo : photos)
-            container.addView(photoCard(photo, people, selected, portraits));
+            container.addView(photoCard(photo, people, selected, proposed, portraits));
         summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
                 + " · check or uncheck each child before continuing");
         updateConfirmAction(selected);
     }
 
     private LinearLayout photoCard(String photo, List<TrackedPerson> people, Set<String> selected,
-            Map<String, FaceObservation> portraits) {
+            Set<String> proposed, Map<String, FaceObservation> portraits) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
@@ -111,14 +111,14 @@ public final class AlbumReviewActivity extends Activity {
         for (TrackedPerson person : people) {
             String key = AlbumReviewSelectionStore.key(photo, person.id());
             LinearLayout choice = personChoice(person, portraits.get(person.id()),
-                    selected.contains(key));
+                    selected.contains(key), proposed.contains(key));
             choice.setOnClickListener(view -> {
                 boolean checked = !choice.isSelected();
                 HashSet<String> changed = new HashSet<>(reviewStore.load());
                 if (checked) changed.add(key); else changed.remove(key);
                 AlbumApprovalInvalidator.invalidate(this);
                 reviewStore.save(changed);
-                updateChoice(choice, person, checked);
+                updateChoice(choice, person, checked, proposed.contains(key));
                 updateConfirmAction(changed);
             });
             choices.addView(choice);
@@ -127,7 +127,7 @@ public final class AlbumReviewActivity extends Activity {
     }
 
     private LinearLayout personChoice(TrackedPerson person, FaceObservation face,
-            boolean selected) {
+            boolean selected, boolean suggested) {
         LinearLayout choice = new LinearLayout(this);
         choice.setOrientation(LinearLayout.VERTICAL);
         choice.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
@@ -173,18 +173,35 @@ public final class AlbumReviewActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         nameParams.setMargins(0, dp(5), 0, 0);
         choice.addView(name, nameParams);
-        updateChoice(choice, person, selected);
+        TextView source = new TextView(this);
+        source.setTag("assignment_source");
+        source.setTextSize(11);
+        source.setTextColor(suggested ? 0xFFB06000 : 0xFF174EA6);
+        source.setGravity(android.view.Gravity.CENTER);
+        source.setBackgroundResource(suggested ? R.drawable.suggestion_summary_chip
+                : R.drawable.keeper_summary_chip);
+        source.setPadding(dp(7), 0, dp(7), 0);
+        LinearLayout.LayoutParams sourceParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(22));
+        sourceParams.setMargins(0, dp(4), 0, 0);
+        choice.addView(source, sourceParams);
+        updateChoice(choice, person, selected, suggested);
         if (face != null) thumbnailLoader.loadProgressive(portrait, Uri.parse(face.photoId()),
                 520, 1200, bitmap -> showLooseCrop(portrait, bitmap, face));
         return choice;
     }
 
-    private void updateChoice(LinearLayout choice, TrackedPerson person, boolean selected) {
+    private void updateChoice(LinearLayout choice, TrackedPerson person, boolean selected,
+            boolean suggested) {
         choice.setSelected(selected);
         FrameLayout frame = choice.findViewWithTag("portrait_frame");
         frame.setSelected(selected);
         TextView check = choice.findViewWithTag("selection_check");
         check.setVisibility(selected ? android.view.View.VISIBLE : android.view.View.GONE);
+        TextView source = choice.findViewWithTag("assignment_source");
+        source.setText(suggested ? "Suggested" : "Your choice");
+        source.setVisibility(suggested || selected ? android.view.View.VISIBLE
+                : android.view.View.GONE);
         choice.setContentDescription(displayName(person) + (selected ? " selected for "
                 : " not selected for ") + person.albumName());
     }
