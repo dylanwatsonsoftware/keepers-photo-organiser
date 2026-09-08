@@ -52,7 +52,7 @@ public final class AlbumReviewActivity extends Activity {
         TextView summary = findViewById(R.id.album_review_summary);
         android.view.View setup = findViewById(R.id.album_review_setup_people);
         setup.setVisibility(android.view.View.GONE);
-        findViewById(R.id.confirm_album_review).setEnabled(false);
+        updateConfirmAction(Set.of());
         if (keepers.isEmpty()) {
             summary.setText("Choose some Keepers first. Nothing will be added without your approval.");
             return;
@@ -78,7 +78,7 @@ public final class AlbumReviewActivity extends Activity {
             container.addView(photoCard(photo, people, selected, portraits));
         summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
                 + " · check or uncheck each child before continuing");
-        findViewById(R.id.confirm_album_review).setEnabled(true);
+        updateConfirmAction(selected);
     }
 
     private LinearLayout photoCard(String photo, List<TrackedPerson> people, Set<String> selected,
@@ -119,6 +119,7 @@ public final class AlbumReviewActivity extends Activity {
                 AlbumApprovalInvalidator.invalidate(this);
                 reviewStore.save(changed);
                 updateChoice(choice, person, checked);
+                updateConfirmAction(changed);
             });
             choices.addView(choice);
         }
@@ -237,8 +238,18 @@ public final class AlbumReviewActivity extends Activity {
         return keys;
     }
 
+    private void updateConfirmAction(Set<String> selected) {
+        TextView action = findViewById(R.id.confirm_album_review);
+        int count = selected.size();
+        action.setText(count == 0 ? "No album changes selected"
+                : "Add " + count + (count == 1 ? " album change" : " album changes"));
+        action.setEnabled(count > 0);
+        action.setAlpha(count > 0 ? 1f : .45f);
+    }
+
     private void confirmReview() {
         int count = reviewStore.load().size();
+        if (count == 0) return;
         new AlertDialog.Builder(this).setTitle("Add to Google Photos albums?")
                 .setMessage(count + (count == 1 ? " approved album change" : " approved album changes")
                         + " will run now. Keepers will only use the choices on this review screen.")

@@ -29,7 +29,10 @@
             android:layout_height="wrap_content" android:orientation="vertical"
             android:paddingBottom="16dp" />
     </ScrollView>
-    <Button android:id="@+id/confirm_album_review" android:layout_width="match_parent"
-        android:layout_height="54dp" android:layout_margin="16dp"
-        android:text="Approve album changes" />
+    <TextView android:id="@+id/confirm_album_review" android:layout_width="match_parent"
+        android:layout_height="50dp" android:layout_margin="16dp"
+        android:background="@drawable/gallery_primary_action" android:clickable="true"
+        android:focusable="true" android:gravity="center"
+        android:text="No album changes selected" android:textColor="#FFFFFFFF"
+        android:textSize="15sp" android:textStyle="bold" />
 </LinearLayout>

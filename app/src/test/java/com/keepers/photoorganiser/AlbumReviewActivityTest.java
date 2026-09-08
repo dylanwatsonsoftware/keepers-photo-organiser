@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;
 
 import android.widget.CheckBox;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -54,10 +55,17 @@ public class AlbumReviewActivityTest {
                 .setup().get();
         LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
                 R.id.album_review_items).getChildAt(0);
+        TextView confirm = activity.findViewById(R.id.confirm_album_review);
+
+        assertTrue(!(confirm instanceof Button));
+        assertEquals("Add 1 album change", confirm.getText().toString());
+        assertTrue(confirm.isEnabled());
 
         ((GridLayout) first.getChildAt(2)).getChildAt(0).performClick();
 
         assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
+        assertEquals("No album changes selected", confirm.getText().toString());
+        assertTrue(!confirm.isEnabled());
     }
 
     @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
