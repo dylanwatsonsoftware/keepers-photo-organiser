@@ -2,7 +2,6 @@ package com.keepers.photoorganiser;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -43,29 +42,25 @@ public final class StackThumbnailView {
         int iconSize = dp(context, 24);
         int iconMargin = dp(context, 3);
 
-        ImageView heart = new ImageView(context);
-        heart.setTag("stack_heart");
-        heart.setImageResource(keeper ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
-        heart.setColorFilter(keeper ? Color.rgb(234, 67, 53) : Color.WHITE);
-        heart.setPadding(dp(context, keeper ? 4 : 5), dp(context, keeper ? 4 : 5),
-                dp(context, keeper ? 4 : 5), dp(context, keeper ? 4 : 5));
-        heart.setContentDescription(keeper ? "Keeper" : "Not a Keeper");
-        FrameLayout.LayoutParams heartParams = new FrameLayout.LayoutParams(iconSize, iconSize,
-                Gravity.TOP | Gravity.END);
-        heartParams.setMargins(0, iconMargin, iconMargin, 0);
-        frame.addView(heart, heartParams);
+        if (keeper) {
+            ImageView heart = new ImageView(context);
+            heart.setTag("stack_heart");
+            heart.setImageResource(R.drawable.ic_heart_filled);
+            heart.setColorFilter(Color.rgb(234, 67, 53));
+            heart.setPadding(dp(context, 4), dp(context, 4),
+                    dp(context, 4), dp(context, 4));
+            heart.setContentDescription("Keeper");
+            FrameLayout.LayoutParams heartParams = new FrameLayout.LayoutParams(
+                    iconSize, iconSize, Gravity.TOP | Gravity.END);
+            heartParams.setMargins(0, iconMargin, iconMargin, 0);
+            frame.addView(heart, heartParams);
+        }
 
         ImageView star = new ImageView(context);
         star.setTag("stack_star");
         star.setImageResource(alternative ? R.drawable.ic_star_outline : R.drawable.ic_star);
         star.setColorFilter(Color.WHITE);
         star.setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4));
-        if (recommended) {
-            GradientDrawable circle = new GradientDrawable();
-            circle.setShape(GradientDrawable.OVAL);
-            circle.setColor(Color.rgb(176, 96, 0));
-            star.setBackground(circle);
-        }
         star.setContentDescription(recommended ? "Recommended best shot"
                 : alternative ? "Good alternative" : null);
         star.setVisibility(recommended || alternative ? View.VISIBLE : View.GONE);

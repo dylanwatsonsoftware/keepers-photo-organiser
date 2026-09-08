@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import android.view.View;
 import android.widget.FrameLayout;
@@ -57,13 +58,12 @@ public class StackThumbnailViewTest {
         assertNotNull(heart.getDrawable());
         assertEquals("Keeper", heart.getContentDescription());
         assertNotNull(star.getDrawable());
-        assertNotNull(star.getBackground());
+        assertNull(star.getBackground());
         assertEquals("Recommended best shot", star.getContentDescription());
 
         FrameLayout alternative = StackThumbnailView.create(
                 RuntimeEnvironment.getApplication(), false, false, false, true);
-        assertEquals("Not a Keeper", StackThumbnailView.heart(alternative)
-                .getContentDescription());
+        assertNull(StackThumbnailView.heart(alternative));
         assertEquals("Good alternative", StackThumbnailView.star(alternative)
                 .getContentDescription());
         assertEquals(View.VISIBLE, StackThumbnailView.star(alternative).getVisibility());
