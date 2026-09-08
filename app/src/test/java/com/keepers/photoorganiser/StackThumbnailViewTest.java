@@ -50,19 +50,19 @@ public class StackThumbnailViewTest {
 
     @Test public void carouselThumbnailShowsGalleryStyleKeeperAndRecommendationIcons() {
         FrameLayout recommendedKeeper = StackThumbnailView.create(
-                RuntimeEnvironment.getApplication(), true, true, true, false);
+                RuntimeEnvironment.getApplication(), true, true, false, true, false);
 
         assertEquals(4, recommendedKeeper.getChildCount());
         ImageView heart = StackThumbnailView.heart(recommendedKeeper);
         ImageView star = StackThumbnailView.star(recommendedKeeper);
         assertNotNull(heart.getDrawable());
-        assertEquals("Keeper", heart.getContentDescription());
+        assertEquals("New Keeper", heart.getContentDescription());
         assertNotNull(star.getDrawable());
         assertNull(star.getBackground());
         assertEquals("Recommended best shot", star.getContentDescription());
 
         FrameLayout alternative = StackThumbnailView.create(
-                RuntimeEnvironment.getApplication(), false, false, false, true);
+                RuntimeEnvironment.getApplication(), false, false, false, false, true);
         assertNull(StackThumbnailView.heart(alternative));
         assertEquals("Good alternative", StackThumbnailView.star(alternative)
                 .getContentDescription());

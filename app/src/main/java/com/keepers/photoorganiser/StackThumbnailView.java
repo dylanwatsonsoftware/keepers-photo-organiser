@@ -37,7 +37,7 @@ public final class StackThumbnailView {
     }
 
     public static FrameLayout create(Context context, boolean selected, boolean keeper,
-            boolean recommended, boolean alternative) {
+            boolean saved, boolean recommended, boolean alternative) {
         FrameLayout frame = create(context, selected);
         int iconSize = dp(context, 24);
         int iconMargin = dp(context, 3);
@@ -46,10 +46,10 @@ public final class StackThumbnailView {
             ImageView heart = new ImageView(context);
             heart.setTag("stack_heart");
             heart.setImageResource(R.drawable.ic_heart_filled);
-            heart.setColorFilter(Color.rgb(234, 67, 53));
+            heart.setColorFilter(KeeperStatusStyle.heartColor(saved));
             heart.setPadding(dp(context, 4), dp(context, 4),
                     dp(context, 4), dp(context, 4));
-            heart.setContentDescription("Keeper");
+            heart.setContentDescription(saved ? "Saved Keeper" : "New Keeper");
             FrameLayout.LayoutParams heartParams = new FrameLayout.LayoutParams(
                     iconSize, iconSize, Gravity.TOP | Gravity.END);
             heartParams.setMargins(0, iconMargin, iconMargin, 0);

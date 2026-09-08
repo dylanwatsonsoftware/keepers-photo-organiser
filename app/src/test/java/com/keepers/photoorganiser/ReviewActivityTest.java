@@ -69,7 +69,7 @@ public class ReviewActivityTest {
 
         ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
 
-        assertEquals("1 keeper", text(activity, R.id.keeper_count));
+        assertEquals("1 new keeper", text(activity, R.id.keeper_count));
         assertEquals(2, grid.getChildCount());
         assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
@@ -86,9 +86,25 @@ public class ReviewActivityTest {
 
         activity.findViewById(R.id.clear_keepers).performClick();
 
-        assertEquals("No keepers selected yet", text(activity, R.id.keeper_count));
+        assertEquals("No new keepers", text(activity, R.id.keeper_count));
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
+    }
+
+    @Test public void savedKeeperIsNotCountedAsNewAndUsesCompletedDescription() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String photo = "content://media/photo/already-saved";
+        AlbumCompletionStore completions = new AlbumCompletionStore(activity);
+        completions.clear();
+        completions.mark(photo, "Charlie Photos");
+        activity.showPhotos(List.of(Uri.parse(photo)));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
+
+        assertEquals("No new keepers", text(activity, R.id.keeper_count));
+        assertEquals("Saved Keeper photo. Tap to remove.",
+                grid.getChildAt(0).getContentDescription());
     }
 
     @Test public void suggestionsUseStarsWithoutFadingAlternatives() {
@@ -101,7 +117,7 @@ public class ReviewActivityTest {
         activity.showSuggestions(Set.of("content://media/photo/2"));
 
         assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
-        assertEquals("No keepers selected yet", text(activity, R.id.keeper_count));
+        assertEquals("No new keepers", text(activity, R.id.keeper_count));
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
         assertEquals(View.VISIBLE,

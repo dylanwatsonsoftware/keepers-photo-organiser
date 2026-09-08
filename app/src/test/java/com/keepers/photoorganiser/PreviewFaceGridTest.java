@@ -163,6 +163,26 @@ public class PreviewFaceGridTest {
         assertNotNull(heading.getCompoundDrawablesRelative()[0]);
     }
 
+    @Test public void metadataOnlyShowsAlbumsThatThisPhotoWasSavedTo() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String photo = "content://photos/saved-albums";
+        AlbumCompletionStore completions = new AlbumCompletionStore(context);
+        completions.clear();
+        completions.mark(photo, "Charlie Photos");
+        completions.mark(photo, "Family Adventures");
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(photo))).setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+
+        assertEquals(ViewGroup.VISIBLE,
+                activity.findViewById(R.id.preview_saved_albums_section).getVisibility());
+        assertEquals("Charlie Photos\nFamily Adventures",
+                ((TextView) activity.findViewById(R.id.preview_saved_albums)).getText().toString());
+    }
+
     private static String label(GridLayout grid, int index) {
         return ((TextView) ((ViewGroup) grid.getChildAt(index)).getChildAt(1))
                 .getText().toString();

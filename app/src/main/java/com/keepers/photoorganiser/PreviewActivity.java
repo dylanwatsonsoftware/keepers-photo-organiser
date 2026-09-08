@@ -312,6 +312,7 @@ public final class PreviewActivity extends Activity {
             return;
         }
         Set<String> keepers = store.load();
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
         Set<String> recommendations = suggestionStore.load();
         Set<String> alternatives = suggestionStore.loadAlternatives();
         int selectedIndex = 0;
@@ -321,7 +322,7 @@ public final class PreviewActivity extends Activity {
             boolean selected = memberUri.equals(photo);
             if (selected) selectedIndex = index;
             FrameLayout thumbnailFrame = StackThumbnailView.create(this, selected,
-                    keepers.contains(member), recommendations.contains(member),
+                    keepers.contains(member), completions.hasAny(member), recommendations.contains(member),
                     alternatives.contains(member));
             ImageView thumbnail = StackThumbnailView.image(thumbnailFrame);
             thumbnailFrame.setContentDescription(selected
@@ -351,6 +352,7 @@ public final class PreviewActivity extends Activity {
     private void showAnalysis() {
         boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
         showAnalysisFaces();
+        showSavedAlbums();
         PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
         TextView title = findViewById(R.id.preview_analysis_title);
         TextView body = findViewById(R.id.preview_analysis_body);
@@ -371,6 +373,14 @@ public final class PreviewActivity extends Activity {
         }
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
+    }
+
+    private void showSavedAlbums() {
+        List<String> albumNames = new AlbumCompletionStore(this).albumNames(photo.toString());
+        View section = findViewById(R.id.preview_saved_albums_section);
+        section.setVisibility(albumNames.isEmpty() ? View.GONE : View.VISIBLE);
+        ((TextView) findViewById(R.id.preview_saved_albums)).setText(
+                android.text.TextUtils.join("\n", albumNames));
     }
 
     private void showAnalysisFaces() {

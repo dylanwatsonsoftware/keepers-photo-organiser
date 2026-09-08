@@ -271,19 +271,21 @@ public final class ReviewActivity extends Activity {
 
     private void updateSelectionDisplay() {
         Set<String> selected = selectionStore.load();
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
         Set<String> visibleSelected = new HashSet<>();
         for (Uri photo : photos) if (selected.contains(photo.toString())) {
             visibleSelected.add(photo.toString());
         }
         for (FrameLayout tile : tiles) {
             boolean keeper = visibleSelected.contains(tile.getTag().toString());
+            boolean saved = keeper && completions.hasAny(tile.getTag().toString());
             boolean suggested = suggestions.contains(tile.getTag().toString());
             boolean alternative = goodAlternatives.contains(tile.getTag().toString());
             tile.setAlpha(1f);
             ImageView heart = (ImageView) tile.getChildAt(1);
             heart.setImageResource(keeper ? R.drawable.ic_heart_filled
                     : R.drawable.ic_heart_outline);
-            heart.setColorFilter(keeper ? Color.rgb(234, 67, 53) : Color.WHITE);
+            heart.setColorFilter(keeper ? KeeperStatusStyle.heartColor(saved) : Color.WHITE);
             int heartPadding = dp(HeartIconStyle.paddingDp(keeper));
             heart.setPadding(heartPadding, heartPadding, heartPadding, heartPadding);
             heart.setVisibility(View.VISIBLE);
@@ -293,14 +295,16 @@ public final class ReviewActivity extends Activity {
             star.setContentDescription(suggested ? "Recommended best shot" : alternative
                     ? "Good alternative — near-identical photo ranked higher" : null);
             star.setVisibility(suggested || alternative ? View.VISIBLE : View.GONE);
-            tile.setContentDescription(keeper ? "Keeper photo. Tap to remove."
+            tile.setContentDescription(saved ? "Saved Keeper photo. Tap to remove."
+                    : keeper ? "New Keeper photo. Tap to remove."
                     : "Photo. Tap to mark as keeper.");
         }
-        int count = visibleSelected.size();
+        int count = 0;
+        for (String keeper : visibleSelected) if (!completions.hasAny(keeper)) count++;
         ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
-                ? "No keepers selected yet" : count + (count == 1 ? " keeper" : " keepers"));
-        findViewById(R.id.clear_keepers).setEnabled(count > 0);
-        findViewById(R.id.clear_keepers).setAlpha(count > 0 ? 1f : 0.35f);
+                ? "No new keepers" : count + (count == 1 ? " new keeper" : " new keepers"));
+        findViewById(R.id.clear_keepers).setEnabled(!visibleSelected.isEmpty());
+        findViewById(R.id.clear_keepers).setAlpha(!visibleSelected.isEmpty() ? 1f : 0.35f);
         applyFilter();
     }
 
