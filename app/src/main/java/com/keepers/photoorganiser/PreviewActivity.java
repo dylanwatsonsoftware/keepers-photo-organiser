@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.GridLayout;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import java.util.ArrayList;
@@ -47,6 +48,11 @@ public final class PreviewActivity extends Activity {
     private List<Uri> allPhotos = List.of();
     private GestureCoordinates analysisGesture;
     private boolean analysisPulling;
+    private final PhotoZoomState zoomState = new PhotoZoomState();
+    private ScaleGestureDetector scaleGestureDetector;
+    private boolean zoomGestureInProgress;
+    private float lastPanRawX;
+    private float lastPanRawY;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -74,6 +80,22 @@ public final class PreviewActivity extends Activity {
         previewStage = findViewById(R.id.preview_stage);
         previewControls = findViewById(R.id.preview_controls);
         previewClose = findViewById(R.id.preview_close);
+        scaleGestureDetector = new ScaleGestureDetector(this,
+                new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
+                        zoomGestureInProgress = true;
+                        currentSurface.animate().cancel();
+                        adjacentSurface.animate().cancel();
+                        adjacentSurface.setVisibility(View.INVISIBLE);
+                        return true;
+                    }
+
+                    @Override public boolean onScale(ScaleGestureDetector detector) {
+                        zoomState.scaleBy(detector.getScaleFactor());
+                        applyZoom();
+                        return true;
+                    }
+                });
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
         loadCurrent();
@@ -123,6 +145,33 @@ public final class PreviewActivity extends Activity {
 
     private boolean handleSwipe(MotionEvent event) {
         View image = currentSurface;
+        scaleGestureDetector.onTouchEvent(event);
+        int action = event.getActionMasked();
+        if (event.getPointerCount() > 1
+                || action == MotionEvent.ACTION_POINTER_DOWN
+                || action == MotionEvent.ACTION_POINTER_UP
+                || zoomGestureInProgress) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                zoomGestureInProgress = false;
+            }
+            return true;
+        }
+        if (!zoomState.allowsPageGesture()) {
+            if (action == MotionEvent.ACTION_DOWN) {
+                frontImage.animate().cancel();
+                lastPanRawX = event.getRawX();
+                lastPanRawY = event.getRawY();
+            } else if (action == MotionEvent.ACTION_MOVE) {
+                float rawX = event.getRawX();
+                float rawY = event.getRawY();
+                zoomState.panBy(rawX - lastPanRawX, rawY - lastPanRawY,
+                        frontImage.getWidth(), frontImage.getHeight());
+                lastPanRawX = rawX;
+                lastPanRawY = rawY;
+                applyZoom();
+            }
+            return true;
+        }
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             image.animate().cancel();
             adjacentSurface.animate().cancel();
@@ -215,6 +264,7 @@ public final class PreviewActivity extends Activity {
         frontImage = pages.currentImage();
         adjacentSurface = pages.adjacentSurface();
         adjacentImage = pages.adjacentImage();
+        resetZoom();
         dragPreviewPhoto = null;
         updateRecommendation();
         updateButton();
@@ -223,6 +273,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void loadCurrent() {
+        resetZoom();
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
         PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
@@ -279,6 +330,7 @@ public final class PreviewActivity extends Activity {
 
     private void selectStackPhoto(Uri selected) {
         if (selected.equals(photo)) return;
+        resetZoom();
         photo = selected;
         navigator = new PhotoNavigator(allPhotos, photo);
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
@@ -602,6 +654,19 @@ public final class PreviewActivity extends Activity {
         adjacentSurface.animate().translationX(adjacentRest).setDuration(140).start();
         image.animate().translationX(0).translationY(0).alpha(1).setDuration(140)
                 .withEndAction(() -> adjacentSurface.setVisibility(View.INVISIBLE)).start();
+    }
+
+    private void applyZoom() {
+        frontImage.setScaleX(zoomState.scale());
+        frontImage.setScaleY(zoomState.scale());
+        frontImage.setTranslationX(zoomState.translationX());
+        frontImage.setTranslationY(zoomState.translationY());
+    }
+
+    private void resetZoom() {
+        zoomState.reset();
+        if (frontImage != null) applyZoom();
+        zoomGestureInProgress = false;
     }
 
     private int dp(int value) {

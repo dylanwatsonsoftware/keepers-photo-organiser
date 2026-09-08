@@ -118,4 +118,12 @@ public class PreviewLayoutTest {
                 slot.getLayoutParams().height);
         assertEquals(View.INVISIBLE, recommendation.getVisibility());
     }
+
+    @Test public void fullscreenHintMakesPinchZoomDiscoverable() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        TextView hint = layout.findViewById(R.id.preview_hint);
+
+        assertTrue(hint.getText().toString().contains("Pinch to zoom"));
+    }
 }
