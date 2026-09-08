@@ -58,6 +58,19 @@ public class AlbumProposalEngineTest {
                 List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true))));
     }
 
+    @Test public void aCorrectionCanTeachAnUnmappedSimilarFace() {
+        FaceIdentityGroup taught = group("old-group", "old");
+        FaceIdentityGroup newFace = new FaceIdentityGroup("new-group", List.of(
+                new FaceObservation("keeper-a", 0, 0, 0, 1, 1,
+                        -1, -1, -1, 0, 0, ".99,.01")));
+        List<AlbumAssignment> result = AlbumProposalEngine.propose(Set.of("keeper-a"),
+                List.of(taught, newFace), Map.of(), Map.of("old#0", "ada"),
+                List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+
+        assertEquals(List.of(new AlbumAssignment("keeper-a", "ada", "Ada",
+                "Ada Photos", true)), result);
+    }
+
     private static FaceIdentityGroup group(String id, String... photos) {
         return new FaceIdentityGroup(id, java.util.Arrays.stream(photos).map(photo ->
                 new FaceObservation(photo, 0, 0, 0, 1, 1, -1, -1, -1, 0, 0, "1,0"))
