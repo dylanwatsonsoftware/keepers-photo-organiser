@@ -16,12 +16,40 @@ final class PhotoZoomState {
         }
     }
 
+    void scaleBy(float factor, float focusX, float focusY,
+            int viewportWidth, int viewportHeight) {
+        float oldScale = scale;
+        float newScale = clamp(oldScale * factor, MIN_SCALE, MAX_SCALE);
+        if (newScale == oldScale) return;
+        if (newScale <= MIN_SCALE + 0.001f) {
+            scale = MIN_SCALE;
+            translationX = 0f;
+            translationY = 0f;
+            return;
+        }
+        float appliedFactor = newScale / oldScale;
+        float focusFromCenterX = focusX - viewportWidth / 2f;
+        float focusFromCenterY = focusY - viewportHeight / 2f;
+        translationX = appliedFactor * translationX
+                + (1f - appliedFactor) * focusFromCenterX;
+        translationY = appliedFactor * translationY
+                + (1f - appliedFactor) * focusFromCenterY;
+        scale = newScale;
+        clampTranslation(viewportWidth, viewportHeight);
+    }
+
     void panBy(float deltaX, float deltaY, int viewportWidth, int viewportHeight) {
         if (!isZoomed()) return;
+        translationX += deltaX;
+        translationY += deltaY;
+        clampTranslation(viewportWidth, viewportHeight);
+    }
+
+    private void clampTranslation(int viewportWidth, int viewportHeight) {
         float maxX = Math.max(0f, viewportWidth * (scale - 1f) / 2f);
         float maxY = Math.max(0f, viewportHeight * (scale - 1f) / 2f);
-        translationX = clamp(translationX + deltaX, -maxX, maxX);
-        translationY = clamp(translationY + deltaY, -maxY, maxY);
+        translationX = clamp(translationX, -maxX, maxX);
+        translationY = clamp(translationY, -maxY, maxY);
     }
 
     boolean isZoomed() { return scale > MIN_SCALE + 0.001f; }

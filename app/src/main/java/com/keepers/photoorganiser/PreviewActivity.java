@@ -91,7 +91,9 @@ public final class PreviewActivity extends Activity {
                     }
 
                     @Override public boolean onScale(ScaleGestureDetector detector) {
-                        zoomState.scaleBy(detector.getScaleFactor());
+                        zoomState.scaleBy(detector.getScaleFactor(),
+                                detector.getFocusX(), detector.getFocusY(),
+                                frontImage.getWidth(), frontImage.getHeight());
                         applyZoom();
                         return true;
                     }

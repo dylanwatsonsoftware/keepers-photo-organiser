@@ -40,6 +40,27 @@ public class PhotoZoomStateTest {
         assertEquals(0f, zoom.translationY(), 0f);
     }
 
+    @Test public void scalingKeepsTheFingerMidpointAnchored() {
+        PhotoZoomState zoom = new PhotoZoomState();
+
+        zoom.scaleBy(2f, 300f, 600f, 400, 800);
+
+        assertEquals(2f, zoom.scale(), 0f);
+        assertEquals(-100f, zoom.translationX(), 0f);
+        assertEquals(-200f, zoom.translationY(), 0f);
+    }
+
+    @Test public void repeatedScalingKeepsUsingTheCurrentFingerMidpoint() {
+        PhotoZoomState zoom = new PhotoZoomState();
+        zoom.scaleBy(2f, 300f, 600f, 400, 800);
+
+        zoom.scaleBy(1.5f, 200f, 400f, 400, 800);
+
+        assertEquals(3f, zoom.scale(), 0f);
+        assertEquals(-150f, zoom.translationX(), 0f);
+        assertEquals(-300f, zoom.translationY(), 0f);
+    }
+
     @Test public void zoomedPhotoOwnsOneFingerDragInsteadOfPageNavigation() {
         PhotoZoomState zoom = new PhotoZoomState();
         assertTrue(zoom.allowsPageGesture());
