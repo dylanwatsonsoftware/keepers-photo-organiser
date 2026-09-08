@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.LinearLayout;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,5 +38,23 @@ public class PeopleActivityTest {
         assertEquals("1 face observation ready for grouping",
                 ((android.widget.TextView) activity.findViewById(R.id.face_discovery_status))
                         .getText().toString());
+    }
+
+    @Test public void showsDiscoveredRecurringFaceGroupsForReview() {
+        FaceObservationStore observations = new FaceObservationStore(
+                org.robolectric.RuntimeEnvironment.getApplication());
+        observations.save("content://photos/a", List.of(face("content://photos/a", "1,0,0")));
+        observations.save("content://photos/b", List.of(face("content://photos/b", ".99,.01,0")));
+
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
+        assertEquals(1, groups.getChildCount());
+        assertEquals("Seen in 2 photos", groups.getChildAt(0).getContentDescription());
+    }
+
+    private static FaceObservation face(String photo, String descriptor) {
+        return new FaceObservation(photo, 0, 0, 0, 1, 1,
+                -1, -1, -1, 0, 0, descriptor);
     }
 }

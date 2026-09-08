@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Collections;
 
 public final class FaceObservationStore {
     private static final String IDS = "photo_ids";
@@ -48,5 +49,13 @@ public final class FaceObservationStore {
         int count = 0;
         for (String id : preferences.getStringSet(IDS, Set.of())) count += load(id).size();
         return count;
+    }
+
+    public List<FaceObservation> loadAll() {
+        ArrayList<String> ids = new ArrayList<>(preferences.getStringSet(IDS, Set.of()));
+        Collections.sort(ids);
+        ArrayList<FaceObservation> result = new ArrayList<>();
+        for (String id : ids) result.addAll(load(id));
+        return List.copyOf(result);
     }
 }
