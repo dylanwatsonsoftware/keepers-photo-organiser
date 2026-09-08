@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 public final class PeopleActivity extends Activity {
     private AsyncThumbnailLoader thumbnailLoader;
     private LinearLayout profiles;
+    private LinearLayout otherAlbumProfiles;
     private int nextPersonNumber = 1;
     private boolean showConfirmedFaces;
     private final Map<String, ImageView> profilePortraitViews = new HashMap<>();
@@ -32,6 +33,7 @@ public final class PeopleActivity extends Activity {
         setContentView(R.layout.activity_people);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         profiles = findViewById(R.id.people_profiles);
+        otherAlbumProfiles = findViewById(R.id.other_album_profiles);
         List<TrackedPerson> saved = new TrackedPersonStore(this).load();
         for (TrackedPerson person : saved) {
             nextPersonNumber = Math.max(nextPersonNumber, numberAfterPrefix(person.id()) + 1);
@@ -48,6 +50,7 @@ public final class PeopleActivity extends Activity {
         });
         findViewById(R.id.open_advanced_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, MainActivity.class)));
+        findViewById(R.id.add_other_album).setOnClickListener(view -> addOtherAlbum());
         findViewById(R.id.toggle_confirmed_faces).setOnClickListener(view -> {
             showConfirmedFaces = !showConfirmedFaces;
             showDiscoveredGroups();
@@ -57,6 +60,7 @@ public final class PeopleActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         showPeople();
+        showOtherAlbums();
         showDiscoveryProgress();
         showDiscoveredGroups();
     }
@@ -65,6 +69,68 @@ public final class PeopleActivity extends Activity {
         profiles.removeAllViews();
         profilePortraitViews.clear();
         for (TrackedPerson person : new TrackedPersonStore(this).load()) addPersonCard(person);
+    }
+
+    private void addOtherAlbum() {
+        ArrayList<RegisteredAlbum> albums = new ArrayList<>(new RegisteredAlbumStore(this).load());
+        int number = 1;
+        java.util.Set<String> ids = albums.stream().map(RegisteredAlbum::id)
+                .collect(java.util.stream.Collectors.toSet());
+        while (ids.contains("album-" + number)) number++;
+        RegisteredAlbum album = new RegisteredAlbum("album-" + number, "", "");
+        albums.add(album);
+        new RegisteredAlbumStore(this).save(albums);
+        AlbumApprovalInvalidator.invalidate(this);
+        openAlbum(album.id());
+    }
+
+    private void showOtherAlbums() {
+        otherAlbumProfiles.removeAllViews();
+        for (RegisteredAlbum album : new RegisteredAlbumStore(this).load()) {
+            LinearLayout card = new LinearLayout(this);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.setBackgroundResource(R.drawable.person_setup_card);
+            card.setClickable(true);
+            card.setFocusable(true);
+            String name = album.albumName().isBlank() ? "Unnamed album" : album.albumName();
+            card.setContentDescription("Edit album " + name);
+            card.setOnClickListener(view -> openAlbum(album.id()));
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            cardParams.setMargins(0, 0, 0, dp(8));
+            otherAlbumProfiles.addView(card, cardParams);
+            ImageView cover = new ImageView(this);
+            cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            cover.setBackgroundResource(R.drawable.preview_face_crop);
+            cover.setClipToOutline(true);
+            card.addView(cover, new LinearLayout.LayoutParams(dp(60), dp(60)));
+            if (album.featurePhotoId().isBlank()) {
+                cover.setImageResource(R.drawable.ic_review_albums);
+                cover.setPadding(dp(14), dp(14), dp(14), dp(14));
+                cover.setColorFilter(0xFF5F6368);
+            } else thumbnailLoader.load(cover, Uri.parse(album.featurePhotoId()), 320);
+            TextView label = new TextView(this);
+            label.setText(name);
+            label.setTextColor(0xFF202124);
+            label.setTextSize(17);
+            label.setTypeface(null, android.graphics.Typeface.BOLD);
+            LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            labelParams.setMargins(dp(12), 0, 0, 0);
+            card.addView(label, labelParams);
+            TextView arrow = new TextView(this);
+            arrow.setText("›");
+            arrow.setTextColor(0xFF5F6368);
+            arrow.setTextSize(28);
+            card.addView(arrow, new LinearLayout.LayoutParams(dp(28),
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private void openAlbum(String albumId) {
+        startActivity(new Intent(this, AlbumDetailActivity.class)
+                .putExtra(AlbumDetailActivity.EXTRA_ALBUM_ID, albumId));
     }
 
     private void showDiscoveryProgress() {

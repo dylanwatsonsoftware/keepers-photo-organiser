@@ -26,6 +26,22 @@
             android:focusable="true" android:gravity="center"
             android:text="Add another person" android:textColor="#FFFFFFFF"
             android:textSize="15sp" android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="26dp" android:text="Other albums"
+            android:textColor="#202124" android:textSize="20sp" android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="Albums that are about a place, event, activity, or anything other than one person."
+            android:textColor="#5F6368" android:textSize="14sp" />
+        <LinearLayout android:id="@+id/other_album_profiles"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:contentDescription="Other albums"
+            android:orientation="vertical" />
+        <TextView android:id="@+id/add_other_album" android:layout_width="match_parent"
+            android:layout_height="48dp" android:layout_marginTop="4dp"
+            android:background="@drawable/gallery_filter_chip" android:clickable="true"
+            android:focusable="true" android:gravity="center" android:text="Add another album"
+            android:textColor="#3C4043" android:textSize="15sp" android:textStyle="bold" />
         <TextView android:id="@+id/people_status" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="10dp" android:gravity="center" android:text="People and face choices save automatically."
             android:textColor="#5F6368" />

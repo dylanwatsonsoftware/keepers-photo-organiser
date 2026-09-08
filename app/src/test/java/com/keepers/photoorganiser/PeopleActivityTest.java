@@ -43,6 +43,19 @@ public class PeopleActivityTest {
         assertEquals(4, new TrackedPersonStore(activity).load().size());
     }
 
+    @Test public void canRegisterAnAlbumThatIsNotTiedToAPerson() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        new RegisteredAlbumStore(context).save(List.of());
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        activity.findViewById(R.id.add_other_album).performClick();
+
+        assertEquals(1, new RegisteredAlbumStore(activity).load().size());
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(AlbumDetailActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals("album-1", started.getStringExtra(AlbumDetailActivity.EXTRA_ALBUM_ID));
+    }
+
     @Test public void advancedLinkKeepsTheProofOfConceptToolsAvailable() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 

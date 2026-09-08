@@ -82,6 +82,29 @@ public class AlbumReviewActivityTest {
         assertEquals("Your choice", source.getText().toString());
     }
 
+    @Test public void independentAlbumAppearsBesidePeopleAndCanBeQueued() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new RegisteredAlbumStore(context).save(List.of(
+                new RegisteredAlbum("album-1", "Family adventures", "content://cover/1")));
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        GridLayout destinations = (GridLayout) first.getChildAt(2);
+
+        assertEquals(4, destinations.getChildCount());
+        View album = destinations.getChildAt(3);
+        assertEquals("Family adventures", ((TextView) ((ViewGroup) album)
+                .getChildAt(1)).getText().toString());
+        assertEquals("Family adventures not selected", album.getContentDescription());
+        album.performClick();
+        assertTrue(new AlbumReviewSelectionStore(activity).load().contains(
+                AlbumReviewSelectionStore.key("content://photos/a", "album:album-1")));
+        activity.startApprovedQueue();
+        assertTrue(new AlbumActionQueueStore(activity).isActive());
+    }
+
     @Test public void keeperThumbnailOpensFullscreenForExpressionReview() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
@@ -250,6 +273,7 @@ public class AlbumReviewActivityTest {
                 new ComponentName(context, KeepersAccessibilityService.class).flattenToString());
         new AlbumReviewSelectionStore(context).clear();
         new AlbumActionQueueStore(context).cancel();
+        new RegisteredAlbumStore(context).save(List.of());
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a", "content://photos/b"));
         new TrackedPersonStore(context).save(List.of(
                 new TrackedPerson("ada", "Ada", "Ada Photos", true),

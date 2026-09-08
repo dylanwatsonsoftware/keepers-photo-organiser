@@ -85,6 +85,8 @@ public final class AlbumReviewActivity extends Activity {
         Set<String> keepers = new KeeperSelectionStore(this).load();
         List<TrackedPerson> people = new TrackedPersonStore(this).load().stream()
                 .filter(person -> !person.albumName().isBlank()).toList();
+        List<RegisteredAlbum> otherAlbums = new RegisteredAlbumStore(this).load().stream()
+                .filter(album -> !album.albumName().isBlank()).toList();
         LinearLayout container = findViewById(R.id.album_review_items);
         container.removeAllViews();
         TextView summary = findViewById(R.id.album_review_summary);
@@ -95,8 +97,8 @@ public final class AlbumReviewActivity extends Activity {
             summary.setText("Choose some Keepers first. Nothing will be added without your approval.");
             return;
         }
-        if (people.isEmpty()) {
-            summary.setText("Before reviewing suggestions, add a person and link their exact Google Photos album name.");
+        if (people.isEmpty() && otherAlbums.isEmpty()) {
+            summary.setText("Before reviewing suggestions, add a person album or another Google Photos album.");
             setup.setVisibility(android.view.View.VISIBLE);
             return;
         }
@@ -112,6 +114,9 @@ public final class AlbumReviewActivity extends Activity {
         for (String photo : keepers) for (TrackedPerson person : people)
             if (!completions.contains(photo, person.albumName()))
                 eligible.add(AlbumReviewSelectionStore.key(photo, person.id()));
+        for (String photo : keepers) for (RegisteredAlbum album : otherAlbums)
+            if (!completions.contains(photo, album.albumName()))
+                eligible.add(AlbumReviewSelectionStore.key(photo, albumKey(album)));
         boolean removedCompleted = selected.retainAll(eligible);
         if (!reviewStore.hasReview() || removedCompleted) reviewStore.save(selected);
         Map<String, FaceObservation> portraits = portraits(people, groups,
@@ -120,14 +125,16 @@ public final class AlbumReviewActivity extends Activity {
         ArrayList<String> photos = new ArrayList<>(keepers);
         photos.sort(String::compareTo);
         for (String photo : photos)
-            container.addView(photoCard(photo, people, selected, proposed, portraits, completions));
+            container.addView(photoCard(photo, people, otherAlbums, selected, proposed,
+                    portraits, completions));
         summary.setText(photos.size() + (photos.size() == 1 ? " Keeper" : " Keepers")
-                + " · check or uncheck each child before continuing");
+                + " · choose every album this photo belongs in");
         updateConfirmAction(selected);
     }
 
-    private LinearLayout photoCard(String photo, List<TrackedPerson> people, Set<String> selected,
-            Set<String> proposed, Map<String, FaceObservation> portraits,
+    private LinearLayout photoCard(String photo, List<TrackedPerson> people,
+            List<RegisteredAlbum> otherAlbums, Set<String> selected, Set<String> proposed,
+            Map<String, FaceObservation> portraits,
             AlbumCompletionStore completions) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -175,7 +182,88 @@ public final class AlbumReviewActivity extends Activity {
             });
             choices.addView(choice);
         }
+        for (RegisteredAlbum album : otherAlbums) {
+            String key = AlbumReviewSelectionStore.key(photo, albumKey(album));
+            boolean completed = completions.contains(photo, album.albumName());
+            LinearLayout choice = albumChoice(album, selected.contains(key) && !completed,
+                    completed);
+            if (!completed) choice.setOnClickListener(view -> {
+                boolean checked = !choice.isSelected();
+                HashSet<String> changed = new HashSet<>(reviewStore.load());
+                if (checked) changed.add(key); else changed.remove(key);
+                AlbumApprovalInvalidator.invalidate(this);
+                reviewStore.save(changed);
+                updateAlbumChoice(choice, album, checked, false);
+                updateConfirmAction(changed);
+            });
+            choices.addView(choice);
+        }
         return card;
+    }
+
+    private LinearLayout albumChoice(RegisteredAlbum album, boolean selected, boolean completed) {
+        LinearLayout choice = new LinearLayout(this);
+        choice.setOrientation(LinearLayout.VERTICAL);
+        choice.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        choice.setPadding(dp(3), dp(3), dp(3), dp(8));
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.width = dp(98);
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        params.setMargins(0, 0, dp(8), dp(8));
+        choice.setLayoutParams(params);
+        FrameLayout frame = new FrameLayout(this);
+        frame.setTag("portrait_frame");
+        frame.setBackgroundResource(R.drawable.album_person_choice);
+        frame.setPadding(dp(3), dp(3), dp(3), dp(3));
+        choice.addView(frame, new LinearLayout.LayoutParams(dp(84), dp(84)));
+        ImageView cover = new ImageView(this);
+        cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        cover.setBackgroundResource(R.drawable.preview_face_crop);
+        cover.setClipToOutline(true);
+        cover.setContentDescription("Cover for " + album.albumName());
+        frame.addView(cover, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (album.featurePhotoId().isBlank()) {
+            cover.setImageResource(R.drawable.ic_review_albums);
+            cover.setPadding(dp(20), dp(20), dp(20), dp(20));
+            cover.setColorFilter(0xFF5F6368);
+        } else thumbnailLoader.loadProgressive(cover, Uri.parse(album.featurePhotoId()),
+                480, 1200, bitmap -> {});
+        TextView check = new TextView(this);
+        check.setTag("selection_check");
+        check.setText("✓");
+        check.setTextColor(Color.WHITE);
+        check.setTextSize(14);
+        check.setGravity(android.view.Gravity.CENTER);
+        check.setBackgroundResource(R.drawable.album_choice_check);
+        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(24), dp(24),
+                android.view.Gravity.TOP | android.view.Gravity.END);
+        checkParams.setMargins(0, dp(2), dp(2), 0);
+        frame.addView(check, checkParams);
+        TextView name = new TextView(this);
+        name.setText(album.albumName());
+        name.setTextColor(0xFF3C4043);
+        name.setTextSize(13);
+        name.setGravity(android.view.Gravity.CENTER);
+        name.setMaxLines(2);
+        LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        nameParams.setMargins(0, dp(5), 0, 0);
+        choice.addView(name, nameParams);
+        updateAlbumChoice(choice, album, selected, completed);
+        return choice;
+    }
+
+    private void updateAlbumChoice(LinearLayout choice, RegisteredAlbum album,
+            boolean selected, boolean completed) {
+        choice.setSelected(selected);
+        choice.<FrameLayout>findViewWithTag("portrait_frame").setSelected(selected);
+        choice.<TextView>findViewWithTag("selection_check").setVisibility(
+                selected ? android.view.View.VISIBLE : android.view.View.GONE);
+        choice.setContentDescription(album.albumName() + (completed
+                ? " already added" : selected ? " selected" : " not selected"));
+        choice.setClickable(!completed);
+        choice.setFocusable(!completed);
     }
 
     private LinearLayout personChoice(TrackedPerson person, FaceObservation face,
@@ -350,16 +438,23 @@ public final class AlbumReviewActivity extends Activity {
         }
         HashMap<String, TrackedPerson> people = new HashMap<>();
         for (TrackedPerson person : new TrackedPersonStore(this).load()) people.put(person.id(), person);
+        HashMap<String, RegisteredAlbum> otherAlbums = new HashMap<>();
+        for (RegisteredAlbum album : new RegisteredAlbumStore(this).load())
+            otherAlbums.put(albumKey(album), album);
         AlbumCompletionStore completions = new AlbumCompletionStore(this);
         ArrayList<AlbumAction> actions = new ArrayList<>();
         for (String key : reviewStore.load()) {
             int split = key.lastIndexOf('\n');
             if (split < 0) continue;
-            TrackedPerson person = people.get(key.substring(split + 1));
-            if (person == null || person.albumName().isBlank()) continue;
+            String destinationId = key.substring(split + 1);
             String photoId = key.substring(0, split);
-            if (completions.contains(photoId, person.albumName())) continue;
-            actions.add(new AlbumAction(photoId, person.name(), person.albumName()));
+            TrackedPerson person = people.get(destinationId);
+            RegisteredAlbum album = otherAlbums.get(destinationId);
+            String albumName = person != null ? person.albumName()
+                    : album != null ? album.albumName() : "";
+            if (albumName.isBlank() || completions.contains(photoId, albumName)) continue;
+            actions.add(new AlbumAction(photoId, person != null ? person.name() : albumName,
+                    albumName));
         }
         actions.sort(Comparator.comparing(AlbumAction::photoId).thenComparing(AlbumAction::albumName));
         AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
@@ -367,6 +462,8 @@ public final class AlbumReviewActivity extends Activity {
         AlbumAction first = queue.current();
         if (first != null) startActivity(AlbumAutomationCoordinator.arm(this, first));
     }
+
+    private static String albumKey(RegisteredAlbum album) { return "album:" + album.id(); }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
