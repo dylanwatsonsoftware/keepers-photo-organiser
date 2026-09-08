@@ -8,10 +8,15 @@ import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.GridLayout;
+import android.graphics.Bitmap;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Comparator;
 
 public final class PreviewActivity extends Activity {
     private AsyncThumbnailLoader loader;
@@ -273,6 +278,7 @@ public final class PreviewActivity extends Activity {
 
     private void showAnalysis() {
         boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
+        showAnalysisFaces();
         PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
         TextView title = findViewById(R.id.preview_analysis_title);
         TextView body = findViewById(R.id.preview_analysis_body);
@@ -291,6 +297,107 @@ public final class PreviewActivity extends Activity {
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
     }
+
+    private void showAnalysisFaces() {
+        GridLayout grid = findViewById(R.id.preview_analysis_faces);
+        TextView heading = findViewById(R.id.preview_analysis_faces_title);
+        grid.removeAllViews();
+        List<FaceDisplay> faces = resolveFaces(photo.toString());
+        boolean hasFaces = !faces.isEmpty();
+        grid.setVisibility(hasFaces ? View.VISIBLE : View.GONE);
+        heading.setVisibility(hasFaces ? View.VISIBLE : View.GONE);
+        for (FaceDisplay display : faces) grid.addView(faceCard(display));
+    }
+
+    private LinearLayout faceCard(FaceDisplay display) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.width = dp(92);
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        params.setMargins(0, 0, dp(10), dp(12));
+        card.setLayoutParams(params);
+        ImageView crop = new ImageView(this);
+        crop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        crop.setBackgroundResource(R.drawable.preview_face_crop);
+        crop.setClipToOutline(true);
+        crop.setContentDescription("Expanded face crop for " + display.name());
+        card.addView(crop, new LinearLayout.LayoutParams(dp(78), dp(78)));
+        loader.load(crop, Uri.parse(display.face().photoId()), 480,
+                bitmap -> showExpandedFaceCrop(crop, bitmap, display.face()));
+        TextView label = new TextView(this);
+        label.setText(display.suggested() ? display.name() + "\nSuggested" : display.name());
+        label.setTextColor(display.suggested() ? 0xFFB06000 : 0xFF3C4043);
+        label.setTextSize(13);
+        label.setGravity(android.view.Gravity.CENTER);
+        label.setMaxLines(2);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        labelParams.setMargins(0, dp(6), 0, 0);
+        card.addView(label, labelParams);
+        return card;
+    }
+
+    private List<FaceDisplay> resolveFaces(String photoId) {
+        FaceObservationStore observations = new FaceObservationStore(this);
+        List<FaceObservation> allFaces = observations.loadAll();
+        List<FaceIdentityGroup> groups = FaceClusterer.cluster(allFaces, .30);
+        Map<String, String> assignments = new FaceGroupAssignmentStore(this).load();
+        Map<String, String> corrections = new FaceCorrectionStore(this).load();
+        Map<String, String> learned = FaceIdentityLearner.predict(allFaces, groups, assignments,
+                corrections, .15);
+        Map<String, String> names = new TrackedPersonStore(this).load().stream().collect(
+                java.util.stream.Collectors.toMap(TrackedPerson::id, TrackedPerson::name,
+                        (first, ignored) -> first));
+        return observations.load(photoId).stream()
+                .sorted(Comparator.comparingDouble(FaceObservation::top)
+                        .thenComparingDouble(FaceObservation::left))
+                .map(face -> displayFor(face, groups, assignments, corrections, learned, names))
+                .toList();
+    }
+
+    private static FaceDisplay displayFor(FaceObservation face, List<FaceIdentityGroup> groups,
+            Map<String, String> assignments, Map<String, String> corrections,
+            Map<String, String> learned, Map<String, String> names) {
+        String key = FaceCorrectionStore.key(face);
+        String corrected = corrections.get(key);
+        if (FaceCorrectionStore.IGNORE.equals(corrected)) return new FaceDisplay(face, "Unknown", false);
+        if (corrected != null && names.containsKey(corrected))
+            return new FaceDisplay(face, displayName(names.get(corrected)), false);
+        for (FaceIdentityGroup group : groups) if (group.members().stream()
+                .anyMatch(member -> FaceCorrectionStore.key(member).equals(key))) {
+            String assigned = assignments.get(group.id());
+            if (assigned != null && names.containsKey(assigned))
+                return new FaceDisplay(face, displayName(names.get(assigned)), false);
+            break;
+        }
+        String predicted = learned.get(key);
+        if (predicted != null && names.containsKey(predicted))
+            return new FaceDisplay(face, displayName(names.get(predicted)), true);
+        return new FaceDisplay(face, "Unknown", false);
+    }
+
+    private static String displayName(String name) {
+        return name == null || name.isBlank() ? "Unnamed person" : name;
+    }
+
+    private static void showExpandedFaceCrop(ImageView view, Bitmap bitmap, FaceObservation face) {
+        if (bitmap == null) return;
+        double width = face.right() - face.left();
+        double height = face.bottom() - face.top();
+        double horizontalMargin = width * .38;
+        double verticalMargin = height * .38;
+        int left = Math.max(0, (int) ((face.left() - horizontalMargin) * bitmap.getWidth()));
+        int top = Math.max(0, (int) ((face.top() - verticalMargin) * bitmap.getHeight()));
+        int right = Math.min(bitmap.getWidth(), Math.max(left + 1,
+                (int) ((face.right() + horizontalMargin) * bitmap.getWidth())));
+        int bottom = Math.min(bitmap.getHeight(), Math.max(top + 1,
+                (int) ((face.bottom() + verticalMargin) * bitmap.getHeight())));
+        view.setImageBitmap(Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top));
+    }
+
+    private record FaceDisplay(FaceObservation face, String name, boolean suggested) {}
 
     private void openAnalysis() {
         float openPhotoY = -analysisRevealDistance();

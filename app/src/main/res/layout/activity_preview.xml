@@ -149,9 +149,31 @@
             android:paddingBottom="28dp">
 
             <TextView
+                android:id="@+id/preview_analysis_faces_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:text="People in this photo"
+                android:textColor="#202124"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <GridLayout
+                android:id="@+id/preview_analysis_faces"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alignmentMode="alignMargins"
+                android:columnCount="3"
+                android:orientation="horizontal"
+                android:useDefaultMargins="false"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/preview_analysis_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
                 android:textColor="#202124"
                 android:textSize="20sp"
                 android:textStyle="bold" />

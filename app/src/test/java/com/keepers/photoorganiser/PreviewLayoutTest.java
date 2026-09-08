@@ -26,6 +26,16 @@ public class PreviewLayoutTest {
 
         assertEquals(ScrollView.class, layout.findViewById(R.id.preview_analysis_sheet).getClass());
     }
+
+    @Test public void analysisSheetStartsWithAFaceGrid() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        int gridId = layout.getResources().getIdentifier(
+                "preview_analysis_faces", "id", layout.getContext().getPackageName());
+
+        assertTrue(gridId != 0);
+        assertTrue(layout.findViewById(gridId) instanceof android.widget.GridLayout);
+    }
     @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
