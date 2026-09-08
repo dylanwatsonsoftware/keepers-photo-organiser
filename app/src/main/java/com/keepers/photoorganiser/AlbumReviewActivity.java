@@ -116,6 +116,11 @@ public final class AlbumReviewActivity extends Activity {
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(Color.rgb(232, 234, 237));
+        image.setContentDescription("Open Keeper fullscreen");
+        image.setClickable(true);
+        image.setFocusable(true);
+        image.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
+                .setData(Uri.parse(photo))));
         card.addView(image, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
         thumbnailLoader.load(image, Uri.parse(photo), 600);

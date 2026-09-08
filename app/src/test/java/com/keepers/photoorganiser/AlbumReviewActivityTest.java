@@ -82,6 +82,22 @@ public class AlbumReviewActivityTest {
         assertEquals("Your choice", source.getText().toString());
     }
 
+    @Test public void keeperThumbnailOpensFullscreenForExpressionReview() {
+        seed();
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        ImageView keeper = (ImageView) first.getChildAt(0);
+
+        assertEquals("Open Keeper fullscreen", keeper.getContentDescription());
+        keeper.performClick();
+
+        Intent opened = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PreviewActivity.class.getName(), opened.getComponent().getClassName());
+        assertEquals("content://photos/a", opened.getDataString());
+    }
+
     @Test public void correctionIsPersistedImmediately() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
