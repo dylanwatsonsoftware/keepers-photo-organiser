@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
@@ -13,6 +14,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
+import org.robolectric.shadows.ShadowDialog;
+import android.app.AlertDialog;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
@@ -42,14 +46,36 @@ public class AlbumReviewActivityTest {
         assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
     }
 
+    @Test public void executionStartsOnlyAfterTheExplicitDialogCommand() {
+        seed();
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        activity.findViewById(R.id.confirm_album_review).performClick();
+        assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals("Add now", dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+        activity.startApprovedQueue();
+
+        assertTrue(new AlbumActionQueueStore(activity).isActive());
+        assertEquals("content://photos/a",
+                Shadows.shadowOf(activity).getNextStartedActivity().getDataString());
+    }
+
     private static void seed() {
         android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumReviewSelectionStore(context).clear();
+        new AlbumActionQueueStore(context).cancel();
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a", "content://photos/b"));
         new TrackedPersonStore(context).save(List.of(
                 new TrackedPerson("ada", "Ada", "Ada Photos", true)));
         new FaceObservationStore(context).save("content://photos/a", List.of(
                 new FaceObservation("content://photos/a", 0, 0, 0, 1, 1,
                         -1, -1, -1, 0, 0, "1,0")));
-        new FaceGroupAssignmentStore(context).save(Map.of("face-group-1", "ada"));
+        String groupId = FaceClusterer.cluster(new FaceObservationStore(context).loadAll(), .30)
+                .stream().filter(group -> group.photoIds().contains("content://photos/a"))
+                .findFirst().orElseThrow().id();
+        new FaceGroupAssignmentStore(context).save(Map.of(groupId, "ada"));
     }
 }

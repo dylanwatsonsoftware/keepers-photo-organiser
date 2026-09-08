@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashMap;
 
 public final class AlbumReviewActivity extends Activity {
     private AsyncThumbnailLoader thumbnailLoader;
@@ -97,10 +98,29 @@ public final class AlbumReviewActivity extends Activity {
 
     private void confirmReview() {
         int count = reviewStore.load().size();
-        new AlertDialog.Builder(this).setTitle("Review complete")
-                .setMessage(count + (count == 1 ? " album change is" : " album changes are")
-                        + " approved. Nothing has been sent to Google Photos yet.")
-                .setPositiveButton("OK", null).show();
+        new AlertDialog.Builder(this).setTitle("Add to Google Photos albums?")
+                .setMessage(count + (count == 1 ? " approved album change" : " approved album changes")
+                        + " will run now. Keepers will only use the choices on this review screen.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Add now", (dialog, which) -> startApprovedQueue()).show();
+    }
+
+    void startApprovedQueue() {
+        HashMap<String, TrackedPerson> people = new HashMap<>();
+        for (TrackedPerson person : new TrackedPersonStore(this).load()) people.put(person.id(), person);
+        ArrayList<AlbumAction> actions = new ArrayList<>();
+        for (String key : reviewStore.load()) {
+            int split = key.lastIndexOf('\n');
+            if (split < 0) continue;
+            TrackedPerson person = people.get(key.substring(split + 1));
+            if (person == null || !person.tracked() || person.albumName().isBlank()) continue;
+            actions.add(new AlbumAction(key.substring(0, split), person.name(), person.albumName()));
+        }
+        actions.sort(Comparator.comparing(AlbumAction::photoId).thenComparing(AlbumAction::albumName));
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
+        queue.begin(actions);
+        AlbumAction first = queue.current();
+        if (first != null) startActivity(AlbumAutomationCoordinator.arm(this, first));
     }
 
     private int dp(int value) {

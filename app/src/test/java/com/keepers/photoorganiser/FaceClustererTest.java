@@ -20,6 +20,14 @@ public class FaceClustererTest {
         assertEquals(List.of(), FaceClusterer.cluster(List.of(sample("a", "")), .15));
     }
 
+    @Test public void groupIdentityDoesNotChangeWhenAnEarlierDistinctFaceIsAdded() {
+        String original = FaceClusterer.cluster(List.of(sample("b", "1,0,0")), .15).get(0).id();
+        String afterDiscovery = FaceClusterer.cluster(List.of(
+                sample("a", "0,0,1"), sample("b", "1,0,0")), .15).get(1).id();
+
+        assertEquals(original, afterDiscovery);
+    }
+
     private static FaceObservation sample(String photo, String descriptor) {
         return new FaceObservation(photo, 0, 0, 0, 1, 1,
                 -1, -1, -1, 0, 0, descriptor);

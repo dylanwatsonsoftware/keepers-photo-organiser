@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
+import android.content.Intent;
 
 public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String PREFS = "automation";
@@ -32,12 +33,31 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         AccessibilityNodeInfo target = phase == 0 ? findAdd(root)
                 : phase == 1 ? findAlbumPickerOption(root) : findAlbum(root, album);
         if (target == null) return false;
+        boolean clicked = click(target);
+        if (!clicked) {
+            toast("Album control was not clickable");
+            return true;
+        }
         if (phase < 2) prefs.edit().putInt(ALBUM_PHASE, phase + 1).apply();
         else prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME).remove(ALBUM_PHASE).apply();
-        toast(click(target) ? (phase == 0 ? "Keepers opened Add to"
+        toast(phase == 0 ? "Keepers opened Add to"
                 : phase == 1 ? "Keepers opened album picker" : "Keepers selected " + album)
-                : "Album control was not clickable");
+                ;
+        if (phase == 2) startNextApprovedAlbumAction();
         return true;
+    }
+
+    private void startNextApprovedAlbumAction() {
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
+        if (!queue.isActive()) return;
+        AlbumAction next = queue.completeCurrent();
+        if (next == null) {
+            toast("All approved album changes are complete");
+            return;
+        }
+        Intent intent = AlbumAutomationCoordinator.arm(this, next)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private AccessibilityNodeInfo findFavourite(AccessibilityNodeInfo node) {

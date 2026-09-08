@@ -2,6 +2,9 @@ package com.keepers.photoorganiser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public final class FaceClusterer {
     private FaceClusterer() {}
@@ -23,9 +26,21 @@ public final class FaceClusterer {
             else best.add(observation, descriptor);
         }
         ArrayList<FaceIdentityGroup> result = new ArrayList<>();
-        for (int i = 0; i < groups.size(); i++) result.add(new FaceIdentityGroup(
-                "face-group-" + (i + 1), List.copyOf(groups.get(i).members)));
+        for (MutableGroup group : groups) result.add(new FaceIdentityGroup(
+                stableId(group.members.get(0).descriptor()), List.copyOf(group.members)));
         return List.copyOf(result);
+    }
+
+    private static String stableId(String descriptor) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(
+                    descriptor.getBytes(StandardCharsets.UTF_8));
+            StringBuilder id = new StringBuilder("face-group-");
+            for (int i = 0; i < 6; i++) id.append(String.format("%02x", digest[i]));
+            return id.toString();
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 
     private static double cosineDistance(double[] left, double[] right) {
