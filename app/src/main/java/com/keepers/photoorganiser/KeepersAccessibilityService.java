@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
@@ -13,6 +14,12 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String ALBUM_ARMED_UNTIL = "album_armed_until";
     public static final String ALBUM_NAME = "album_name";
     public static final String ALBUM_PHASE = "album_phase";
+    private static final int PHASE_FAVOURITE = 0;
+    private static final int PHASE_ADD_TO = 1;
+    private static final int PHASE_ALBUM_PICKER = 2;
+    private static final int PHASE_FIND_OR_SEARCH = 3;
+    private static final int PHASE_TYPE_SEARCH = 4;
+    private static final int PHASE_SELECT_RESULT = 5;
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (runAlbumStep()) return;
@@ -30,20 +37,87 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         String album = prefs.getString(ALBUM_NAME, "");
         int phase = prefs.getInt(ALBUM_PHASE, 0);
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        AccessibilityNodeInfo target = phase == 0 ? findAdd(root)
-                : phase == 1 ? findAlbumPickerOption(root) : findAlbum(root, album);
-        if (target == null) return false;
-        boolean clicked = click(target);
-        if (!clicked) {
-            toast("Album control was not clickable");
+        if (root == null) return false;
+
+        if (phase == PHASE_FAVOURITE) {
+            AccessibilityNodeInfo favourite = findFavourite(root);
+            if (favourite != null) {
+                if (!click(favourite)) return actionFailed("Favourite control was not clickable");
+                advance(prefs, PHASE_ADD_TO);
+                toast("Keepers favourited this photo");
+                return true;
+            }
+            if (findAlreadyFavourite(root) != null) {
+                advance(prefs, PHASE_ADD_TO);
+                toast("Photo is already a favourite");
+                return runAddStep(root, prefs);
+            }
+            return false;
+        }
+        if (phase == PHASE_ADD_TO) return runAddStep(root, prefs);
+        if (phase == PHASE_ALBUM_PICKER) {
+            AccessibilityNodeInfo picker = findAlbumPickerOption(root);
+            if (picker == null) return false;
+            if (!click(picker)) return actionFailed("Album picker was not clickable");
+            advance(prefs, PHASE_FIND_OR_SEARCH);
+            toast("Keepers opened album picker");
             return true;
         }
-        if (phase < 2) prefs.edit().putInt(ALBUM_PHASE, phase + 1).apply();
-        else prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME).remove(ALBUM_PHASE).apply();
-        toast(phase == 0 ? "Keepers opened Add to"
-                : phase == 1 ? "Keepers opened album picker" : "Keepers selected " + album)
-                ;
-        if (phase == 2) startNextApprovedAlbumAction();
+        if (phase == PHASE_FIND_OR_SEARCH) {
+            AccessibilityNodeInfo visibleAlbum = findAlbum(root, album);
+            if (visibleAlbum != null) return selectAlbum(visibleAlbum, album, prefs);
+            AccessibilityNodeInfo search = findAlbumSearch(root);
+            if (search == null) return false;
+            if (!click(search)) return actionFailed("Album search was not clickable");
+            advance(prefs, PHASE_TYPE_SEARCH);
+            toast("Keepers opened album search");
+            return true;
+        }
+        if (phase == PHASE_TYPE_SEARCH) {
+            AccessibilityNodeInfo searchField = findEditableSearch(root);
+            if (searchField == null) return false;
+            Bundle arguments = new Bundle();
+            arguments.putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, album);
+            searchField.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+            if (!searchField.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)) {
+                return actionFailed("Album search field could not be filled");
+            }
+            advance(prefs, PHASE_SELECT_RESULT);
+            toast("Keepers searched for " + album);
+            return true;
+        }
+        if (phase == PHASE_SELECT_RESULT) {
+            AccessibilityNodeInfo result = findAlbum(root, album);
+            return result != null && selectAlbum(result, album, prefs);
+        }
+        return false;
+    }
+
+    private boolean runAddStep(AccessibilityNodeInfo root, SharedPreferences prefs) {
+        AccessibilityNodeInfo add = findAdd(root);
+        if (add == null) return false;
+        if (!click(add)) return actionFailed("Add to control was not clickable");
+        advance(prefs, PHASE_ALBUM_PICKER);
+        toast("Keepers opened Add to");
+        return true;
+    }
+
+    private boolean selectAlbum(AccessibilityNodeInfo albumNode, String album,
+            SharedPreferences prefs) {
+        if (!click(albumNode)) return actionFailed("Album was not clickable");
+        prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME).remove(ALBUM_PHASE).apply();
+        toast("Keepers selected " + album);
+        startNextApprovedAlbumAction();
+        return true;
+    }
+
+    private void advance(SharedPreferences prefs, int phase) {
+        prefs.edit().putInt(ALBUM_PHASE, phase).apply();
+    }
+
+    private boolean actionFailed(String message) {
+        toast(message);
         return true;
     }
 
@@ -67,6 +141,13 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         return findChild(node, 0, null);
     }
 
+    private AccessibilityNodeInfo findAlreadyFavourite(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (FavouriteControlMatcher.isAlreadyFavourite(node.getContentDescription())
+                || FavouriteControlMatcher.isAlreadyFavourite(node.getText())) return node;
+        return findChild(node, 4, null);
+    }
+
     private AccessibilityNodeInfo findAdd(AccessibilityNodeInfo node) {
         if (node == null) return null;
         if (AlbumControlMatcher.isAddToAlbum(node.getContentDescription())
@@ -88,12 +169,28 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         return findChild(node, 3, null);
     }
 
+    private AccessibilityNodeInfo findAlbumSearch(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (AlbumControlMatcher.isAlbumSearch(node.getContentDescription())
+                || AlbumControlMatcher.isAlbumSearch(node.getText())) return node;
+        return findChild(node, 5, null);
+    }
+
+    private AccessibilityNodeInfo findEditableSearch(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (node.isEditable()) return node;
+        return findChild(node, 6, null);
+    }
+
     private AccessibilityNodeInfo findChild(AccessibilityNodeInfo node, int mode, String album) {
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             AccessibilityNodeInfo found = mode == 0 ? findFavourite(child)
                     : mode == 1 ? findAdd(child)
-                    : mode == 2 ? findAlbum(child, album) : findAlbumPickerOption(child);
+                    : mode == 2 ? findAlbum(child, album)
+                    : mode == 3 ? findAlbumPickerOption(child)
+                    : mode == 4 ? findAlreadyFavourite(child)
+                    : mode == 5 ? findAlbumSearch(child) : findEditableSearch(child);
             if (found != null) return found;
         }
         return null;

@@ -11,6 +11,9 @@ public final class AlbumControlMatcher {
     public static boolean isAlbumPickerOption(CharSequence label) {
         return label != null && "album".equalsIgnoreCase(label.toString().trim());
     }
+    public static boolean isAlbumSearch(CharSequence label) {
+        return label != null && "search all albums".equalsIgnoreCase(label.toString().trim());
+    }
     public static boolean isAlbum(CharSequence label, String albumName) {
         return label != null && albumName != null && !albumName.trim().isEmpty()
                 && albumName.trim().equalsIgnoreCase(label.toString().trim());

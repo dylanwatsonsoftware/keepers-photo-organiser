@@ -19,4 +19,13 @@ public class FavouriteControlMatcherTest {
         assertFalse(FavouriteControlMatcher.matches("Favorite people"));
         assertFalse(FavouriteControlMatcher.matches(null));
     }
+
+    @Test public void recognisesAlreadyFavouriteStateWithoutMakingItClickable() {
+        assertTrue(FavouriteControlMatcher.isAlreadyFavourite("Unfavourite"));
+        assertTrue(FavouriteControlMatcher.isAlreadyFavourite("Unfavorite"));
+        assertTrue(FavouriteControlMatcher.isAlreadyFavourite("Remove from favourites"));
+        assertTrue(FavouriteControlMatcher.isAlreadyFavourite("Remove from favorites"));
+        assertFalse(FavouriteControlMatcher.isAlreadyFavourite("Favourite"));
+        assertFalse(FavouriteControlMatcher.isAlreadyFavourite(null));
+    }
 }

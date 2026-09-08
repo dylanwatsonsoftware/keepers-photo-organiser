@@ -27,4 +27,12 @@ public class AlbumControlMatcherTest {
         assertFalse(AlbumControlMatcher.isAlbumPickerOption("Shared album"));
         assertFalse(AlbumControlMatcher.isAlbumPickerOption(null));
     }
+
+    @Test public void albumSearchRequiresTheExactGooglePhotosControl() {
+        assertTrue(AlbumControlMatcher.isAlbumSearch("Search all albums"));
+        assertTrue(AlbumControlMatcher.isAlbumSearch("  search all albums  "));
+        assertFalse(AlbumControlMatcher.isAlbumSearch("Search photos"));
+        assertFalse(AlbumControlMatcher.isAlbumSearch("Search albums nearby"));
+        assertFalse(AlbumControlMatcher.isAlbumSearch(null));
+    }
 }
