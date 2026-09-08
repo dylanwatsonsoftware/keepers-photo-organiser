@@ -28,7 +28,8 @@ public final class AlbumProposalEngine {
         HashSet<String> seen = new HashSet<>();
         List<FaceObservation> allFaces = groups.stream().flatMap(group -> group.members().stream())
                 .toList();
-        Map<String, String> learned = FaceIdentityLearner.predict(allFaces, faceCorrections, .15);
+        Map<String, String> learned = FaceIdentityLearner.predict(allFaces, groups,
+                groupAssignments, faceCorrections, .15);
         for (FaceIdentityGroup group : groups) {
             String groupPerson = groupAssignments.get(group.id());
             for (FaceObservation face : group.members()) {

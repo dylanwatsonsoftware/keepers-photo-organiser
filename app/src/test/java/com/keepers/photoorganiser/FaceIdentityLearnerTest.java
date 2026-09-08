@@ -33,6 +33,19 @@ public class FaceIdentityLearnerTest {
                 Map.of("ada#0", "ada", "ben#0", "ben"), .15));
     }
 
+    @Test public void confirmedGroupMembersBecomePredictionEvidence() {
+        FaceObservation adaOne = face("ada-one", "1,0,0");
+        FaceObservation adaTwo = face("ada-two", ".98,.02,0");
+        FaceObservation unknown = face("unknown", ".99,.01,0");
+        FaceIdentityGroup confirmed = new FaceIdentityGroup("ada-group", List.of(adaOne, adaTwo));
+
+        Map<String, String> learned = FaceIdentityLearner.predict(
+                List.of(adaOne, adaTwo, unknown), List.of(confirmed),
+                Map.of("ada-group", "ada"), Map.of(), .15);
+
+        assertEquals("ada", learned.get("unknown#0"));
+    }
+
     private static FaceObservation face(String photo, String descriptor) {
         return new FaceObservation(photo, 0, 0, 0, 1, 1,
                 -1, -1, -1, 0, 0, descriptor);

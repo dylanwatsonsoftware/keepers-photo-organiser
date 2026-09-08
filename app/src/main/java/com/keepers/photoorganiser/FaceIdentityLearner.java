@@ -11,6 +11,20 @@ public final class FaceIdentityLearner {
     private FaceIdentityLearner() {}
 
     public static Map<String, String> predict(List<FaceObservation> observations,
+            List<FaceIdentityGroup> groups, Map<String, String> groupAssignments,
+            Map<String, String> corrections, double maximumDistance) {
+        HashMap<String, String> evidence = new HashMap<>();
+        for (FaceIdentityGroup group : groups) {
+            String personId = groupAssignments.get(group.id());
+            if (personId == null || personId.isBlank()) continue;
+            for (FaceObservation face : group.members())
+                evidence.put(FaceCorrectionStore.key(face), personId);
+        }
+        evidence.putAll(corrections);
+        return predict(observations, evidence, maximumDistance);
+    }
+
+    public static Map<String, String> predict(List<FaceObservation> observations,
             Map<String, String> corrections, double maximumDistance) {
         ArrayList<Example> examples = new ArrayList<>();
         for (FaceObservation face : observations) {

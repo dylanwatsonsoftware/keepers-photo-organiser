@@ -17,24 +17,12 @@
             android:layout_height="wrap_content" android:layout_marginTop="14dp"
             android:background="@drawable/person_setup_card" android:text="No face observations yet"
             android:textColor="#3C4043" android:textStyle="bold" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="20dp" android:background="@drawable/person_setup_card" android:orientation="vertical">
-            <Switch android:id="@+id/person_1_tracked" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Track this person" />
-            <EditText android:id="@+id/person_1_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Name" android:inputType="textCapWords" />
-            <EditText android:id="@+id/person_1_album" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Exact Google Photos album name" android:inputType="textCapWords" />
-        </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:background="@drawable/person_setup_card" android:orientation="vertical">
-            <Switch android:id="@+id/person_2_tracked" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Track this person" />
-            <EditText android:id="@+id/person_2_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Name" android:inputType="textCapWords" />
-            <EditText android:id="@+id/person_2_album" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Exact Google Photos album name" android:inputType="textCapWords" />
-        </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:background="@drawable/person_setup_card" android:orientation="vertical">
-            <Switch android:id="@+id/person_3_tracked" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Track this person" />
-            <EditText android:id="@+id/person_3_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Name" android:inputType="textCapWords" />
-            <EditText android:id="@+id/person_3_album" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Exact Google Photos album name" android:inputType="textCapWords" />
-        </LinearLayout>
+        <LinearLayout android:id="@+id/people_profiles" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:contentDescription="Tracked people" android:orientation="vertical" />
+        <Button android:id="@+id/add_person" android:layout_width="match_parent"
+            android:layout_height="48dp" android:layout_marginTop="10dp"
+            android:text="Add another person" />
         <Button android:id="@+id/save_people" android:layout_width="match_parent" android:layout_height="52dp"
             android:layout_marginTop="18dp" android:text="Save people and albums" />
         <TextView android:id="@+id/people_status" android:layout_width="match_parent" android:layout_height="wrap_content"

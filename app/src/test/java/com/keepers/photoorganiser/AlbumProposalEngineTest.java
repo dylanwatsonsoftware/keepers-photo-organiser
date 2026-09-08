@@ -71,6 +71,20 @@ public class AlbumProposalEngineTest {
                 "Ada Photos", true)), result);
     }
 
+    @Test public void aConfirmedGroupTeachesFutureAlbumSuggestions() {
+        FaceIdentityGroup confirmed = group("confirmed-ada", "older-photo");
+        FaceIdentityGroup newFace = new FaceIdentityGroup("unconfirmed-new", List.of(
+                new FaceObservation("keeper-a", 0, 0, 0, 1, 1,
+                        -1, -1, -1, 0, 0, ".99,.01")));
+
+        List<AlbumAssignment> result = AlbumProposalEngine.propose(Set.of("keeper-a"),
+                List.of(confirmed, newFace), Map.of("confirmed-ada", "ada"), Map.of(),
+                List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+
+        assertEquals(List.of(new AlbumAssignment("keeper-a", "ada", "Ada",
+                "Ada Photos", true)), result);
+    }
+
     private static FaceIdentityGroup group(String id, String... photos) {
         return new FaceIdentityGroup(id, java.util.Arrays.stream(photos).map(photo ->
                 new FaceObservation(photo, 0, 0, 0, 1, 1, -1, -1, -1, 0, 0, "1,0"))
