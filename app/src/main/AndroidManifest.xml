@@ -28,6 +28,7 @@
         <activity android:name=".PreviewActivity" android:exported="false" />
         <activity android:name=".PeopleActivity" android:exported="false" />
         <activity android:name=".AlbumReviewActivity" android:exported="false" />
+        <activity android:name=".FaceGroupReviewActivity" android:exported="false" />
         <service
             android:name=".KeepersAccessibilityService"
             android:exported="true"

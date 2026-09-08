@@ -14,6 +14,12 @@ public final class AlbumProposalEngine {
     public static List<AlbumAssignment> propose(Set<String> keeperPhotoIds,
             List<FaceIdentityGroup> groups, Map<String, String> groupAssignments,
             List<TrackedPerson> people) {
+        return propose(keeperPhotoIds, groups, groupAssignments, Map.of(), people);
+    }
+
+    public static List<AlbumAssignment> propose(Set<String> keeperPhotoIds,
+            List<FaceIdentityGroup> groups, Map<String, String> groupAssignments,
+            Map<String, String> faceCorrections, List<TrackedPerson> people) {
         HashMap<String, TrackedPerson> eligiblePeople = new HashMap<>();
         for (TrackedPerson person : people) if (person.tracked() && !person.albumName().isBlank())
             eligiblePeople.put(person.id(), person);
@@ -21,9 +27,13 @@ public final class AlbumProposalEngine {
         ArrayList<AlbumAssignment> result = new ArrayList<>();
         HashSet<String> seen = new HashSet<>();
         for (FaceIdentityGroup group : groups) {
-            TrackedPerson person = eligiblePeople.get(groupAssignments.get(group.id()));
-            if (person == null) continue;
-            for (String photoId : group.photoIds()) {
+            String groupPerson = groupAssignments.get(group.id());
+            for (FaceObservation face : group.members()) {
+                String personId = faceCorrections.getOrDefault(FaceCorrectionStore.key(face), groupPerson);
+                if (FaceCorrectionStore.IGNORE.equals(personId)) continue;
+                TrackedPerson person = eligiblePeople.get(personId);
+                if (person == null) continue;
+                String photoId = face.photoId();
                 String key = photoId + "\n" + person.id();
                 if (keeperPhotoIds.contains(photoId) && seen.add(key))
                     result.add(new AlbumAssignment(photoId, person.id(), person.name(),

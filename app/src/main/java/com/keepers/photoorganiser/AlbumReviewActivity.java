@@ -38,7 +38,7 @@ public final class AlbumReviewActivity extends Activity {
         List<FaceIdentityGroup> groups = FaceClusterer.cluster(
                 new FaceObservationStore(this).loadAll(), .30);
         List<AlbumAssignment> proposals = AlbumProposalEngine.propose(keepers, groups,
-                new FaceGroupAssignmentStore(this).load(), people);
+                new FaceGroupAssignmentStore(this).load(), new FaceCorrectionStore(this).load(), people);
         Set<String> selected = reviewStore.hasReview() ? reviewStore.load() : proposalKeys(proposals);
         if (!reviewStore.hasReview()) reviewStore.save(selected);
 

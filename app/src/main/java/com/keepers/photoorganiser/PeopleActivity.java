@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.view.Gravity;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.content.Intent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
@@ -73,6 +74,9 @@ public final class PeopleActivity extends Activity {
         card.setLayoutParams(cardParams);
         int photos = (int) group.photoIds().stream().distinct().count();
         card.setContentDescription("Seen in " + photos + (photos == 1 ? " photo" : " photos"));
+        card.setClickable(true);
+        card.setOnClickListener(view -> startActivity(new Intent(this, FaceGroupReviewActivity.class)
+                .putExtra(FaceGroupReviewActivity.EXTRA_GROUP_ID, group.id())));
 
         FaceObservation representative = group.members().get(0);
         ImageView face = new ImageView(this);

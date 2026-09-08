@@ -37,6 +37,27 @@ public class AlbumProposalEngineTest {
                 List.of(new TrackedPerson("ada", "Ada", "", true))));
     }
 
+    @Test public void perFaceCorrectionOverridesItsGroupForAlbumSafety() {
+        FaceIdentityGroup group = group("ada-group", "keeper-a");
+        List<TrackedPerson> people = List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true),
+                new TrackedPerson("ben", "Ben", "Ben Photos", true));
+
+        List<AlbumAssignment> result = AlbumProposalEngine.propose(Set.of("keeper-a"),
+                List.of(group), Map.of("ada-group", "ada"),
+                Map.of("keeper-a#0", "ben"), people);
+
+        assertEquals(List.of(new AlbumAssignment("keeper-a", "ben", "Ben",
+                "Ben Photos", true)), result);
+    }
+
+    @Test public void explicitlyIgnoredFaceNeverCreatesAnAlbumProposal() {
+        assertEquals(List.of(), AlbumProposalEngine.propose(Set.of("keeper-a"),
+                List.of(group("ada-group", "keeper-a")), Map.of("ada-group", "ada"),
+                Map.of("keeper-a#0", FaceCorrectionStore.IGNORE),
+                List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true))));
+    }
+
     private static FaceIdentityGroup group(String id, String... photos) {
         return new FaceIdentityGroup(id, java.util.Arrays.stream(photos).map(photo ->
                 new FaceObservation(photo, 0, 0, 0, 1, 1, -1, -1, -1, 0, 0, "1,0"))

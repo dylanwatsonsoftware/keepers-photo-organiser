@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
+import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
 public class PeopleActivityTest {
@@ -51,6 +53,20 @@ public class PeopleActivityTest {
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
         assertEquals(1, groups.getChildCount());
         assertEquals("Seen in 2 photos", groups.getChildAt(0).getContentDescription());
+    }
+
+    @Test public void tappingAGroupOpensAllOfItsFacesForVerification() {
+        FaceObservationStore observations = new FaceObservationStore(
+                org.robolectric.RuntimeEnvironment.getApplication());
+        observations.save("content://photos/a", List.of(face("content://photos/a", "1,0,0")));
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        activity.<LinearLayout>findViewById(R.id.discovered_face_groups).getChildAt(0).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(FaceGroupReviewActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals(FaceClusterer.cluster(observations.loadAll(), .30).get(0).id(),
+                started.getStringExtra(FaceGroupReviewActivity.EXTRA_GROUP_ID));
     }
 
     private static FaceObservation face(String photo, String descriptor) {
