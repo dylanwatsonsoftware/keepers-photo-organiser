@@ -28,4 +28,12 @@ public class FavouriteControlMatcherTest {
         assertFalse(FavouriteControlMatcher.isAlreadyFavourite("Favourite"));
         assertFalse(FavouriteControlMatcher.isAlreadyFavourite(null));
     }
+
+    @Test public void overflowControlRequiresTheExactGooglePhotosLabel() {
+        assertTrue(FavouriteControlMatcher.isMoreOptions("More options"));
+        assertTrue(FavouriteControlMatcher.isMoreOptions("  more options  "));
+        assertFalse(FavouriteControlMatcher.isMoreOptions("Options"));
+        assertFalse(FavouriteControlMatcher.isMoreOptions("More photos"));
+        assertFalse(FavouriteControlMatcher.isMoreOptions(null));
+    }
 }

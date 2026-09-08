@@ -18,4 +18,8 @@ public final class FavouriteControlMatcher {
         return label != null
                 && ALREADY_FAVOURITE_LABELS.contains(label.toString().trim().toLowerCase(Locale.ROOT));
     }
+
+    public static boolean isMoreOptions(CharSequence label) {
+        return label != null && "more options".equalsIgnoreCase(label.toString().trim());
+    }
 }

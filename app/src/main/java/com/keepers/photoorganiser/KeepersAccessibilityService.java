@@ -15,11 +15,12 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String ALBUM_NAME = "album_name";
     public static final String ALBUM_PHASE = "album_phase";
     private static final int PHASE_FAVOURITE = 0;
-    private static final int PHASE_ADD_TO = 1;
-    private static final int PHASE_ALBUM_PICKER = 2;
-    private static final int PHASE_FIND_OR_SEARCH = 3;
-    private static final int PHASE_TYPE_SEARCH = 4;
-    private static final int PHASE_SELECT_RESULT = 5;
+    private static final int PHASE_FAVOURITE_MENU = 1;
+    private static final int PHASE_ADD_TO = 2;
+    private static final int PHASE_ALBUM_PICKER = 3;
+    private static final int PHASE_FIND_OR_SEARCH = 4;
+    private static final int PHASE_TYPE_SEARCH = 5;
+    private static final int PHASE_SELECT_RESULT = 6;
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (runAlbumStep()) return;
@@ -39,7 +40,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return false;
 
-        if (phase == PHASE_FAVOURITE) {
+        if (phase == PHASE_FAVOURITE || phase == PHASE_FAVOURITE_MENU) {
             AccessibilityNodeInfo favourite = findFavourite(root);
             if (favourite != null) {
                 if (!click(favourite)) return actionFailed("Favourite control was not clickable");
@@ -50,7 +51,19 @@ public final class KeepersAccessibilityService extends AccessibilityService {
             if (findAlreadyFavourite(root) != null) {
                 advance(prefs, PHASE_ADD_TO);
                 toast("Photo is already a favourite");
+                if (phase == PHASE_FAVOURITE_MENU) {
+                    performGlobalAction(GLOBAL_ACTION_BACK);
+                    return true;
+                }
                 return runAddStep(root, prefs);
+            }
+            if (phase == PHASE_FAVOURITE) {
+                AccessibilityNodeInfo more = findMoreOptions(root);
+                if (more == null) return false;
+                if (!click(more)) return actionFailed("More options was not clickable");
+                advance(prefs, PHASE_FAVOURITE_MENU);
+                toast("Keepers opened photo options");
+                return true;
             }
             return false;
         }
@@ -152,6 +165,13 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         return findChild(node, 4, null);
     }
 
+    private AccessibilityNodeInfo findMoreOptions(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (FavouriteControlMatcher.isMoreOptions(node.getContentDescription())
+                || FavouriteControlMatcher.isMoreOptions(node.getText())) return node;
+        return findChild(node, 7, null);
+    }
+
     private AccessibilityNodeInfo findAdd(AccessibilityNodeInfo node) {
         if (node == null) return null;
         if (AlbumControlMatcher.isAddToAlbum(node.getContentDescription())
@@ -194,7 +214,8 @@ public final class KeepersAccessibilityService extends AccessibilityService {
                     : mode == 2 ? findAlbum(child, album)
                     : mode == 3 ? findAlbumPickerOption(child)
                     : mode == 4 ? findAlreadyFavourite(child)
-                    : mode == 5 ? findAlbumSearch(child) : findEditableSearch(child);
+                    : mode == 5 ? findAlbumSearch(child)
+                    : mode == 6 ? findEditableSearch(child) : findMoreOptions(child);
             if (found != null) return found;
         }
         return null;
