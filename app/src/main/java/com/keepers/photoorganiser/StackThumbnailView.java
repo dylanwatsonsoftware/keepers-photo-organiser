@@ -12,9 +12,11 @@ public final class StackThumbnailView {
         int densityInset = Math.max(1, Math.round(3 * context.getResources()
                 .getDisplayMetrics().density));
         FrameLayout frame = new FrameLayout(context);
-        frame.setClipChildren(false);
+        frame.setClipChildren(true);
         ImageView image = new ImageView(context);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setBackgroundResource(R.drawable.stack_thumbnail_mask);
+        image.setClipToOutline(true);
         image.setAlpha(selected ? 1f : .72f);
         FrameLayout.LayoutParams imageParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);

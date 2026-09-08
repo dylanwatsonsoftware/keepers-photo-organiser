@@ -21,7 +21,29 @@ public class StackThumbnailViewTest {
         FrameLayout.LayoutParams imageParams = (FrameLayout.LayoutParams) image.getLayoutParams();
         assertEquals(3, imageParams.leftMargin);
         assertEquals(3, imageParams.topMargin);
+        assertEquals(true, image.getClipToOutline());
+        assertNotNull(image.getBackground());
         View outline = thumbnail.getChildAt(1);
         assertNotNull(outline.getBackground());
+        assertEquals(View.VISIBLE, outline.getVisibility());
+    }
+
+    @Test public void unselectedPhotoUsesTheSameRoundedCropWithoutAnOutline() {
+        FrameLayout selected = StackThumbnailView.create(
+                RuntimeEnvironment.getApplication(), true);
+        FrameLayout unselected = StackThumbnailView.create(
+                RuntimeEnvironment.getApplication(), false);
+
+        ImageView selectedImage = StackThumbnailView.image(selected);
+        ImageView unselectedImage = StackThumbnailView.image(unselected);
+        FrameLayout.LayoutParams selectedParams =
+                (FrameLayout.LayoutParams) selectedImage.getLayoutParams();
+        FrameLayout.LayoutParams unselectedParams =
+                (FrameLayout.LayoutParams) unselectedImage.getLayoutParams();
+        assertEquals(selectedParams.leftMargin, unselectedParams.leftMargin);
+        assertEquals(selectedParams.topMargin, unselectedParams.topMargin);
+        assertEquals(true, unselectedImage.getClipToOutline());
+        assertNotNull(unselectedImage.getBackground());
+        assertEquals(View.INVISIBLE, unselected.getChildAt(1).getVisibility());
     }
 }
