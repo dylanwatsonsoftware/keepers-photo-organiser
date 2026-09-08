@@ -21,6 +21,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     private static final int PHASE_FIND_OR_SEARCH = 4;
     private static final int PHASE_TYPE_SEARCH = 5;
     private static final int PHASE_SELECT_RESULT = 6;
+    private static final int PHASE_CONFIRM_ALBUM = 7;
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (runAlbumStep()) return;
@@ -104,6 +105,17 @@ public final class KeepersAccessibilityService extends AccessibilityService {
             AccessibilityNodeInfo result = findAlbum(root, album);
             return result != null && selectAlbum(result, album, prefs);
         }
+        if (phase == PHASE_CONFIRM_ALBUM) {
+            boolean returned = AlbumSelectionConfirmation.returnedToPhoto(
+                    findAdd(root) != null, findAlbumSearch(root) != null,
+                    findEditableSearch(root) != null);
+            if (!returned) return false;
+            prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME)
+                    .remove(ALBUM_PHASE).apply();
+            toast("Keepers confirmed this photo in " + album);
+            startNextApprovedAlbumAction();
+            return true;
+        }
         return false;
     }
 
@@ -119,9 +131,8 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     private boolean selectAlbum(AccessibilityNodeInfo albumNode, String album,
             SharedPreferences prefs) {
         if (!click(albumNode)) return actionFailed("Album was not clickable");
-        prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME).remove(ALBUM_PHASE).apply();
-        toast("Keepers selected " + album);
-        startNextApprovedAlbumAction();
+        advance(prefs, PHASE_CONFIRM_ALBUM);
+        toast("Keepers selected " + album + " · confirming");
         return true;
     }
 
