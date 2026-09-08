@@ -18,4 +18,9 @@ public final class AlbumControlMatcher {
         return label != null && albumName != null && !albumName.trim().isEmpty()
                 && albumName.trim().equalsIgnoreCase(label.toString().trim());
     }
+
+    static boolean isAlbumSearchResult(CharSequence label, String albumName,
+            boolean insideEditableSearch) {
+        return !insideEditableSearch && isAlbum(label, albumName);
+    }
 }

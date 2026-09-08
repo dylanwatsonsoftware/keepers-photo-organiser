@@ -73,7 +73,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
             return true;
         }
         if (phase == PHASE_SELECT_RESULT) {
-            AccessibilityNodeInfo result = findAlbum(root, album);
+            AccessibilityNodeInfo result = findAlbumSearchResult(root, album);
             return result != null && selectAlbum(result, album, prefs);
         }
         if (phase == PHASE_CONFIRM_ALBUM) {
@@ -166,6 +166,32 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         if (AlbumControlMatcher.isAlbum(node.getContentDescription(), album)
                 || AlbumControlMatcher.isAlbum(node.getText(), album)) return node;
         return findChild(node, 2, album);
+    }
+
+    private AccessibilityNodeInfo findAlbumSearchResult(
+            AccessibilityNodeInfo node, String album) {
+        if (node == null) return null;
+        if (AlbumControlMatcher.isAlbumSearchResult(node.getContentDescription(), album,
+                insideEditableSearch(node))
+                || AlbumControlMatcher.isAlbumSearchResult(node.getText(), album,
+                insideEditableSearch(node))) return node;
+        // Google Photos repeats the query in the top bar before the actual result row.
+        // Search from the bottom so the visible result wins even when the header is not
+        // exposed as an editable accessibility node on a particular Photos version.
+        for (int index = node.getChildCount() - 1; index >= 0; index--) {
+            AccessibilityNodeInfo result = findAlbumSearchResult(node.getChild(index), album);
+            if (result != null) return result;
+        }
+        return null;
+    }
+
+    private boolean insideEditableSearch(AccessibilityNodeInfo node) {
+        AccessibilityNodeInfo current = node;
+        while (current != null) {
+            if (current.isEditable()) return true;
+            current = current.getParent();
+        }
+        return false;
     }
 
     private AccessibilityNodeInfo findAlbumPickerOption(AccessibilityNodeInfo node) {

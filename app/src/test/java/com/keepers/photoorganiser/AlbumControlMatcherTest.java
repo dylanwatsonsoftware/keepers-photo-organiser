@@ -21,6 +21,13 @@ public class AlbumControlMatcherTest {
         assertFalse(AlbumControlMatcher.isAlbum(null, "Ada"));
     }
 
+    @Test public void searchQueryIsNotMistakenForTheMatchingAlbumResult() {
+        assertFalse(AlbumControlMatcher.isAlbumSearchResult(
+                "Samira Grace Watson", "Samira Grace Watson", true));
+        assertTrue(AlbumControlMatcher.isAlbumSearchResult(
+                "Samira Grace Watson", "Samira Grace Watson", false));
+    }
+
     @Test public void albumPickerOptionRequiresExactAlbumLabel() {
         assertTrue(AlbumControlMatcher.isAlbumPickerOption("Album"));
         assertTrue(AlbumControlMatcher.isAlbumPickerOption("  album  "));
