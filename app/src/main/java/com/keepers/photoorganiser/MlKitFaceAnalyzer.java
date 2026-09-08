@@ -35,14 +35,18 @@ public final class MlKitFaceAnalyzer implements FaceAnalyzer {
         for (int index = 0; index < faces.size(); index++) {
             Face face = faces.get(index);
             Rect box = face.getBoundingBox();
-            observations.add(new FaceObservation(photoId, index,
+            FaceObservation observation = new FaceObservation(photoId, index,
                     clamp(box.left / (double) bitmap.getWidth()),
                     clamp(box.top / (double) bitmap.getHeight()),
                     clamp(box.right / (double) bitmap.getWidth()),
                     clamp(box.bottom / (double) bitmap.getHeight()),
                     value(face.getSmilingProbability()), value(face.getLeftEyeOpenProbability()),
                     value(face.getRightEyeOpenProbability()), face.getHeadEulerAngleY(),
-                    face.getHeadEulerAngleZ()));
+                    face.getHeadEulerAngleZ());
+            observations.add(new FaceObservation(photoId, index, observation.left(), observation.top(),
+                    observation.right(), observation.bottom(), observation.smile(),
+                    observation.leftEyeOpen(), observation.rightEyeOpen(), observation.yaw(),
+                    observation.roll(), FaceDescriptor.encode(FaceDescriptor.extract(bitmap, observation))));
         }
         return observations;
     }

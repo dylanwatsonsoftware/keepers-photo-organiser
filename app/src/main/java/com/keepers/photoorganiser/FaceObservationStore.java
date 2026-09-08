@@ -19,10 +19,10 @@ public final class FaceObservationStore {
         Set<String> ids = new HashSet<>(preferences.getStringSet(IDS, Set.of()));
         ids.add(photoId);
         ArrayList<String> encoded = new ArrayList<>();
-        for (FaceObservation face : faces) encoded.add(face.faceIndex() + "," + face.left() + ","
-                + face.top() + "," + face.right() + "," + face.bottom() + "," + face.smile()
-                + "," + face.leftEyeOpen() + "," + face.rightEyeOpen() + "," + face.yaw()
-                + "," + face.roll());
+        for (FaceObservation face : faces) encoded.add(face.faceIndex() + "|" + face.left() + "|"
+                + face.top() + "|" + face.right() + "|" + face.bottom() + "|" + face.smile()
+                + "|" + face.leftEyeOpen() + "|" + face.rightEyeOpen() + "|" + face.yaw()
+                + "|" + face.roll() + "|" + face.descriptor());
         preferences.edit().putStringSet(IDS, ids)
                 .putString(photoId, String.join(";", encoded)).apply();
     }
@@ -33,11 +33,12 @@ public final class FaceObservationStore {
         ArrayList<FaceObservation> result = new ArrayList<>();
         try {
             for (String item : value.split(";")) {
-                String[] p = item.split(",");
+                String[] p = item.contains("|") ? item.split("\\|", -1) : item.split(",");
                 result.add(new FaceObservation(photoId, Integer.parseInt(p[0]),
                         Double.parseDouble(p[1]), Double.parseDouble(p[2]), Double.parseDouble(p[3]),
                         Double.parseDouble(p[4]), Double.parseDouble(p[5]), Double.parseDouble(p[6]),
-                        Double.parseDouble(p[7]), Double.parseDouble(p[8]), Double.parseDouble(p[9])));
+                        Double.parseDouble(p[7]), Double.parseDouble(p[8]), Double.parseDouble(p[9]),
+                        p.length > 10 ? p[10] : ""));
             }
         } catch (RuntimeException invalid) { return List.of(); }
         return result;

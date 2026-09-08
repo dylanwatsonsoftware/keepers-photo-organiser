@@ -20,4 +20,14 @@ public class FaceObservationStoreTest {
         assertEquals(List.of(face), store.load("photo-a"));
         assertEquals(1, store.observationCount());
     }
+
+    @Test public void preservesTheDescriptorUsedToLearnRecurringFaces() {
+        FaceObservationStore store = new FaceObservationStore(RuntimeEnvironment.getApplication());
+        FaceObservation face = new FaceObservation("photo", 0, .1, .2, .3, .4,
+                .5, .6, .7, 1, 2, "0.1,-0.2,0.3");
+
+        store.save("photo", List.of(face));
+
+        assertEquals("0.1,-0.2,0.3", store.load("photo").get(0).descriptor());
+    }
 }
