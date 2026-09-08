@@ -12,11 +12,19 @@
             android:layout_marginTop="4dp" android:background="@drawable/preview_face_crop"
             android:clipToOutline="true" android:contentDescription="Feature face"
             android:scaleType="centerCrop" />
+        <TextView android:id="@+id/person_detail_name_label"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" android:text="Name"
+            android:textColor="#5F6368" android:textSize="13sp" android:textStyle="bold" />
         <EditText android:id="@+id/person_detail_name" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_marginTop="14dp"
-            android:hint="Name" android:inputType="textCapWords" android:textSize="22sp" />
+            android:layout_height="wrap_content" android:layout_marginTop="2dp"
+            android:hint="Enter a name" android:inputType="textCapWords" android:textSize="22sp" />
+        <TextView android:id="@+id/person_detail_album_label"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:text="Google Photos album"
+            android:textColor="#5F6368" android:textSize="13sp" android:textStyle="bold" />
         <EditText android:id="@+id/person_detail_album" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:layout_height="wrap_content" android:layout_marginTop="2dp"
             android:hint="Exact Google Photos album name" android:inputType="textCapWords" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="8dp" android:text="Changes save automatically. Album actions still require review and confirmation."

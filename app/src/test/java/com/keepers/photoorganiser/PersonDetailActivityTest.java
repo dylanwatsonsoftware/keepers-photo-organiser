@@ -42,6 +42,9 @@ public class PersonDetailActivityTest {
 
         assertEquals("Ada", name.getText().toString());
         assertEquals("Ada Photos", album.getText().toString());
+        assertNotNull(findText(activity.findViewById(android.R.id.content), "Name"));
+        assertNotNull(findText(activity.findViewById(android.R.id.content),
+                "Google Photos album"));
         name.setText("Ada Watson");
         album.setText("Ada's Album");
 
