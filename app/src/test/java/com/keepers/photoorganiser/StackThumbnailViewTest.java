@@ -46,4 +46,26 @@ public class StackThumbnailViewTest {
         assertNotNull(unselectedImage.getBackground());
         assertEquals(View.INVISIBLE, unselected.getChildAt(1).getVisibility());
     }
+
+    @Test public void carouselThumbnailShowsGalleryStyleKeeperAndRecommendationIcons() {
+        FrameLayout recommendedKeeper = StackThumbnailView.create(
+                RuntimeEnvironment.getApplication(), true, true, true, false);
+
+        assertEquals(4, recommendedKeeper.getChildCount());
+        ImageView heart = StackThumbnailView.heart(recommendedKeeper);
+        ImageView star = StackThumbnailView.star(recommendedKeeper);
+        assertNotNull(heart.getDrawable());
+        assertEquals("Keeper", heart.getContentDescription());
+        assertNotNull(star.getDrawable());
+        assertNotNull(star.getBackground());
+        assertEquals("Recommended best shot", star.getContentDescription());
+
+        FrameLayout alternative = StackThumbnailView.create(
+                RuntimeEnvironment.getApplication(), false, false, false, true);
+        assertEquals("Not a Keeper", StackThumbnailView.heart(alternative)
+                .getContentDescription());
+        assertEquals("Good alternative", StackThumbnailView.star(alternative)
+                .getContentDescription());
+        assertEquals(View.VISIBLE, StackThumbnailView.star(alternative).getVisibility());
+    }
 }

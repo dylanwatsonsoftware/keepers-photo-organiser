@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
+import java.util.Set;
 
 public final class PreviewActivity extends Activity {
     private AsyncThumbnailLoader loader;
@@ -76,6 +77,7 @@ public final class PreviewActivity extends Activity {
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             store.toggle(photo);
             updateButton();
+            showStackCarousel();
         });
         updateButton();
     }
@@ -247,13 +249,18 @@ public final class PreviewActivity extends Activity {
             carousel.setVisibility(View.GONE);
             return;
         }
+        Set<String> keepers = store.load();
+        Set<String> recommendations = suggestionStore.load();
+        Set<String> alternatives = suggestionStore.loadAlternatives();
         int selectedIndex = 0;
         for (int index = 0; index < members.size(); index++) {
             String member = members.get(index);
             Uri memberUri = Uri.parse(member);
             boolean selected = memberUri.equals(photo);
             if (selected) selectedIndex = index;
-            FrameLayout thumbnailFrame = StackThumbnailView.create(this, selected);
+            FrameLayout thumbnailFrame = StackThumbnailView.create(this, selected,
+                    keepers.contains(member), recommendations.contains(member),
+                    alternatives.contains(member));
             ImageView thumbnail = StackThumbnailView.image(thumbnailFrame);
             thumbnailFrame.setContentDescription(selected
                     ? "Current photo in stack" : "Show photo from stack");
