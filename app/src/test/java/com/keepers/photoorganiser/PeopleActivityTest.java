@@ -40,6 +40,16 @@ public class PeopleActivityTest {
                 new TrackedPersonStore(activity).load());
     }
 
+    @Test public void changingPeopleInvalidatesAnEarlierAlbumReview() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        new AlbumReviewSelectionStore(activity).save(java.util.Set.of("photo\nperson-1"));
+
+        ((EditText) activity.findViewById(R.id.person_1_name)).setText("Ada");
+        activity.findViewById(R.id.save_people).performClick();
+
+        assertEquals(false, new AlbumReviewSelectionStore(activity).hasReview());
+    }
+
     @Test public void showsFaceObservationProgressFromGalleryAnalysis() {
         FaceObservationStore observations = new FaceObservationStore(
                 org.robolectric.RuntimeEnvironment.getApplication());

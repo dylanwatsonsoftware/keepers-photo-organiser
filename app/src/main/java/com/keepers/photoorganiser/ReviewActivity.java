@@ -54,6 +54,7 @@ public final class ReviewActivity extends Activity {
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
         findViewById(R.id.clear_keepers).setOnClickListener(view -> {
             selectionStore.clear();
+            AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
         });
         findViewById(R.id.filter_keepers).setOnClickListener(view ->
@@ -199,7 +200,7 @@ public final class ReviewActivity extends Activity {
         tile.addView(marker, markerParams);
         marker.setOnClickListener(view -> {
             selectionStore.toggle(photo);
-            new AlbumReviewSelectionStore(this).clear();
+            AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
         });
 

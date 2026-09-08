@@ -120,6 +120,7 @@ public final class PeopleActivity extends Activity {
                 if (ids.get(position).isBlank()) changed.remove(group.id());
                 else changed.put(group.id(), ids.get(position));
                 new FaceGroupAssignmentStore(PeopleActivity.this).save(changed);
+                AlbumApprovalInvalidator.invalidate(PeopleActivity.this);
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
@@ -165,6 +166,7 @@ public final class PeopleActivity extends Activity {
                     ((Switch) findViewById(TRACKED_IDS[index])).isChecked()));
         }
         new TrackedPersonStore(this).save(people);
+        AlbumApprovalInvalidator.invalidate(this);
         showDiscoveredGroups();
         ((TextView) findViewById(R.id.people_status)).setText(
                 "Saved. Review the discovered faces below.");

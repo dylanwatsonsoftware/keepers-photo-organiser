@@ -84,6 +84,7 @@ public final class AlbumReviewActivity extends Activity {
             choice.setOnCheckedChangeListener((button, checked) -> {
                 HashSet<String> changed = new HashSet<>(reviewStore.load());
                 if (checked) changed.add(key); else changed.remove(key);
+                AlbumApprovalInvalidator.invalidate(this);
                 reviewStore.save(changed);
             });
             card.addView(choice);

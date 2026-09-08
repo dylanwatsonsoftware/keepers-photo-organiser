@@ -91,7 +91,7 @@ public final class FaceGroupReviewActivity extends Activity {
                 if (ids.get(position).isBlank()) changes.remove(key);
                 else changes.put(key, ids.get(position));
                 store.save(changes);
-                new AlbumReviewSelectionStore(FaceGroupReviewActivity.this).clear();
+                AlbumApprovalInvalidator.invalidate(FaceGroupReviewActivity.this);
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
