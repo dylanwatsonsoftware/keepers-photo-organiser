@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.content.Intent;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageView;
@@ -106,6 +108,16 @@ public final class AlbumReviewActivity extends Activity {
     }
 
     void startApprovedQueue() {
+        if (!AccessibilityStatus.isKeepersEnabled(this)) {
+            new AlbumActionQueueStore(this).cancel();
+            new AlertDialog.Builder(this).setTitle("Enable Keepers first")
+                    .setMessage("Android must allow the Keepers helper before approved album changes can run. No queue has been started.")
+                    .setNegativeButton("Not now", null)
+                    .setPositiveButton("Open accessibility settings", (dialog, which) ->
+                            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
+                    .show();
+            return;
+        }
         HashMap<String, TrackedPerson> people = new HashMap<>();
         for (TrackedPerson person : new TrackedPersonStore(this).load()) people.put(person.id(), person);
         ArrayList<AlbumAction> actions = new ArrayList<>();

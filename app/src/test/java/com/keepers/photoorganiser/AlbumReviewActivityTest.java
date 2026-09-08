@@ -17,6 +17,8 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.shadows.ShadowDialog;
 import android.app.AlertDialog;
+import android.provider.Settings;
+import android.content.ComponentName;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
@@ -63,8 +65,27 @@ public class AlbumReviewActivityTest {
                 Shadows.shadowOf(activity).getNextStartedActivity().getDataString());
     }
 
+    @Test public void disabledAccessibilityStopsBeforeCreatingAQueue() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        Settings.Secure.putInt(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 0);
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        activity.startApprovedQueue();
+
+        assertTrue(!new AlbumActionQueueStore(activity).isActive());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals("Open accessibility settings",
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+    }
+
     private static void seed() {
         android.content.Context context = RuntimeEnvironment.getApplication();
+        Settings.Secure.putInt(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+        Settings.Secure.putString(context.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                new ComponentName(context, KeepersAccessibilityService.class).flattenToString());
         new AlbumReviewSelectionStore(context).clear();
         new AlbumActionQueueStore(context).cancel();
         new KeeperSelectionStore(context).replace(Set.of("content://photos/a", "content://photos/b"));

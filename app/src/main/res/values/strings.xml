@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="accessibility_service_description">One-shot, explicitly armed Google Photos Favourite test. Restricted to Google Photos and expires after two minutes.</string>
+    <string name="accessibility_service_description">Runs only explicitly approved Keepers actions in Google Photos. Each action expires after two minutes.</string>
 </resources>
