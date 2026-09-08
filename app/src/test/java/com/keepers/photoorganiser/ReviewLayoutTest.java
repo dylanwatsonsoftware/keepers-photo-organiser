@@ -5,8 +5,10 @@ import static org.junit.Assert.assertNotNull;
 
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -40,5 +42,18 @@ public class ReviewLayoutTest {
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
         assertNotNull(layout.findViewById(R.id.filter_keepers));
         assertNotNull(layout.findViewById(R.id.filter_recommended));
+    }
+
+    @Test public void albumReviewActionUsesTheCompactKeepersCallToAction() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+
+        View action = layout.findViewById(R.id.open_album_review);
+        assertTrue(action instanceof TextView);
+        assertTrue(!(action instanceof Button));
+        TextView label = (TextView) action;
+        assertTrue("Review albums".contentEquals(label.getText()));
+        assertNotNull(label.getCompoundDrawablesRelative()[0]);
+        assertTrue(label.isClickable());
     }
 }
