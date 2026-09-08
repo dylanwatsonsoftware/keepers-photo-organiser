@@ -82,20 +82,26 @@
                 android:paddingHorizontal="6dp" />
         </HorizontalScrollView>
 
-        <TextView
-            android:id="@+id/preview_recommendation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/preview_recommendation_chip"
-            android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="6dp"
-            android:textColor="#FFD38A"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
+        <FrameLayout
+            android:id="@+id/preview_recommendation_slot"
+            android:layout_width="match_parent"
+            android:layout_height="36dp">
+            <TextView
+                android:id="@+id/preview_recommendation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/preview_recommendation_chip"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="6dp"
+                android:textColor="#FFD38A"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:visibility="invisible" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/preview_hint"

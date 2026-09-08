@@ -228,7 +228,7 @@ public final class PreviewActivity extends Activity {
         boolean alternative = suggestionStore.loadAlternatives().contains(photo.toString());
         recommendation.setText(recommended ? "★  Best shot"
                 : alternative ? "☆  Good alternative" : "");
-        recommendation.setVisibility(recommended || alternative ? View.VISIBLE : View.GONE);
+        recommendation.setVisibility(recommended || alternative ? View.VISIBLE : View.INVISIBLE);
     }
 
     private void showStackCarousel() {
@@ -240,24 +240,25 @@ public final class PreviewActivity extends Activity {
             carousel.setVisibility(View.GONE);
             return;
         }
-        for (String member : members) {
+        int selectedIndex = 0;
+        for (int index = 0; index < members.size(); index++) {
+            String member = members.get(index);
             Uri memberUri = Uri.parse(member);
-            ImageView thumbnail = new ImageView(this);
-            thumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            thumbnail.setContentDescription(memberUri.equals(photo)
+            boolean selected = memberUri.equals(photo);
+            if (selected) selectedIndex = index;
+            FrameLayout thumbnailFrame = StackThumbnailView.create(this, selected);
+            ImageView thumbnail = StackThumbnailView.image(thumbnailFrame);
+            thumbnailFrame.setContentDescription(selected
                     ? "Current photo in stack" : "Show photo from stack");
-            thumbnail.setAlpha(memberUri.equals(photo) ? 1f : 0.72f);
-            if (memberUri.equals(photo)) {
-                thumbnail.setBackgroundResource(R.drawable.stack_thumbnail_selected);
-                thumbnail.setPadding(dp(3), dp(3), dp(3), dp(3));
-            }
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(64), dp(64));
-            params.setMargins(dp(4), dp(4), dp(4), dp(4));
-            thumbnails.addView(thumbnail, params);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(72), dp(72));
+            thumbnails.addView(thumbnailFrame, params);
             loader.load(thumbnail, memberUri, 160);
-            thumbnail.setOnClickListener(view -> selectStackPhoto(memberUri));
+            thumbnailFrame.setOnClickListener(view -> selectStackPhoto(memberUri));
         }
         carousel.setVisibility(View.VISIBLE);
+        int targetIndex = selectedIndex;
+        carousel.post(() -> carousel.smoothScrollTo(CarouselScrollTarget.centered(targetIndex,
+                dp(72), carousel.getWidth(), thumbnails.getWidth()), 0));
     }
 
     private void selectStackPhoto(Uri selected) {

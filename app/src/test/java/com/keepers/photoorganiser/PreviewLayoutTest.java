@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.HorizontalScrollView;
+import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -95,5 +96,16 @@ public class PreviewLayoutTest {
         assertTrue(layout.findViewById(R.id.preview_stack_carousel)
                 instanceof HorizontalScrollView);
         assertNotNull(layout.findViewById(R.id.preview_stack_thumbnails));
+    }
+
+    @Test public void recommendationUsesAFixedSlotSoCarouselNeverMoves() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        View slot = layout.findViewById(R.id.preview_recommendation_slot);
+        TextView recommendation = layout.findViewById(R.id.preview_recommendation);
+
+        assertEquals(Math.round(36 * layout.getResources().getDisplayMetrics().density),
+                slot.getLayoutParams().height);
+        assertEquals(View.INVISIBLE, recommendation.getVisibility());
     }
 }
