@@ -2,14 +2,16 @@ package com.keepers.photoorganiser;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.IntentSender;
-import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,6 +23,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -398,15 +401,15 @@ public final class ReviewActivity extends Activity {
                 for (int attempt = 0; attempt < 100; attempt++) {
                     if (GooglePhotosPickerApi.selectionIsComplete(
                             pickerAccessToken, pickerSessionId)) {
-                        String mediaId = GooglePhotosPickerApi.firstMediaId(
+                        GooglePhotosPickerApi.PickedMedia media = GooglePhotosPickerApi.firstMedia(
                                 pickerAccessToken, pickerSessionId);
                         new Handler(Looper.getMainLooper()).post(() -> {
                             TextView action = findViewById(R.id.import_google_photos);
                             action.setEnabled(true);
-                            action.setText("Open original");
+                            action.setText("View selected photo");
                             action.setContentDescription(
-                                    "Experimental: open selected original in Google Photos");
-                            action.setOnClickListener(view -> openPickedOriginal(mediaId));
+                                    "View the selected Google Photos photo in Keepers");
+                            action.setOnClickListener(view -> showPickedPhoto(media));
                             Toast.makeText(this, "Photo selected — return to Keepers to test it",
                                     Toast.LENGTH_LONG).show();
                         });
@@ -421,15 +424,76 @@ public final class ReviewActivity extends Activity {
         }, "google-photos-picker-poll").start();
     }
 
-    private void openPickedOriginal(String mediaId) {
-        Intent original = new Intent(Intent.ACTION_VIEW,
-                GooglePhotosPickerApi.originalPhotoUri(mediaId))
-                .setPackage("com.google.android.apps.photos");
-        try {
-            startActivity(original);
-        } catch (ActivityNotFoundException unavailable) {
-            showPickerError("Google Photos could not open this Picker item directly");
-        }
+    private void showPickedPhoto(GooglePhotosPickerApi.PickedMedia media) {
+        TextView action = findViewById(R.id.import_google_photos);
+        action.setEnabled(false);
+        action.setText("Loading photo…");
+        new Thread(() -> {
+            try {
+                Bitmap bitmap = GooglePhotosPickerApi.downloadDisplayBitmap(
+                        pickerAccessToken, media);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    ImageView image = new ImageView(this);
+                    int padding = Math.round(20 * getResources().getDisplayMetrics().density);
+                    image.setPadding(padding, padding, padding, padding);
+                    image.setAdjustViewBounds(true);
+                    image.setImageBitmap(bitmap);
+                    showPickedPhotoDialog(image);
+                    action.setEnabled(true);
+                    action.setText("View selected photo");
+                });
+            } catch (Exception error) {
+                resetGooglePhotosAction("Could not load the selected Google Photos image");
+            }
+        }, "google-photos-picker-image").start();
+    }
+
+    private void showPickedPhotoDialog(ImageView image) {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int spacing = Math.round(20 * getResources().getDisplayMetrics().density);
+        content.setPadding(spacing, spacing, spacing, spacing);
+        content.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(this);
+        title.setText("Partner photo available");
+        title.setTextColor(Color.rgb(32, 33, 36));
+        title.setTextSize(21);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        content.addView(title);
+
+        TextView message = new TextView(this);
+        message.setText("Keepers can read this selected Google Photos image. "
+                + "It was not uploaded or duplicated.");
+        message.setTextColor(Color.rgb(95, 99, 104));
+        message.setTextSize(14);
+        LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        messageParams.topMargin = spacing / 2;
+        content.addView(message, messageParams);
+        content.addView(image, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+
+        TextView done = new TextView(this);
+        done.setText("Done");
+        done.setGravity(Gravity.CENTER);
+        done.setTextColor(Color.WHITE);
+        done.setTextSize(15);
+        done.setTypeface(null, android.graphics.Typeface.BOLD);
+        done.setBackgroundResource(R.drawable.gallery_primary_action);
+        done.setOnClickListener(view -> dialog.dismiss());
+        LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, Math.round(52
+                * getResources().getDisplayMetrics().density));
+        doneParams.topMargin = spacing / 2;
+        content.addView(done, doneParams);
+
+        dialog.setContentView(content);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+        dialog.getWindow().setLayout(Math.round(360 * getResources().getDisplayMetrics().density),
+                Math.round(620 * getResources().getDisplayMetrics().density));
     }
 
     private void resetGooglePhotosAction(String error) {

@@ -24,15 +24,15 @@ public class GooglePhotosPickerApiTest {
         GooglePhotosPickerApi.parseSession("{\"id\":\"session-1\"}");
     }
 
-    @Test public void detectsFinishedSelectionAndExtractsItsPersistentMediaId() {
+    @Test public void detectsFinishedSelectionAndExtractsItsDisplayUrl() {
         assertEquals(true, GooglePhotosPickerApi.selectionIsComplete(
                 "{\"mediaItemsSet\":true}"));
-        assertEquals("partner-photo-id_123", GooglePhotosPickerApi.parseFirstMediaId(
-                "{\"mediaItems\":[{\"id\":\"partner-photo-id_123\",\"type\":\"PHOTO\"}]}"));
-    }
+        GooglePhotosPickerApi.PickedMedia media = GooglePhotosPickerApi.parseFirstMedia(
+                "{\"mediaItems\":[{\"id\":\"partner-photo-id_123\",\"mediaFile\":"
+                        + "{\"baseUrl\":\"https://lh3.googleusercontent.com/picker-image\"}}]}");
 
-    @Test public void buildsUploadFreeExperimentalOriginalUrl() {
-        assertEquals("https://photos.google.com/lr/photo/partner-photo-id_123",
-                GooglePhotosPickerApi.originalPhotoUri("partner-photo-id_123").toString());
+        assertEquals("partner-photo-id_123", media.id());
+        assertEquals("https://lh3.googleusercontent.com/picker-image=w1200-h1200",
+                media.displayUrl());
     }
 }

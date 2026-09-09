@@ -1,6 +1,8 @@
 package com.keepers.photoorganiser;
 
 import android.net.Uri;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -18,10 +20,13 @@ final class GooglePhotosPickerApi {
             "\\\"pickerUri\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
     private static final Pattern ID = Pattern.compile(
             "\\\"id\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final Pattern BASE_URL = Pattern.compile(
+            "\\\"baseUrl\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
 
     private GooglePhotosPickerApi() {}
 
     record PickerSession(String id, String pickerUri) {}
+    record PickedMedia(String id, String displayUrl) {}
 
     static PickerSession createSession(String accessToken) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(SESSIONS_URL).openConnection();
@@ -48,11 +53,11 @@ final class GooglePhotosPickerApi {
         return selectionIsComplete(readResponse(connection));
     }
 
-    static String firstMediaId(String accessToken, String sessionId) throws IOException {
+    static PickedMedia firstMedia(String accessToken, String sessionId) throws IOException {
         HttpURLConnection connection = authorizedGet(
                 "https://photospicker.googleapis.com/v1/mediaItems?sessionId="
                         + Uri.encode(sessionId) + "&pageSize=1", accessToken);
-        return parseFirstMediaId(readResponse(connection));
+        return parseFirstMedia(readResponse(connection));
     }
 
     static PickerSession parseSession(String response) {
@@ -66,15 +71,27 @@ final class GooglePhotosPickerApi {
         return new PickerSession(id.group(1), pickerUri);
     }
 
-    static String parseFirstMediaId(String response) {
+    static PickedMedia parseFirstMedia(String response) {
         Matcher id = ID.matcher(response);
-        if (!id.find()) throw new IllegalArgumentException("No selected media item was returned");
-        return id.group(1);
+        Matcher baseUrl = BASE_URL.matcher(response);
+        if (!id.find() || !baseUrl.find())
+            throw new IllegalArgumentException("No selected photo was returned");
+        return new PickedMedia(id.group(1), baseUrl.group(1).replace("\\/", "/")
+                + "=w1200-h1200");
     }
 
-    static Uri originalPhotoUri(String mediaId) {
-        return Uri.parse("https://photos.google.com/lr/photo").buildUpon()
-                .appendPath(mediaId).build();
+    static Bitmap downloadDisplayBitmap(String accessToken, PickedMedia media)
+            throws IOException {
+        HttpURLConnection connection = authorizedGet(media.displayUrl(), accessToken);
+        int status = connection.getResponseCode();
+        if (status < 200 || status >= 300) {
+            connection.disconnect();
+            throw new IOException("Google Photos image returned HTTP " + status);
+        }
+        Bitmap bitmap = BitmapFactory.decodeStream(connection.getInputStream());
+        connection.disconnect();
+        if (bitmap == null) throw new IOException("Google Photos returned an unreadable image");
+        return bitmap;
     }
 
     private static HttpURLConnection authorizedGet(String url, String accessToken)
