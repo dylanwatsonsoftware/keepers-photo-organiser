@@ -386,7 +386,8 @@ public final class ReviewActivity extends Activity {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     TextView action = findViewById(R.id.import_google_photos);
                     action.setText("Waiting for photo…");
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(session.pickerUri())));
+                    startActivity(PickerBrowserIntentFactory.create(
+                            Uri.parse(session.pickerUri())));
                 });
                 pollForPickedOriginal();
             } catch (Exception error) {
