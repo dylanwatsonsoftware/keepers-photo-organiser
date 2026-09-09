@@ -98,14 +98,29 @@
             android:id="@+id/import_photos"
             android:layout_width="0dp"
             android:layout_height="36dp"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="＋ Device"
+            android:textColor="@color/gallery_filter_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/import_google_photos"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1.35"
             android:background="@drawable/gallery_filter_chip"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:text="＋ Import"
+            android:text="Google Photos"
             android:textColor="@color/gallery_filter_text"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView

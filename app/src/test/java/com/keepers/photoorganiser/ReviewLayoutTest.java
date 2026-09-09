@@ -42,6 +42,10 @@ public class ReviewLayoutTest {
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
         assertNotNull(layout.findViewById(R.id.filter_keepers));
         assertNotNull(layout.findViewById(R.id.filter_recommended));
+        View googlePhotos = layout.findViewById(R.id.import_google_photos);
+        assertTrue(googlePhotos instanceof TextView);
+        assertTrue(!(googlePhotos instanceof Button));
+        assertTrue(googlePhotos.isClickable());
     }
 
     @Test public void albumReviewActionUsesTheCompactKeepersCallToAction() {

@@ -28,6 +28,7 @@ android {
 
 dependencies {
     implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("com.google.android.gms:play-services-auth:21.6.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.ClipData;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -11,6 +12,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
@@ -19,6 +22,12 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+import com.google.android.gms.auth.api.identity.AuthorizationClient;
+import com.google.android.gms.auth.api.identity.AuthorizationRequest;
+import com.google.android.gms.auth.api.identity.AuthorizationResult;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.common.api.Scope;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +39,9 @@ import java.util.LinkedHashMap;
 
 public final class ReviewActivity extends Activity {
     private static final int IMPORT_PHOTOS = 201;
+    private static final int AUTHORIZE_GOOGLE_PHOTOS = 202;
+    private static final String PHOTOS_PICKER_SCOPE =
+            "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
     private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     private static final int PHOTO_PERMISSION = 200;
@@ -50,6 +62,7 @@ public final class ReviewActivity extends Activity {
     private GalleryFilter galleryFilter = GalleryFilter.ALL;
     private PhotoOrigin originFilter;
     private Map<String, PhotoOrigin> photoOrigins = Map.of();
+    private AuthorizationClient photosAuthorization;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +84,8 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.RECOMMENDED));
         findViewById(R.id.import_photos).setOnClickListener(view -> openPhotoPicker());
+        findViewById(R.id.import_google_photos).setOnClickListener(view ->
+                openGooglePhotosPicker());
         findViewById(R.id.filter_origin_all).setOnClickListener(view -> setOriginFilter(null));
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.LOCAL));
@@ -326,8 +341,69 @@ public final class ReviewActivity extends Activity {
         startActivityForResult(picker, IMPORT_PHOTOS);
     }
 
+    private void openGooglePhotosPicker() {
+        photosAuthorization = Identity.getAuthorizationClient(this);
+        AuthorizationRequest request = AuthorizationRequest.builder()
+                .setRequestedScopes(List.of(new Scope(PHOTOS_PICKER_SCOPE)))
+                .build();
+        photosAuthorization.authorize(request)
+                .addOnSuccessListener(result -> {
+                    if (result.hasResolution()) {
+                        try {
+                            startIntentSenderForResult(result.getPendingIntent().getIntentSender(),
+                                    AUTHORIZE_GOOGLE_PHOTOS, null, 0, 0, 0);
+                        } catch (IntentSender.SendIntentException error) {
+                            showPickerError("Could not open Google authorization");
+                        }
+                    } else {
+                        createGooglePhotosPickerSession(result);
+                    }
+                })
+                .addOnFailureListener(error -> showPickerError(
+                        "Google Photos authorization is unavailable"));
+    }
+
+    private void createGooglePhotosPickerSession(AuthorizationResult authorization) {
+        String accessToken = authorization.getAccessToken();
+        if (accessToken == null || accessToken.isBlank()) {
+            showPickerError("Google Photos did not return access permission");
+            return;
+        }
+        findViewById(R.id.import_google_photos).setEnabled(false);
+        Toast.makeText(this, "Opening your Google Photos library…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                String pickerUri = GooglePhotosPickerApi.createSession(accessToken);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    findViewById(R.id.import_google_photos).setEnabled(true);
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pickerUri)));
+                });
+            } catch (Exception error) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    findViewById(R.id.import_google_photos).setEnabled(true);
+                    showPickerError("Could not start the Google Photos Picker");
+                });
+            }
+        }, "google-photos-picker-session").start();
+    }
+
+    private void showPickerError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    }
+
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == AUTHORIZE_GOOGLE_PHOTOS) {
+            if (resultCode == RESULT_OK && data != null && photosAuthorization != null) {
+                try {
+                    createGooglePhotosPickerSession(
+                            photosAuthorization.getAuthorizationResultFromIntent(data));
+                } catch (Exception error) {
+                    showPickerError("Google Photos authorization did not complete");
+                }
+            }
+            return;
+        }
         if (requestCode != IMPORT_PHOTOS || resultCode != RESULT_OK || data == null) return;
         ArrayList<Uri> picked = new ArrayList<>();
         ClipData clip = data.getClipData();
