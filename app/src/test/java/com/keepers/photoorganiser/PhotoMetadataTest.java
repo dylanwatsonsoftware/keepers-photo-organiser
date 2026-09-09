@@ -27,4 +27,13 @@ public class PhotoMetadataTest {
 
         assertEquals("PNG", metadata.technicalSummary(Locale.US));
     }
+
+    @Test public void rejectsTheExifZeroCoordinatePlaceholder() {
+        assertEquals("", PhotoMetadata.locationFromCoordinates(0, 0));
+    }
+
+    @Test public void formatsValidExifCoordinates() {
+        assertEquals("31.95230° S, 115.86130° E",
+                PhotoMetadata.locationFromCoordinates(-31.9523f, 115.8613f));
+    }
 }

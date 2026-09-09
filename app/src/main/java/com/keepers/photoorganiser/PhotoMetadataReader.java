@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
 
 public final class PhotoMetadataReader {
     private PhotoMetadataReader() {}
@@ -41,7 +40,8 @@ public final class PhotoMetadataReader {
                 if (caption == null || caption.isBlank())
                     caption = value(exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION));
                 float[] coordinates = new float[2];
-                if (exif.getLatLong(coordinates)) location = coordinates(coordinates[0], coordinates[1]);
+                if (exif.getLatLong(coordinates)) location =
+                        PhotoMetadata.locationFromCoordinates(coordinates[0], coordinates[1]);
             }
         } catch (IOException | RuntimeException ignored) {}
         return new PhotoMetadata(takenAt, value(caption), location, width, height,
@@ -56,11 +56,6 @@ public final class PhotoMetadataReader {
     private static String stringValue(Cursor cursor, String column, String fallback) {
         int index = cursor.getColumnIndex(column);
         return index < 0 || cursor.isNull(index) ? fallback : cursor.getString(index);
-    }
-
-    private static String coordinates(float latitude, float longitude) {
-        return String.format(Locale.US, "%.5f° %s, %.5f° %s", Math.abs(latitude),
-                latitude >= 0 ? "N" : "S", Math.abs(longitude), longitude >= 0 ? "E" : "W");
     }
 
     private static String value(String value) { return value == null ? "" : value.trim(); }

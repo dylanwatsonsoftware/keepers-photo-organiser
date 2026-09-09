@@ -24,6 +24,14 @@ public record PhotoMetadata(long takenAtMillis, String caption, String location,
         return String.join("  •  ", parts);
     }
 
+    static String locationFromCoordinates(float latitude, float longitude) {
+        if (!Float.isFinite(latitude) || !Float.isFinite(longitude)
+                || Math.abs(latitude) > 90 || Math.abs(longitude) > 180
+                || (latitude == 0 && longitude == 0)) return "";
+        return String.format(Locale.US, "%.5f° %s, %.5f° %s", Math.abs(latitude),
+                latitude >= 0 ? "N" : "S", Math.abs(longitude), longitude >= 0 ? "E" : "W");
+    }
+
     private static String displayType(String mimeType) {
         if (mimeType == null || mimeType.isBlank()) return "";
         int slash = mimeType.indexOf('/');
