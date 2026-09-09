@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.Set;
+import java.time.ZoneId;
+import java.util.Locale;
 
 public final class PreviewActivity extends Activity {
     private static final String ADD_NEW_PERSON = "__add_new_person__";
@@ -358,6 +360,7 @@ public final class PreviewActivity extends Activity {
     private void showAnalysis() {
         boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
         showAnalysisFaces();
+        showMetadata();
         showSavedAlbums();
         PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
         TextView title = findViewById(R.id.preview_analysis_title);
@@ -379,6 +382,27 @@ public final class PreviewActivity extends Activity {
         }
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
+    }
+
+    private void showMetadata() {
+        long fallbackTakenAt = 0;
+        for (ImportedPhoto imported : new ImportedPhotoStore(this).load())
+            if (imported.uri().equals(photo)) fallbackTakenAt = imported.takenAtMillis();
+        PhotoMetadata metadata = PhotoMetadataReader.read(
+                getContentResolver(), photo, fallbackTakenAt);
+        showMetadataValue(R.id.preview_metadata_date,
+                metadata.formattedDate(ZoneId.systemDefault(), Locale.getDefault()));
+        showMetadataValue(R.id.preview_metadata_caption, metadata.caption());
+        showMetadataValue(R.id.preview_metadata_location,
+                metadata.location().isBlank() ? "" : "Location  ·  " + metadata.location());
+        showMetadataValue(R.id.preview_metadata_technical,
+                metadata.technicalSummary(Locale.getDefault()));
+    }
+
+    private void showMetadataValue(int viewId, String value) {
+        TextView view = findViewById(viewId);
+        view.setText(value);
+        view.setVisibility(value == null || value.isBlank() ? View.GONE : View.VISIBLE);
     }
 
     private void showSavedAlbums() {

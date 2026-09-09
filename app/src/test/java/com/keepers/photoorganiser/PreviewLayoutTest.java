@@ -36,6 +36,17 @@ public class PreviewLayoutTest {
         assertTrue(gridId != 0);
         assertTrue(layout.findViewById(gridId) instanceof android.widget.GridLayout);
     }
+
+    @Test public void analysisSheetIncludesAPhotoDetailsCard() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        assertNotNull(layout.findViewById(R.id.preview_metadata_section));
+        assertNotNull(layout.findViewById(R.id.preview_metadata_date));
+        assertNotNull(layout.findViewById(R.id.preview_metadata_caption));
+        assertNotNull(layout.findViewById(R.id.preview_metadata_location));
+        assertNotNull(layout.findViewById(R.id.preview_metadata_technical));
+    }
     @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
