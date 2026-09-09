@@ -16,7 +16,7 @@ public class GooglePhotosPickerApiTest {
                 GooglePhotosPickerApi.parseSession(response);
 
         assertEquals("session-1", session.id());
-        assertEquals("https://photos.google.com/picker/session-1", session.pickerUri());
+        assertEquals("https://photos.google.com/picker/session-1/autoclose", session.pickerUri());
     }
 
     @Test(expected = IllegalArgumentException.class)

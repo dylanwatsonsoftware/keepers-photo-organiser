@@ -68,7 +68,8 @@ final class GooglePhotosPickerApi {
         String pickerUri = uri.group(1).replace("\\/", "/");
         if (!pickerUri.startsWith("https://"))
             throw new IllegalArgumentException("Picker session did not include a picker URI");
-        return new PickerSession(id.group(1), pickerUri);
+        return new PickerSession(id.group(1), pickerUri.replaceFirst("/+$", "")
+                + "/autoclose");
     }
 
     static PickedMedia parseFirstMedia(String response) {
