@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -63,6 +64,8 @@ public final class ReviewActivity extends Activity {
     private PhotoOrigin originFilter;
     private Map<String, PhotoOrigin> photoOrigins = Map.of();
     private AuthorizationClient photosAuthorization;
+    private String pickerAccessToken;
+    private String pickerSessionId;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -373,18 +376,71 @@ public final class ReviewActivity extends Activity {
         Toast.makeText(this, "Opening your Google Photos library…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                String pickerUri = GooglePhotosPickerApi.createSession(accessToken);
+                GooglePhotosPickerApi.PickerSession session =
+                        GooglePhotosPickerApi.createSession(accessToken);
+                pickerAccessToken = accessToken;
+                pickerSessionId = session.id();
                 new Handler(Looper.getMainLooper()).post(() -> {
-                    findViewById(R.id.import_google_photos).setEnabled(true);
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pickerUri)));
+                    TextView action = findViewById(R.id.import_google_photos);
+                    action.setText("Waiting for photo…");
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(session.pickerUri())));
                 });
+                pollForPickedOriginal();
             } catch (Exception error) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    findViewById(R.id.import_google_photos).setEnabled(true);
-                    showPickerError("Could not start the Google Photos Picker");
-                });
+                resetGooglePhotosAction("Could not start the Google Photos Picker");
             }
         }, "google-photos-picker-session").start();
+    }
+
+    private void pollForPickedOriginal() {
+        new Thread(() -> {
+            try {
+                for (int attempt = 0; attempt < 100; attempt++) {
+                    if (GooglePhotosPickerApi.selectionIsComplete(
+                            pickerAccessToken, pickerSessionId)) {
+                        String mediaId = GooglePhotosPickerApi.firstMediaId(
+                                pickerAccessToken, pickerSessionId);
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            TextView action = findViewById(R.id.import_google_photos);
+                            action.setEnabled(true);
+                            action.setText("Open original");
+                            action.setContentDescription(
+                                    "Experimental: open selected original in Google Photos");
+                            action.setOnClickListener(view -> openPickedOriginal(mediaId));
+                            Toast.makeText(this, "Photo selected — return to Keepers to test it",
+                                    Toast.LENGTH_LONG).show();
+                        });
+                        return;
+                    }
+                    Thread.sleep(3_000);
+                }
+                resetGooglePhotosAction("Google Photos selection timed out");
+            } catch (Exception error) {
+                resetGooglePhotosAction("Could not read the selected Google Photos item");
+            }
+        }, "google-photos-picker-poll").start();
+    }
+
+    private void openPickedOriginal(String mediaId) {
+        Intent original = new Intent(Intent.ACTION_VIEW,
+                GooglePhotosPickerApi.originalPhotoUri(mediaId))
+                .setPackage("com.google.android.apps.photos");
+        try {
+            startActivity(original);
+        } catch (ActivityNotFoundException unavailable) {
+            showPickerError("Google Photos could not open this Picker item directly");
+        }
+    }
+
+    private void resetGooglePhotosAction(String error) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            TextView action = findViewById(R.id.import_google_photos);
+            action.setEnabled(true);
+            action.setText("Google Photos");
+            action.setContentDescription("Select one photo from Google Photos");
+            action.setOnClickListener(view -> openGooglePhotosPicker());
+            showPickerError(error);
+        });
     }
 
     private void showPickerError(String message) {
