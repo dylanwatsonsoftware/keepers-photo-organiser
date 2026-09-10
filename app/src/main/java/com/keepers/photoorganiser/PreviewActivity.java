@@ -110,16 +110,99 @@ public final class PreviewActivity extends Activity {
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
-            store.toggle(photo);
+            boolean selected = store.toggle(photo);
+            recordHeartFeedback(selected);
             updateButton();
             showStackCarousel();
         });
+        findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
         updateButton();
     }
 
     private void updateButton() {
         ((TextView) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
                 ? "♥ Keeper — tap to remove" : "♡ Mark as keeper");
+    }
+
+    private void recordHeartFeedback(boolean selected) {
+        PhotoFeatures features = new PhotoInsightStore(this).loadFeatures(photo.toString());
+        if (features == null) return;
+        RecommendationFeedbackStore feedback = new RecommendationFeedbackStore(this);
+        RecommendationFeedback previous = feedback.load(photo.toString());
+        String comment = previous == null ? "" : previous.comment();
+        feedback.save(RecommendationFeedback.from(features, selected
+                ? RecommendationFeedback.LOVED : RecommendationFeedback.NOT_FOR_ME, comment));
+    }
+
+    private void showFeedbackDialog() {
+        PhotoFeatures features = new PhotoInsightStore(this).loadFeatures(photo.toString());
+        if (features == null) return;
+        RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
+        RecommendationFeedback existing = feedbackStore.load(photo.toString());
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(22), dp(8), dp(22), dp(10));
+        TextView prompt = new TextView(this);
+        prompt.setText("Was this a good recommendation?");
+        prompt.setTextSize(17);
+        prompt.setTextColor(0xFF202124);
+        prompt.setPadding(0, dp(4), 0, dp(10));
+        content.addView(prompt);
+        LinearLayout choices = new LinearLayout(this);
+        choices.setOrientation(LinearLayout.HORIZONTAL);
+        TextView loved = feedbackChoice("♥ Love this", RecommendationFeedback.LOVED,
+                existing);
+        TextView rejected = feedbackChoice("Not for me", RecommendationFeedback.NOT_FOR_ME,
+                existing);
+        choices.addView(loved, new LinearLayout.LayoutParams(0, dp(44), 1));
+        LinearLayout.LayoutParams rejectedParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        rejectedParams.setMarginStart(dp(8));
+        choices.addView(rejected, rejectedParams);
+        content.addView(choices);
+        EditText comment = new EditText(this);
+        comment.setHint("Optional: tell us why");
+        comment.setSingleLine(false);
+        comment.setMinLines(2);
+        comment.setText(existing == null ? "" : existing.comment());
+        comment.setTag("recommendation_feedback_comment");
+        content.addView(comment, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        TextView save = new TextView(this);
+        save.setText("Save feedback");
+        save.setTextColor(0xFFFFFFFF);
+        save.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        save.setGravity(android.view.Gravity.CENTER);
+        save.setBackgroundResource(R.drawable.gallery_primary_action);
+        save.setTag("save_recommendation_feedback");
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
+        saveParams.topMargin = dp(12);
+        content.addView(save, saveParams);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Improve recommendations").setView(content).create();
+        final int[] rating = { existing == null ? RecommendationFeedback.LOVED : existing.rating() };
+        loved.setOnClickListener(view -> { rating[0] = RecommendationFeedback.LOVED;
+            loved.setSelected(true); rejected.setSelected(false); });
+        rejected.setOnClickListener(view -> { rating[0] = RecommendationFeedback.NOT_FOR_ME;
+            loved.setSelected(false); rejected.setSelected(true); });
+        save.setOnClickListener(view -> {
+            feedbackStore.save(RecommendationFeedback.from(features, rating[0],
+                    comment.getText().toString()));
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    private TextView feedbackChoice(String label, int rating, RecommendationFeedback existing) {
+        TextView choice = new TextView(this);
+        choice.setText(label);
+        choice.setGravity(android.view.Gravity.CENTER);
+        choice.setTextColor(getColorStateList(R.color.gallery_filter_text));
+        choice.setBackgroundResource(R.drawable.gallery_filter_chip);
+        choice.setClickable(true);
+        choice.setFocusable(true);
+        choice.setSelected(existing != null && existing.rating() == rating);
+        return choice;
     }
 
     private boolean handleAnalysisScroll(MotionEvent event) {
@@ -380,6 +463,9 @@ public final class PreviewActivity extends Activity {
             body.setText("Assessment " + insight.assessment().score() + "/100\n" + stack
                     + "\n" + insight.reason() + "\n\n" + insight.assessment().explanation());
         }
+        View feedback = findViewById(R.id.preview_feedback);
+        feedback.setEnabled(insight != null);
+        feedback.setAlpha(insight == null ? .45f : 1f);
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
     }

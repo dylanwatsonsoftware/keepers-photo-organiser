@@ -20,9 +20,14 @@ public final class BestShotEngine {
     }
 
     public static BestShotResult classify(List<PhotoFeatures> photos) {
-        Set<String> initial = recommendInitial(photos);
+        return classify(photos, RecommendationPreferenceProfile.learn(List.of()));
+    }
+
+    public static BestShotResult classify(List<PhotoFeatures> photos,
+            RecommendationPreferenceProfile profile) {
+        Set<String> initial = recommendInitial(photos, profile);
         List<PhotoFeatures> ranked = new ArrayList<>(photos);
-        ranked.sort(java.util.Comparator.comparingDouble(PhotoFeatures::quality).reversed()
+        ranked.sort(java.util.Comparator.comparingDouble(profile::score).reversed()
                 .thenComparing(PhotoFeatures::id));
         Set<String> recommended = new java.util.LinkedHashSet<>();
         for (PhotoFeatures photo : ranked) {
@@ -36,8 +41,8 @@ public final class BestShotEngine {
             if (recommended.contains(photo.id())) continue;
             for (PhotoFeatures selected : ranked) {
                 if (!recommended.contains(selected.id()) || !nearIdentical(photo, selected)) continue;
-                if (photo.quality() >= MIN_USABLE_STACK_QUALITY
-                        && photo.quality() >= selected.quality() * 0.75) alternatives.add(photo.id());
+                if (profile.score(photo) >= MIN_USABLE_STACK_QUALITY
+                        && profile.score(photo) >= profile.score(selected) * 0.75) alternatives.add(photo.id());
                 break;
             }
         }
@@ -49,18 +54,19 @@ public final class BestShotEngine {
                 <= NEAR_IDENTICAL_HASH_DISTANCE;
     }
 
-    private static Set<String> recommendInitial(List<PhotoFeatures> photos) {
+    private static Set<String> recommendInitial(List<PhotoFeatures> photos,
+            RecommendationPreferenceProfile profile) {
         List<List<PhotoFeatures>> groups = sceneGroups(photos);
         List<PhotoFeatures> candidates = new ArrayList<>();
-        for (List<PhotoFeatures> group : groups) candidates.add(best(group));
-        candidates.sort(java.util.Comparator.comparingDouble(PhotoFeatures::quality).reversed()
+        for (List<PhotoFeatures> group : groups) candidates.add(best(group, profile));
+        candidates.sort(java.util.Comparator.comparingDouble(profile::score).reversed()
                 .thenComparing(PhotoFeatures::id));
         int limit = (candidates.size() + 2) / 3;
         Set<String> recommendations = new HashSet<>();
         for (int index = 0; index < limit; index++) recommendations.add(candidates.get(index).id());
         for (List<PhotoFeatures> group : groups) {
             if (group.size() < 2) continue;
-            PhotoFeatures stackBest = best(group);
+            PhotoFeatures stackBest = best(group, profile);
             if (stackBest.quality() >= MIN_USABLE_STACK_QUALITY) {
                 recommendations.add(stackBest.id());
             }
@@ -116,12 +122,13 @@ public final class BestShotEngine {
         return ordered;
     }
 
-    private static PhotoFeatures best(List<PhotoFeatures> group) {
+    private static PhotoFeatures best(List<PhotoFeatures> group,
+            RecommendationPreferenceProfile profile) {
         PhotoFeatures best = group.get(0);
         for (int index = 1; index < group.size(); index++) {
             PhotoFeatures candidate = group.get(index);
-            if (candidate.quality() > best.quality()
-                    || candidate.quality() == best.quality()
+            if (profile.score(candidate) > profile.score(best)
+                    || profile.score(candidate) == profile.score(best)
                     && candidate.id().compareTo(best.id()) < 0) best = candidate;
         }
         return best;

@@ -71,4 +71,21 @@ public final class PhotoInsightStore {
             return null;
         }
     }
+
+    public PhotoFeatures loadFeatures(String id) {
+        String encoded = preferences.getString(id, null);
+        if (encoded == null) return null;
+        String[] parts = encoded.split("\\|");
+        if (parts.length != 8 && parts.length != 9 && parts.length != 12) return null;
+        try {
+            return new PhotoFeatures(id, 0, 0, Double.parseDouble(parts[0]),
+                    Double.parseDouble(parts[4]), Double.parseDouble(parts[5]),
+                    Double.parseDouble(parts[6]), Double.parseDouble(parts[7]),
+                    parts.length == 12 ? Integer.parseInt(parts[9]) : 0,
+                    parts.length == 12 ? Double.parseDouble(parts[10]) : -1,
+                    parts.length == 12 ? Double.parseDouble(parts[11]) : -1);
+        } catch (NumberFormatException invalid) {
+            return null;
+        }
+    }
 }

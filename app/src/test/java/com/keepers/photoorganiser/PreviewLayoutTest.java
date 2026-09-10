@@ -20,6 +20,17 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
+    @Test public void analysisOffersAStyledRecommendationFeedbackAction() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        View feedback = layout.findViewById(R.id.preview_feedback);
+        assertNotNull(feedback);
+        assertTrue(feedback instanceof TextView);
+        assertTrue(!(feedback instanceof android.widget.Button));
+        assertTrue(feedback.isClickable());
+        assertNotNull(feedback.getBackground());
+    }
     @Test public void analysisBreakdownIsScrollable() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

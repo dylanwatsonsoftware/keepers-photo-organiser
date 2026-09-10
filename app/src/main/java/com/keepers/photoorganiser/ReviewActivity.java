@@ -265,7 +265,18 @@ public final class ReviewActivity extends Activity {
         markerParams.setMargins(0, dp(7), dp(7), 0);
         tile.addView(marker, markerParams);
         marker.setOnClickListener(view -> {
-            selectionStore.toggle(photo);
+            boolean selected = selectionStore.toggle(photo);
+            PhotoFeatures measured = features.stream()
+                    .filter(item -> item.id().equals(photo.toString())).findFirst().orElse(null);
+            if (measured == null) measured = new PhotoInsightStore(this)
+                    .loadFeatures(photo.toString());
+            if (measured != null) {
+                RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
+                RecommendationFeedback previous = feedbackStore.load(photo.toString());
+                feedbackStore.save(RecommendationFeedback.from(measured, selected
+                        ? RecommendationFeedback.LOVED : RecommendationFeedback.NOT_FOR_ME,
+                        previous == null ? "" : previous.comment()));
+            }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
         });
@@ -328,9 +339,19 @@ public final class ReviewActivity extends Activity {
         if (generation != analysisGeneration) return;
         analyzedCount++;
         if (analyzedCount == photos.size()) {
+                RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
+                Set<String> keepers = selectionStore.load();
+                for (PhotoFeatures feature : features) if (keepers.contains(feature.id())) {
+                    RecommendationFeedback previous = feedbackStore.load(feature.id());
+                    feedbackStore.save(RecommendationFeedback.from(feature,
+                            RecommendationFeedback.LOVED,
+                            previous == null ? "" : previous.comment()));
+                }
                 Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
                 Map<String, List<String>> members = BestShotEngine.stackMembers(features);
-                BestShotResult result = BestShotEngine.classify(features);
+                RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
+                        feedbackStore.load());
+                BestShotResult result = BestShotEngine.classify(features, profile);
                 new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),
                         result.goodAlternatives());
