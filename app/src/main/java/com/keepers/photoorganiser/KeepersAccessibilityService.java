@@ -16,6 +16,8 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String ALBUM_ARMED_UNTIL = "album_armed_until";
     public static final String ALBUM_NAME = "album_name";
     public static final String ALBUM_PHASE = "album_phase";
+    public static final String ALBUM_PHASE_STARTED_AT = "album_phase_started_at";
+    public static final String ALBUM_ADD_TO_RETRY_COUNT = "album_add_to_retry_count";
     static final int PHASE_ADD_TO = 0;
     private static final int PHASE_ALBUM_PICKER = 1;
     private static final int PHASE_FIND_OR_SEARCH = 2;
@@ -70,12 +72,30 @@ public final class KeepersAccessibilityService extends AccessibilityService {
 
         if (phase == PHASE_ADD_TO) return runAddStep(root, prefs);
         if (phase == PHASE_ALBUM_PICKER) {
+            AccessibilityNodeInfo visibleAlbum = findAlbum(root, album);
             AccessibilityNodeInfo picker = findAlbumPickerOption(root);
-            if (picker == null) return false;
-            if (!click(picker)) return actionFailed("Album picker was not clickable");
-            advance(prefs, PHASE_FIND_OR_SEARCH);
-            toast("Keepers opened album picker");
-            return true;
+            AccessibilityNodeInfo addTo = findAdd(root);
+            long elapsed = Math.max(0, System.currentTimeMillis()
+                    - prefs.getLong(ALBUM_PHASE_STARTED_AT, 0));
+            int retryCount = prefs.getInt(ALBUM_ADD_TO_RETRY_COUNT, 0);
+            AlbumPickerStepDecision decision = AlbumPickerStepDecision.decide(
+                    visibleAlbum != null, picker != null, addTo != null, elapsed, retryCount);
+            if (decision == AlbumPickerStepDecision.SELECT_VISIBLE_ALBUM)
+                return selectAlbum(visibleAlbum, album, prefs);
+            if (decision == AlbumPickerStepDecision.OPEN_ALBUM_PICKER) {
+                if (!click(picker)) return actionFailed("Album picker was not clickable");
+                advance(prefs, PHASE_FIND_OR_SEARCH);
+                toast("Keepers opened album picker");
+                return true;
+            }
+            if (decision == AlbumPickerStepDecision.RETRY_ADD_TO) {
+                if (!click(addTo)) return actionFailed("Add to control retry was not clickable");
+                prefs.edit().putLong(ALBUM_PHASE_STARTED_AT, System.currentTimeMillis())
+                        .putInt(ALBUM_ADD_TO_RETRY_COUNT, retryCount + 1).apply();
+                toast("Keepers retried Add to");
+                return true;
+            }
+            return false;
         }
         if (phase == PHASE_FIND_OR_SEARCH) {
             AccessibilityNodeInfo visibleAlbum = findAlbum(root, album);
@@ -111,7 +131,8 @@ public final class KeepersAccessibilityService extends AccessibilityService {
                     findEditableSearch(root) != null);
             if (!returned) return false;
             prefs.edit().remove(ALBUM_ARMED_UNTIL).remove(ALBUM_NAME)
-                    .remove(ALBUM_PHASE).apply();
+                    .remove(ALBUM_PHASE).remove(ALBUM_PHASE_STARTED_AT)
+                    .remove(ALBUM_ADD_TO_RETRY_COUNT).apply();
             toast("Keepers confirmed this photo in " + album);
             startNextApprovedAlbumAction();
             return true;
@@ -137,7 +158,9 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     }
 
     private void advance(SharedPreferences prefs, int phase) {
-        prefs.edit().putInt(ALBUM_PHASE, phase).apply();
+        prefs.edit().putInt(ALBUM_PHASE, phase)
+                .putLong(ALBUM_PHASE_STARTED_AT, System.currentTimeMillis())
+                .putInt(ALBUM_ADD_TO_RETRY_COUNT, 0).apply();
     }
 
     private boolean actionFailed(String message) {

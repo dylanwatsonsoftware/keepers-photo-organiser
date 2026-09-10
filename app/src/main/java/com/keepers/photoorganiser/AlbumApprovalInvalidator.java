@@ -11,6 +11,8 @@ public final class AlbumApprovalInvalidator {
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE)
                 .edit().remove(KeepersAccessibilityService.ALBUM_ARMED_UNTIL)
                 .remove(KeepersAccessibilityService.ALBUM_NAME)
-                .remove(KeepersAccessibilityService.ALBUM_PHASE).apply();
+                .remove(KeepersAccessibilityService.ALBUM_PHASE)
+                .remove(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT)
+                .remove(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT).apply();
     }
 }

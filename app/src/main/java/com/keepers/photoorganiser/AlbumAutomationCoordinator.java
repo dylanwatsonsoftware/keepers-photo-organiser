@@ -12,7 +12,10 @@ public final class AlbumAutomationCoordinator {
                         System.currentTimeMillis() + 120_000)
                 .putString(KeepersAccessibilityService.ALBUM_NAME, action.albumName())
                 .putInt(KeepersAccessibilityService.ALBUM_PHASE,
-                        KeepersAccessibilityService.PHASE_ADD_TO).apply();
+                        KeepersAccessibilityService.PHASE_ADD_TO)
+                .putLong(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT,
+                        System.currentTimeMillis())
+                .putInt(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT, 0).apply();
         return GooglePhotosIntentFactory.openExisting(Uri.parse(action.photoId()));
     }
 
@@ -20,6 +23,8 @@ public final class AlbumAutomationCoordinator {
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE).edit()
                 .remove(KeepersAccessibilityService.ALBUM_ARMED_UNTIL)
                 .remove(KeepersAccessibilityService.ALBUM_NAME)
-                .remove(KeepersAccessibilityService.ALBUM_PHASE).apply();
+                .remove(KeepersAccessibilityService.ALBUM_PHASE)
+                .remove(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT)
+                .remove(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT).apply();
     }
 }

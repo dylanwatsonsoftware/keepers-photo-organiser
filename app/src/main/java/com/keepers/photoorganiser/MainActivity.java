@@ -56,7 +56,10 @@ public final class MainActivity extends Activity {
                 .putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL,
                         System.currentTimeMillis() + 120_000)
                 .putString(KeepersAccessibilityService.ALBUM_NAME, album)
-                .putInt(KeepersAccessibilityService.ALBUM_PHASE, 0).apply();
+                .putInt(KeepersAccessibilityService.ALBUM_PHASE, 0)
+                .putLong(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT,
+                        System.currentTimeMillis())
+                .putInt(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT, 0).apply();
         Toast.makeText(this, "Armed for album “" + album + "”", Toast.LENGTH_LONG).show();
         Intent launch = getPackageManager().getLaunchIntentForPackage(
                 GooglePhotosIntentFactory.GOOGLE_PHOTOS_PACKAGE);
