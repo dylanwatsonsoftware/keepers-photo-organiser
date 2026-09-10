@@ -69,7 +69,7 @@ public class ReviewLayoutTest {
         return null;
     }
 
-    @Test public void albumReviewActionUsesTheCompactKeepersCallToAction() {
+    @Test public void albumActionClearlyDescribesAddingPhotosToAlbums() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
@@ -77,9 +77,21 @@ public class ReviewLayoutTest {
         assertTrue(action instanceof TextView);
         assertTrue(!(action instanceof Button));
         TextView label = (TextView) action;
-        assertTrue("Review albums".contentEquals(label.getText()));
+        assertTrue("Add to albums".contentEquals(label.getText()));
+        assertTrue("Review and add Keepers to Google Photos albums".contentEquals(
+                label.getContentDescription()));
         assertNotNull(label.getCompoundDrawablesRelative()[0]);
         assertTrue(label.isClickable());
+    }
+
+    @Test public void albumDestinationScreenNamesGooglePhotosExplicitly() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_album_review, null);
+        android.view.ViewGroup toolbar = (android.view.ViewGroup)
+                ((android.view.ViewGroup) layout).getChildAt(0);
+
+        assertTrue("Add to Google Photos albums".contentEquals(
+                ((TextView) toolbar.getChildAt(1)).getText()));
     }
 
     @Test public void galleryKeepsQuickReviewButMovesFeedbackExportToSettings() {
@@ -90,6 +102,7 @@ public class ReviewLayoutTest {
         assertTrue(quickReview instanceof TextView);
         assertTrue(!(quickReview instanceof Button));
         assertNotNull(quickReview.getBackground());
+        assertNotNull(((TextView) quickReview).getCompoundDrawablesRelative()[0]);
         assertTrue(layout.getResources().getIdentifier("export_feedback", "id",
                 layout.getContext().getPackageName()) == 0);
     }

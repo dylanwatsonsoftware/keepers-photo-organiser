@@ -197,6 +197,7 @@ public class PreviewQuickReviewTest {
         assertEquals(View.GONE, normalBadge.getVisibility());
         assertEquals(View.VISIBLE, quickBadge.getVisibility());
         assertTrue(quickBadge.getText().toString().contains("Quick review"));
+        assertTrue(quickBadge.getCompoundDrawablesRelative()[0] != null);
         assertEquals(0, normalParams.leftMargin);
         assertTrue(quickParams.leftMargin >= 24);
         assertTrue(quickCard.getClipToOutline());
