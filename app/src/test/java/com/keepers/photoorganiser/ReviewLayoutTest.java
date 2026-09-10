@@ -5,8 +5,11 @@ import static org.junit.Assert.assertNotNull;
 
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Gravity;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.TextView;
@@ -94,15 +97,20 @@ public class ReviewLayoutTest {
                 ((TextView) toolbar.getChildAt(1)).getText()));
     }
 
-    @Test public void galleryKeepsQuickReviewButMovesFeedbackExportToSettings() {
+    @Test public void galleryCentersQuickReviewIconAndLabelAsOneGroup() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
         View quickReview = layout.findViewById(R.id.open_quick_review);
-        assertTrue(quickReview instanceof TextView);
+        assertTrue(quickReview instanceof FrameLayout);
         assertTrue(!(quickReview instanceof Button));
         assertNotNull(quickReview.getBackground());
-        assertNotNull(((TextView) quickReview).getCompoundDrawablesRelative()[0]);
+        LinearLayout content = (LinearLayout) ((FrameLayout) quickReview).getChildAt(0);
+        assertTrue(content.getGravity() == Gravity.CENTER);
+        assertTrue(content.getChildAt(0) instanceof ImageView);
+        assertTrue(content.getChildAt(1) instanceof TextView);
+        assertTrue("Quick review".contentEquals(
+                ((TextView) content.getChildAt(1)).getText()));
         assertTrue(layout.getResources().getIdentifier("export_feedback", "id",
                 layout.getContext().getPackageName()) == 0);
     }
