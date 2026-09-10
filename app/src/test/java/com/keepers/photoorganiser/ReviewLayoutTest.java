@@ -65,4 +65,18 @@ public class ReviewLayoutTest {
         assertNotNull(label.getCompoundDrawablesRelative()[0]);
         assertTrue(label.isClickable());
     }
+
+    @Test public void galleryOffersStyledQuickReviewAndFeedbackExportActions() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+
+        View quickReview = layout.findViewById(R.id.open_quick_review);
+        View export = layout.findViewById(R.id.export_feedback);
+        assertTrue(quickReview instanceof TextView);
+        assertTrue(export instanceof TextView);
+        assertTrue(!(quickReview instanceof Button));
+        assertTrue(!(export instanceof Button));
+        assertNotNull(quickReview.getBackground());
+        assertNotNull(export.getBackground());
+    }
 }

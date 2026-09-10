@@ -12,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.GridLayout;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
@@ -29,6 +30,7 @@ import java.time.ZoneId;
 import java.util.Locale;
 
 public final class PreviewActivity extends Activity {
+    public static final String EXTRA_QUICK_REVIEW = "quick_review";
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
     private KeeperSelectionStore store;
@@ -57,11 +59,13 @@ public final class PreviewActivity extends Activity {
     private boolean zoomGestureInProgress;
     private float lastPanRawX;
     private float lastPanRawY;
+    private boolean quickReview;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_preview);
         photo = getIntent().getData();
+        quickReview = getIntent().getBooleanExtra(EXTRA_QUICK_REVIEW, false);
         store = new KeeperSelectionStore(this);
         suggestionStore = new SuggestionStore(this);
         loader = AsyncThumbnailLoader.forResolver(getContentResolver());
@@ -117,6 +121,8 @@ public final class PreviewActivity extends Activity {
             showStackCarousel();
         });
         findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
+        if (quickReview) ((TextView) findViewById(R.id.preview_hint)).setText(
+                "Swipe right to keep  ·  Swipe left to pass  ·  Up for details");
         updateButton();
     }
 
@@ -311,7 +317,8 @@ public final class PreviewActivity extends Activity {
                 return true;
             }
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
-                showDragPreview(deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
+                showDragPreview(quickReview ? navigator.peekNext()
+                        : deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
                 CarouselTransform carousel = CarouselTransform.from(deltaX,
                         previewStage.getWidth(), dp(8));
                 image.setTranslationX(carousel.currentX());
@@ -358,6 +365,19 @@ public final class PreviewActivity extends Activity {
             resetPosition(image);
             return true;
         }
+        if (quickReview && (direction == SwipeDirection.NEXT
+                || direction == SwipeDirection.PREVIOUS)) {
+            applyQuickReviewDecision(QuickReviewDecision.fromSwipe(releaseDeltaX, dp(64)));
+            Uri target = navigator.peekNext();
+            resetPosition(image);
+            adjacentSurface.setVisibility(View.INVISIBLE);
+            if (target.equals(photo)) {
+                Toast.makeText(this, "Quick review complete", Toast.LENGTH_SHORT).show();
+            } else {
+                selectStackPhoto(target);
+            }
+            return true;
+        }
         Uri target = direction == SwipeDirection.NEXT
                 ? navigator.peekNext() : navigator.peekPrevious();
         if (target.equals(photo)) { resetPosition(image); return true; }
@@ -374,6 +394,15 @@ public final class PreviewActivity extends Activity {
         adjacentSurface.animate().translationX(0).setDuration(140)
                 .withEndAction(this::promoteAdjacentPage).start();
         return true;
+    }
+
+    private void applyQuickReviewDecision(QuickReviewDecision decision) {
+        boolean selected = store.load().contains(photo.toString());
+        boolean shouldSelect = decision == QuickReviewDecision.KEEP;
+        if (decision == QuickReviewDecision.NONE) return;
+        if (selected != shouldSelect) store.toggle(photo);
+        recordHeartFeedback(shouldSelect);
+        updateButton();
     }
 
     private void promoteAdjacentPage() {
