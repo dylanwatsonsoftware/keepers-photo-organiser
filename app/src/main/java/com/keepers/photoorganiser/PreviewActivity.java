@@ -51,6 +51,7 @@ public final class PreviewActivity extends Activity {
     private List<Uri> allPhotos = List.of();
     private GestureCoordinates analysisGesture;
     private boolean analysisPulling;
+    private boolean analysisSwiping;
     private final PhotoZoomState zoomState = new PhotoZoomState();
     private ScaleGestureDetector scaleGestureDetector;
     private boolean zoomGestureInProgress;
@@ -209,16 +210,33 @@ public final class PreviewActivity extends Activity {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             analysisGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
             analysisPulling = false;
+            analysisSwiping = false;
             return false;
         }
+        float deltaX = analysisGesture == null ? 0 : analysisGesture.deltaX(event.getRawX());
         float pull = analysisGesture == null ? 0 : analysisGesture.deltaY(event.getRawY());
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            if (analysisSwiping || AnalysisGestureRouting.isHorizontalPageSwipe(
+                    deltaX, pull, dp(8))) {
+                analysisSwiping = true;
+                return true;
+            }
             if (analysisSheet.getScrollY() > 0 || pull <= dp(4)) return false;
             analysisPulling = true;
             AnalysisSheetTransform transform = AnalysisSheetTransform.fromOpenPull(pull,
                     previewStage.getHeight(), dp(72));
             setPhotoChromeTranslation(transform.photoTranslationY());
             analysisSheet.setTranslationY(transform.sheetTranslationY());
+            return true;
+        }
+        if (analysisSwiping) {
+            if (event.getAction() == MotionEvent.ACTION_UP
+                    && AnalysisGestureRouting.isHorizontalPageSwipe(deltaX, pull, dp(64))) {
+                Uri target = deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious();
+                if (!target.equals(photo)) selectStackPhoto(target);
+            }
+            if (event.getAction() == MotionEvent.ACTION_UP
+                    || event.getAction() == MotionEvent.ACTION_CANCEL) analysisSwiping = false;
             return true;
         }
         if (!analysisPulling) return false;

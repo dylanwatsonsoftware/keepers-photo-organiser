@@ -20,6 +20,14 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
+    @Test public void metadataSheetExplainsHorizontalPhotoNavigation() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        TextView hint = layout.findViewById(R.id.preview_analysis_navigation_hint);
+        assertNotNull(hint);
+        assertTrue(hint.getText().toString().contains("Swipe left or right"));
+    }
     @Test public void analysisOffersAStyledRecommendationFeedbackAction() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

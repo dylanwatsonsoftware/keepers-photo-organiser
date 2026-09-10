@@ -10,4 +10,11 @@ public class AnalysisGestureRoutingTest {
         assertFalse(AnalysisGestureRouting.handleAsPhotoGesture(true));
         assertTrue(AnalysisGestureRouting.handleAsPhotoGesture(false));
     }
+
+    @Test public void openAssessmentRoutesHorizontalSwipesBetweenPhotos() {
+        assertTrue(AnalysisGestureRouting.isHorizontalPageSwipe(-70, 12, 64));
+        assertTrue(AnalysisGestureRouting.isHorizontalPageSwipe(70, -12, 64));
+        assertFalse(AnalysisGestureRouting.isHorizontalPageSwipe(12, 70, 64));
+        assertFalse(AnalysisGestureRouting.isHorizontalPageSwipe(40, 2, 64));
+    }
 }

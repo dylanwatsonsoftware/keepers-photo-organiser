@@ -149,6 +149,16 @@
             android:paddingBottom="28dp">
 
             <TextView
+                android:id="@+id/preview_analysis_navigation_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:gravity="center"
+                android:text="Swipe left or right for the next photo’s details"
+                android:textColor="#5F6368"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/preview_analysis_faces_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
