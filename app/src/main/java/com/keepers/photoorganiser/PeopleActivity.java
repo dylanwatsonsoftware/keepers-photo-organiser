@@ -148,9 +148,9 @@ public final class PeopleActivity extends Activity {
         List<TrackedPerson> people = currentPeople();
         Map<String, String> assignments = new FaceGroupAssignmentStore(this).load();
         Map<String, String> corrections = new FaceCorrectionStore(this).load();
-        Map<String, String> predictions = FaceIdentityLearner.predict(
+        Map<String, String> predictions = visiblePredictions(FaceIdentityLearner.predict(
                 new FaceObservationStore(this).loadAll(), groups, assignments,
-                corrections, FaceGroupSuggestion.MAXIMUM_DISTANCE);
+                corrections, FaceGroupSuggestion.MAXIMUM_DISTANCE));
         groups = FaceReviewInbox.order(groups, assignments, corrections, predictions);
         long needsReview = groups.stream().filter(group -> FaceReviewInbox.needsReview(
                 group, assignments, corrections)).count();
@@ -215,6 +215,8 @@ public final class PeopleActivity extends Activity {
         String currentAssignment = FaceGroupAssignmentResolver.personFor(group, assignments);
         String predictedId = FaceGroupSuggestion.personId(group, predictions);
         if (currentAssignment.isBlank() && !predictedId.isBlank()) {
+            LinearLayout suggestionActions = new LinearLayout(this);
+            suggestionActions.setOrientation(LinearLayout.HORIZONTAL);
             TextView suggestion = new TextView(this);
             String predictedName = personName(predictedId, people);
             suggestion.setText("Likely " + predictedName);
@@ -228,10 +230,29 @@ public final class PeopleActivity extends Activity {
             suggestion.setContentDescription("Confirm this face group as " + predictedName);
             suggestion.setOnClickListener(view -> applyGroupChoice(
                     group, currentAssignment, predictedId));
-            LinearLayout.LayoutParams suggestionParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(40));
-            suggestionParams.setMargins(0, dp(6), 0, dp(3));
-            details.addView(suggestion, suggestionParams);
+            LinearLayout.LayoutParams suggestionParams = new LinearLayout.LayoutParams(0, dp(40), 1);
+            suggestionActions.addView(suggestion, suggestionParams);
+
+            TextView decline = new TextView(this);
+            decline.setText("Not " + predictedName);
+            decline.setTextColor(0xFF3C4043);
+            decline.setTextSize(13);
+            decline.setTypeface(null, android.graphics.Typeface.BOLD);
+            decline.setGravity(Gravity.CENTER);
+            decline.setBackgroundResource(R.drawable.gallery_filter_chip);
+            decline.setClickable(true);
+            decline.setFocusable(true);
+            decline.setContentDescription("Decline suggestion that this face group is "
+                    + predictedName);
+            decline.setOnClickListener(view -> declineGroupSuggestion(group, predictedId));
+            LinearLayout.LayoutParams declineParams = new LinearLayout.LayoutParams(0, dp(40), 1);
+            declineParams.setMargins(dp(6), 0, 0, 0);
+            suggestionActions.addView(decline, declineParams);
+
+            LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            actionsParams.setMargins(0, dp(6), 0, dp(3));
+            details.addView(suggestionActions, actionsParams);
         }
 
         ArrayList<PersonChoice> choices = new ArrayList<>();
@@ -265,6 +286,23 @@ public final class PeopleActivity extends Activity {
         FaceCorrectionStore faceCorrections = new FaceCorrectionStore(this);
         faceCorrections.save(FaceGroupEvidence.applyChoice(group,
                 faceCorrections.load(), currentAssignment, selectedId));
+        AlbumApprovalInvalidator.invalidate(this);
+        containerForGroups().post(this::showDiscoveredGroups);
+    }
+
+    private Map<String, String> visiblePredictions(Map<String, String> predictions) {
+        FaceSuggestionRejectionStore rejections = new FaceSuggestionRejectionStore(this);
+        HashMap<String, String> visible = new HashMap<>();
+        predictions.forEach((faceKey, personId) -> {
+            if (!rejections.isRejected(faceKey, personId)) visible.put(faceKey, personId);
+        });
+        return Map.copyOf(visible);
+    }
+
+    private void declineGroupSuggestion(FaceIdentityGroup group, String personId) {
+        FaceSuggestionRejectionStore rejections = new FaceSuggestionRejectionStore(this);
+        for (FaceObservation face : group.members())
+            rejections.reject(FaceCorrectionStore.key(face), personId);
         AlbumApprovalInvalidator.invalidate(this);
         containerForGroups().post(this::showDiscoveredGroups);
     }
