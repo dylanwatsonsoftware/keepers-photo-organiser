@@ -109,10 +109,11 @@ public class ReviewActivityTest {
         assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
     }
 
-    @Test public void importButtonOpensAndroidsMultiPhotoPicker() {
-        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
-
-        activity.findViewById(R.id.import_photos).performClick();
+    @Test public void settingsDeviceImportActionOpensAndroidsMultiPhotoPicker() {
+        Intent request = new Intent(org.robolectric.RuntimeEnvironment.getApplication(),
+                ReviewActivity.class).setAction(ReviewActivity.ACTION_IMPORT_DEVICE_PHOTOS);
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class, request)
+                .setup().get();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivityForResult().intent;
         assertEquals(android.provider.MediaStore.ACTION_PICK_IMAGES, started.getAction());
@@ -127,9 +128,6 @@ public class ReviewActivityTest {
         activity.importCompletedGoogleSelection(() -> importStarted.set(true));
 
         assertTrue(importStarted.get());
-        TextView action = activity.findViewById(R.id.import_google_photos);
-        assertEquals("Adding to review…", action.getText().toString());
-        assertTrue(!action.isEnabled());
     }
 
     @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {

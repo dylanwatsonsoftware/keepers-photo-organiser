@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,17 +41,31 @@ public class ReviewLayoutTest {
         LinearLayout summary = layout.findViewById(R.id.photo_summary);
         assertNotNull(summary);
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
-        assertNotNull(layout.findViewById(R.id.filter_keepers));
-        assertNotNull(layout.findViewById(R.id.filter_recommended));
-        View googlePhotos = layout.findViewById(R.id.import_google_photos);
-        assertTrue(googlePhotos instanceof TextView);
-        assertTrue(!(googlePhotos instanceof Button));
-        assertTrue(googlePhotos.isClickable());
+        LinearLayout filters = layout.findViewById(R.id.review_filter_chips);
+        assertNotNull(filters);
+        assertTrue(filters.getParent() instanceof HorizontalScrollView);
+        assertTrue(layout.findViewById(R.id.filter_keepers).getParent() == filters);
+        assertTrue(layout.findViewById(R.id.filter_recommended).getParent() == filters);
+        assertTrue(layout.findViewById(R.id.filter_origin_local).getParent() == filters);
+        assertTrue(layout.findViewById(R.id.filter_origin_cloud).getParent() == filters);
+        assertTrue(findViewWithText(layout, "On-device photos") == null);
+        assertTrue(findViewWithText(layout, "Google Photos") == null);
         View metadata = layout.findViewById(R.id.toggle_metadata);
         assertTrue(metadata instanceof TextView);
         assertTrue(!(metadata instanceof Button));
         assertTrue(metadata.isClickable());
         assertNotNull(metadata.getBackground());
+    }
+
+    private static View findViewWithText(View view, String text) {
+        if (view instanceof TextView && text.contentEquals(((TextView) view).getText())) return view;
+        if (!(view instanceof android.view.ViewGroup)) return null;
+        android.view.ViewGroup group = (android.view.ViewGroup) view;
+        for (int index = 0; index < group.getChildCount(); index++) {
+            View match = findViewWithText(group.getChildAt(index), text);
+            if (match != null) return match;
+        }
+        return null;
     }
 
     @Test public void albumReviewActionUsesTheCompactKeepersCallToAction() {

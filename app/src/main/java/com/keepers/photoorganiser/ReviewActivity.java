@@ -48,6 +48,10 @@ public final class ReviewActivity extends Activity {
             "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
     private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
+    public static final String ACTION_IMPORT_DEVICE_PHOTOS =
+            "com.keepers.photoorganiser.action.IMPORT_DEVICE_PHOTOS";
+    public static final String ACTION_IMPORT_GOOGLE_PHOTOS =
+            "com.keepers.photoorganiser.action.IMPORT_GOOGLE_PHOTOS";
     private static final int PHOTO_PERMISSION = 200;
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
@@ -95,10 +99,7 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
         findViewById(R.id.export_feedback).setOnClickListener(view -> exportFeedback());
-        findViewById(R.id.import_photos).setOnClickListener(view -> openPhotoPicker());
-        findViewById(R.id.import_google_photos).setOnClickListener(view ->
-                openGooglePhotosPicker());
-        findViewById(R.id.filter_origin_all).setOnClickListener(view -> setOriginFilter(null));
+        findViewById(R.id.filter_origin_all).setOnClickListener(view -> showAllPhotos());
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.LOCAL));
         findViewById(R.id.filter_origin_cloud).setOnClickListener(view ->
@@ -110,6 +111,27 @@ public final class ReviewActivity extends Activity {
                     content.getHeight(), hasMorePhotos)) loadNextPage();
         });
         loadOrRequestPhotos();
+        handleImportAction(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleImportAction(intent);
+    }
+
+    private void handleImportAction(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        intent.setAction(null);
+        if (ACTION_IMPORT_DEVICE_PHOTOS.equals(action)) openPhotoPicker();
+        else if (ACTION_IMPORT_GOOGLE_PHOTOS.equals(action)) openGooglePhotosPicker();
+    }
+
+    private void showAllPhotos() {
+        galleryFilter = GalleryFilter.ALL;
+        originFilter = null;
+        applyFilter();
     }
 
     private static FaceAnalyzer createFaceAnalyzer() {
@@ -491,7 +513,6 @@ public final class ReviewActivity extends Activity {
             showPickerError("Google Photos did not return access permission");
             return;
         }
-        findViewById(R.id.import_google_photos).setEnabled(false);
         Toast.makeText(this, "Opening your Google Photos library…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
@@ -500,8 +521,6 @@ public final class ReviewActivity extends Activity {
                 pickerAccessToken = accessToken;
                 pickerSessionId = session.id();
                 new Handler(Looper.getMainLooper()).post(() -> {
-                    TextView action = findViewById(R.id.import_google_photos);
-                    action.setText("Waiting for photo…");
                     startActivity(PickerBrowserIntentFactory.create(
                             Uri.parse(session.pickerUri())));
                 });
@@ -534,15 +553,11 @@ public final class ReviewActivity extends Activity {
     }
 
     void importCompletedGoogleSelection(Runnable importSelectedPhoto) {
-        TextView action = findViewById(R.id.import_google_photos);
-        action.setEnabled(false);
-        action.setText("Adding to review…");
-        action.setContentDescription("Adding the selected Google Photos photo to review");
+        Toast.makeText(this, "Adding selected photos to review…", Toast.LENGTH_SHORT).show();
         importSelectedPhoto.run();
     }
 
     private void showPickedPhotos(List<GooglePhotosPickerApi.PickedMedia> selectedMedia) {
-        TextView action = findViewById(R.id.import_google_photos);
         new Thread(() -> {
             CloudPhotoBatchImporter.Result result = new CloudPhotoBatchImporter(this,
                     media -> GooglePhotosPickerApi.downloadDisplayBitmap(
@@ -560,10 +575,6 @@ public final class ReviewActivity extends Activity {
                 image.setAdjustViewBounds(true);
                 image.setImageBitmap(result.preview());
                 showPickedPhotoDialog(image, result.importedCount(), result.selectedCount());
-                action.setEnabled(true);
-                action.setText("Google Photos");
-                action.setContentDescription("Select photos from Google Photos");
-                action.setOnClickListener(view -> openGooglePhotosPicker());
             });
         }, "google-photos-picker-image").start();
     }
@@ -620,14 +631,7 @@ public final class ReviewActivity extends Activity {
     }
 
     private void resetGooglePhotosAction(String error) {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            TextView action = findViewById(R.id.import_google_photos);
-            action.setEnabled(true);
-            action.setText("Google Photos");
-            action.setContentDescription("Select photos from Google Photos");
-            action.setOnClickListener(view -> openGooglePhotosPicker());
-            showPickerError(error);
-        });
+        new Handler(Looper.getMainLooper()).post(() -> showPickerError(error));
     }
 
     private void showPickerError(String message) {

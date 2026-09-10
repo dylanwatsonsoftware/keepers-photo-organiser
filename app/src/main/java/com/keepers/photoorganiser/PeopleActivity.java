@@ -38,6 +38,10 @@ public final class PeopleActivity extends Activity {
             nextPersonNumber = Math.max(nextPersonNumber, numberAfterPrefix(person.id()) + 1);
         }
         findViewById(R.id.people_back).setOnClickListener(view -> finish());
+        findViewById(R.id.settings_import_device).setOnClickListener(view ->
+                openImport(ReviewActivity.ACTION_IMPORT_DEVICE_PHOTOS));
+        findViewById(R.id.settings_import_google_photos).setOnClickListener(view ->
+                openImport(ReviewActivity.ACTION_IMPORT_GOOGLE_PHOTOS));
         findViewById(R.id.add_person).setOnClickListener(view -> {
             TrackedPerson person = new TrackedPerson(nextPersonId(), "", "", true);
             ArrayList<TrackedPerson> changed = new ArrayList<>(new TrackedPersonStore(this).load());
@@ -54,6 +58,12 @@ public final class PeopleActivity extends Activity {
             showConfirmedFaces = !showConfirmedFaces;
             showDiscoveredGroups();
         });
+    }
+
+    private void openImport(String action) {
+        startActivity(new Intent(this, ReviewActivity.class)
+                .setAction(action)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     @Override protected void onResume() {

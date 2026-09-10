@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.widget.EditText;
 import android.widget.Button;
@@ -23,6 +24,35 @@ import android.content.Intent;
 
 @RunWith(RobolectricTestRunner.class)
 public class PeopleActivityTest {
+    @Test public void settingsOffersStyledDeviceAndGooglePhotosImports() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        View device = activity.findViewById(R.id.settings_import_device);
+        View google = activity.findViewById(R.id.settings_import_google_photos);
+        assertTrue(device instanceof TextView);
+        assertTrue(google instanceof TextView);
+        assertTrue(!(device instanceof Button));
+        assertTrue(!(google instanceof Button));
+        assertTrue(device.isClickable());
+        assertTrue(google.isClickable());
+        assertTrue(device.getBackground() != null);
+        assertTrue(google.getBackground() != null);
+    }
+
+    @Test public void settingsImportChoicesReturnToTheReviewPickerFlow() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        activity.findViewById(R.id.settings_import_device).performClick();
+        Intent device = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(ReviewActivity.class.getName(), device.getComponent().getClassName());
+        assertEquals(ReviewActivity.ACTION_IMPORT_DEVICE_PHOTOS, device.getAction());
+        assertTrue((device.getFlags() & Intent.FLAG_ACTIVITY_CLEAR_TOP) != 0);
+
+        activity.findViewById(R.id.settings_import_google_photos).performClick();
+        Intent google = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(ReviewActivity.ACTION_IMPORT_GOOGLE_PHOTOS, google.getAction());
+    }
+
     @Test public void canAddMoreThanThreePeople() {
         android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
         new TrackedPersonStore(context).save(List.of(
