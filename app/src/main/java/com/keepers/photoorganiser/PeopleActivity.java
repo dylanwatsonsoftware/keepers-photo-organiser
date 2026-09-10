@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 
 public final class PeopleActivity extends Activity {
@@ -149,12 +148,10 @@ public final class PeopleActivity extends Activity {
         List<TrackedPerson> people = currentPeople();
         Map<String, String> assignments = new FaceGroupAssignmentStore(this).load();
         Map<String, String> corrections = new FaceCorrectionStore(this).load();
-        groups = groups.stream().sorted(Comparator
-                .comparingInt((FaceIdentityGroup group) -> FaceReviewInbox.needsReview(
-                        group, assignments, corrections) ? 0 : 1)
-                .thenComparing(Comparator.comparingLong((FaceIdentityGroup group) ->
-                        group.photoIds().stream().distinct().count()).reversed())
-                .thenComparing(FaceIdentityGroup::id)).toList();
+        Map<String, String> predictions = FaceIdentityLearner.predict(
+                new FaceObservationStore(this).loadAll(), groups, assignments,
+                corrections, FaceGroupSuggestion.MAXIMUM_DISTANCE);
+        groups = FaceReviewInbox.order(groups, assignments, corrections, predictions);
         long needsReview = groups.stream().filter(group -> FaceReviewInbox.needsReview(
                 group, assignments, corrections)).count();
         int confirmed = groups.size() - (int) needsReview;
@@ -168,9 +165,6 @@ public final class PeopleActivity extends Activity {
                         : "All discovered face groups have feedback."
                 : needsReview + (needsReview == 1 ? " group needs" : " groups need")
                         + " your feedback.");
-        Map<String, String> predictions = FaceIdentityLearner.predict(
-                new FaceObservationStore(this).loadAll(), groups, assignments,
-                corrections, FaceGroupSuggestion.MAXIMUM_DISTANCE);
         Map<String, FaceObservation> portraits = portraits(groups, assignments);
         for (FaceIdentityGroup group : groups) {
             if (!showConfirmedFaces && !FaceReviewInbox.needsReview(

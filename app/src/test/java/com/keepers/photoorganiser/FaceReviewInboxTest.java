@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -22,6 +23,16 @@ public class FaceReviewInboxTest {
 
         assertTrue(FaceReviewInbox.needsReview(group, Map.of(), Map.of()));
         assertTrue(FaceReviewInbox.needsReview(group, Map.of(), Map.of("a#0", "ada")));
+    }
+
+    @Test public void predictedGroupsComeBeforeLargerUnpredictedGroups() {
+        FaceIdentityGroup unpredicted = group("unpredicted", "a", "b", "c");
+        FaceIdentityGroup predicted = group("predicted", "d");
+
+        List<FaceIdentityGroup> ordered = FaceReviewInbox.order(
+                List.of(unpredicted, predicted), Map.of(), Map.of(), Map.of("d#0", "ada"));
+
+        assertEquals(List.of(predicted, unpredicted), ordered);
     }
 
     private static FaceIdentityGroup group(String id, String... photos) {
