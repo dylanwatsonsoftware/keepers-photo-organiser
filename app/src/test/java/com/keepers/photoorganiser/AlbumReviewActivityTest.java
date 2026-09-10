@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;
 
@@ -8,6 +9,7 @@ import android.widget.CheckBox;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.GridLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View;
@@ -53,7 +55,7 @@ public class AlbumReviewActivityTest {
 
         assertEquals(2, queue.getChildCount());
         LinearLayout first = (LinearLayout) queue.getChildAt(0);
-        GridLayout people = (GridLayout) first.getChildAt(2);
+        GridLayout people = destinations(first);
         assertEquals(3, people.getChildCount());
         View ada = people.getChildAt(0);
         assertEquals("Ada", ((TextView) ((ViewGroup) ada).getChildAt(1)).getText().toString());
@@ -72,7 +74,7 @@ public class AlbumReviewActivityTest {
                 .setup().get();
         LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
                 R.id.album_review_items).getChildAt(0);
-        GridLayout people = (GridLayout) first.getChildAt(2);
+        GridLayout people = destinations(first);
         View ben = people.getChildAt(1);
 
         assertEquals(View.GONE, ben.findViewWithTag("assignment_source").getVisibility());
@@ -92,7 +94,7 @@ public class AlbumReviewActivityTest {
                 .setup().get();
         LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
                 R.id.album_review_items).getChildAt(0);
-        GridLayout destinations = (GridLayout) first.getChildAt(2);
+        GridLayout destinations = destinations(first);
 
         assertEquals(4, destinations.getChildCount());
         View album = destinations.getChildAt(3);
@@ -122,24 +124,28 @@ public class AlbumReviewActivityTest {
         assertEquals("content://photos/a", opened.getDataString());
     }
 
-    @Test public void albumCardsUseCompactFullImagePreviewsAndDenseDestinations() {
+    @Test public void albumCardsUseCompactFullImageRowsWithoutLetterboxPanels() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
                 .setup().get();
         LinearLayout card = (LinearLayout) activity.<LinearLayout>findViewById(
                 R.id.album_review_items).getChildAt(0);
         ImageView photo = (ImageView) card.getChildAt(0);
-        GridLayout destinations = (GridLayout) card.getChildAt(2);
+        HorizontalScrollView destinationScroll = findFirst(card, HorizontalScrollView.class);
+        assertNotNull(destinationScroll);
+        GridLayout destinations = findFirst(destinationScroll, GridLayout.class);
         ViewGroup firstDestination = (ViewGroup) destinations.getChildAt(0);
         View destinationImage = firstDestination.getChildAt(0);
         float density = activity.getResources().getDisplayMetrics().density;
 
+        assertEquals(LinearLayout.HORIZONTAL, card.getOrientation());
         assertEquals(ImageView.ScaleType.FIT_CENTER, photo.getScaleType());
+        assertEquals(Math.round(92 * density), photo.getLayoutParams().width);
         assertEquals(Math.round(112 * density), photo.getLayoutParams().height);
-        assertTrue(photo.getBackground() != null);
-        assertEquals(4, destinations.getColumnCount());
-        assertTrue(firstDestination.getLayoutParams().width <= Math.round(78 * density));
-        assertTrue(destinationImage.getLayoutParams().width <= Math.round(64 * density));
+        assertNull(photo.getBackground());
+        assertEquals(1, destinations.getRowCount());
+        assertTrue(firstDestination.getLayoutParams().width <= Math.round(70 * density));
+        assertTrue(destinationImage.getLayoutParams().width <= Math.round(56 * density));
     }
 
     @Test public void correctionIsPersistedImmediately() {
@@ -154,7 +160,7 @@ public class AlbumReviewActivityTest {
         assertEquals("Add 1 album change", confirm.getText().toString());
         assertTrue(confirm.isEnabled());
 
-        ((GridLayout) first.getChildAt(2)).getChildAt(0).performClick();
+        destinations(first).getChildAt(0).performClick();
 
         assertEquals(Set.of(), new AlbumReviewSelectionStore(activity).load());
         assertEquals("No album changes selected", confirm.getText().toString());
@@ -176,7 +182,7 @@ public class AlbumReviewActivityTest {
         assertEquals("Show reviewed (1)", toggle.getText().toString());
         toggle.performClick();
         LinearLayout first = (LinearLayout) items.getChildAt(0);
-        View ada = ((GridLayout) first.getChildAt(2)).getChildAt(0);
+        View ada = destinations(first).getChildAt(0);
 
         assertTrue(!ada.isSelected());
         assertEquals("Added", ((TextView) ada.findViewWithTag("assignment_source"))
@@ -389,5 +395,9 @@ public class AlbumReviewActivityTest {
             if (found != null) return found;
         }
         return null;
+    }
+
+    private static GridLayout destinations(View card) {
+        return card.findViewWithTag("album_destinations");
     }
 }
