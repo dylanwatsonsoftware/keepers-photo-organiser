@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,13 +22,17 @@ final class GooglePhotosPickerApi {
             "\\\"pickerUri\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
     private static final Pattern ID = Pattern.compile(
             "\\\"id\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
-    private static final Pattern BASE_URL = Pattern.compile(
-            "\\\"baseUrl\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final Pattern MEDIA_ITEM = Pattern.compile(
+            "\\\"id\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"(?:(?!\\\"id\\\").)*?"
+                    + "\\\"baseUrl\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"", Pattern.DOTALL);
+    private static final Pattern NEXT_PAGE_TOKEN = Pattern.compile(
+            "\\\"nextPageToken\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
 
     private GooglePhotosPickerApi() {}
 
     record PickerSession(String id, String pickerUri) {}
     record PickedMedia(String id, String displayUrl) {}
+    record MediaPage(List<PickedMedia> items, String nextPageToken) {}
 
     static PickerSession createSession(String accessToken) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(SESSIONS_URL).openConnection();
@@ -37,10 +43,14 @@ final class GooglePhotosPickerApi {
         connection.setReadTimeout(15_000);
         connection.setDoOutput(true);
         try (OutputStream output = connection.getOutputStream()) {
-            output.write("{\"pickingConfig\":{\"maxItemCount\":\"1\"}}"
+            output.write(sessionRequestBody()
                     .getBytes(StandardCharsets.UTF_8));
         }
         return parseSession(readResponse(connection));
+    }
+
+    static String sessionRequestBody() {
+        return "{\"pickingConfig\":{\"maxItemCount\":\"100\"}}";
     }
 
     static boolean selectionIsComplete(String response) {
@@ -53,11 +63,19 @@ final class GooglePhotosPickerApi {
         return selectionIsComplete(readResponse(connection));
     }
 
-    static PickedMedia firstMedia(String accessToken, String sessionId) throws IOException {
-        HttpURLConnection connection = authorizedGet(
-                "https://photospicker.googleapis.com/v1/mediaItems?sessionId="
-                        + Uri.encode(sessionId) + "&pageSize=1", accessToken);
-        return parseFirstMedia(readResponse(connection));
+    static List<PickedMedia> allMedia(String accessToken, String sessionId) throws IOException {
+        ArrayList<PickedMedia> result = new ArrayList<>();
+        String pageToken = null;
+        do {
+            String url = "https://photospicker.googleapis.com/v1/mediaItems?sessionId="
+                    + Uri.encode(sessionId) + "&pageSize=100";
+            if (pageToken != null) url += "&pageToken=" + Uri.encode(pageToken);
+            MediaPage page = parseMediaPage(readResponse(authorizedGet(url, accessToken)));
+            result.addAll(page.items());
+            pageToken = page.nextPageToken();
+        } while (pageToken != null && !pageToken.isBlank());
+        if (result.isEmpty()) throw new IllegalArgumentException("No selected photos were returned");
+        return List.copyOf(result);
     }
 
     static PickerSession parseSession(String response) {
@@ -73,12 +91,19 @@ final class GooglePhotosPickerApi {
     }
 
     static PickedMedia parseFirstMedia(String response) {
-        Matcher id = ID.matcher(response);
-        Matcher baseUrl = BASE_URL.matcher(response);
-        if (!id.find() || !baseUrl.find())
+        List<PickedMedia> items = parseMediaPage(response).items();
+        if (items.isEmpty())
             throw new IllegalArgumentException("No selected photo was returned");
-        return new PickedMedia(id.group(1), baseUrl.group(1).replace("\\/", "/")
-                + "=w1200-h1200");
+        return items.get(0);
+    }
+
+    static MediaPage parseMediaPage(String response) {
+        ArrayList<PickedMedia> items = new ArrayList<>();
+        Matcher media = MEDIA_ITEM.matcher(response);
+        while (media.find()) items.add(new PickedMedia(media.group(1),
+                media.group(2).replace("\\/", "/") + "=w1200-h1200"));
+        Matcher next = NEXT_PAGE_TOKEN.matcher(response);
+        return new MediaPage(List.copyOf(items), next.find() ? next.group(1) : null);
     }
 
     static Bitmap downloadDisplayBitmap(String accessToken, PickedMedia media)

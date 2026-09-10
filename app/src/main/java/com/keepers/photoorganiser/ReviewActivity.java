@@ -455,10 +455,10 @@ public final class ReviewActivity extends Activity {
                 for (int attempt = 0; attempt < 100; attempt++) {
                     if (GooglePhotosPickerApi.selectionIsComplete(
                             pickerAccessToken, pickerSessionId)) {
-                        GooglePhotosPickerApi.PickedMedia media = GooglePhotosPickerApi.firstMedia(
+                        List<GooglePhotosPickerApi.PickedMedia> media = GooglePhotosPickerApi.allMedia(
                                 pickerAccessToken, pickerSessionId);
                         new Handler(Looper.getMainLooper()).post(() ->
-                                importCompletedGoogleSelection(() -> showPickedPhoto(media)));
+                                importCompletedGoogleSelection(() -> showPickedPhotos(media)));
                         return;
                     }
                     Thread.sleep(3_000);
@@ -478,35 +478,34 @@ public final class ReviewActivity extends Activity {
         importSelectedPhoto.run();
     }
 
-    private void showPickedPhoto(GooglePhotosPickerApi.PickedMedia media) {
+    private void showPickedPhotos(List<GooglePhotosPickerApi.PickedMedia> selectedMedia) {
         TextView action = findViewById(R.id.import_google_photos);
         new Thread(() -> {
-            try {
-                Bitmap bitmap = GooglePhotosPickerApi.downloadDisplayBitmap(
-                        pickerAccessToken, media);
-                Uri reviewUri = new CloudPhotoCache(this).save(media.id(), bitmap);
-                new ImportedPhotoStore(this).add(new ImportedPhoto(reviewUri,
-                        System.currentTimeMillis(), PhotoOrigin.CLOUD));
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (hasLocalPhotoAccess()) loadRecentPhotos(); else loadImportedPhotos();
-                    ImageView image = new ImageView(this);
-                    int padding = Math.round(20 * getResources().getDisplayMetrics().density);
-                    image.setPadding(padding, padding, padding, padding);
-                    image.setAdjustViewBounds(true);
-                    image.setImageBitmap(bitmap);
-                    showPickedPhotoDialog(image);
-                    action.setEnabled(true);
-                    action.setText("Google Photos");
-                    action.setContentDescription("Select one photo from Google Photos");
-                    action.setOnClickListener(view -> openGooglePhotosPicker());
-                });
-            } catch (Exception error) {
-                resetGooglePhotosAction("Could not load the selected Google Photos image");
+            CloudPhotoBatchImporter.Result result = new CloudPhotoBatchImporter(this,
+                    media -> GooglePhotosPickerApi.downloadDisplayBitmap(
+                            pickerAccessToken, media)).importAll(
+                            selectedMedia, System.currentTimeMillis());
+            if (result.importedCount() == 0) {
+                resetGooglePhotosAction("Could not load the selected Google Photos photos");
+                return;
             }
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (hasLocalPhotoAccess()) loadRecentPhotos(); else loadImportedPhotos();
+                ImageView image = new ImageView(this);
+                int padding = Math.round(20 * getResources().getDisplayMetrics().density);
+                image.setPadding(padding, padding, padding, padding);
+                image.setAdjustViewBounds(true);
+                image.setImageBitmap(result.preview());
+                showPickedPhotoDialog(image, result.importedCount(), result.selectedCount());
+                action.setEnabled(true);
+                action.setText("Google Photos");
+                action.setContentDescription("Select photos from Google Photos");
+                action.setOnClickListener(view -> openGooglePhotosPicker());
+            });
         }, "google-photos-picker-image").start();
     }
 
-    private void showPickedPhotoDialog(ImageView image) {
+    private void showPickedPhotoDialog(ImageView image, int importedCount, int selectedCount) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -522,9 +521,11 @@ public final class ReviewActivity extends Activity {
         content.addView(title);
 
         TextView message = new TextView(this);
-        message.setText("This selected Google Photos image is now in Keepers’ review flow. "
+        String count = importedCount + (importedCount == 1 ? " photo is" : " photos are");
+        message.setText(count + " now in Keepers’ review flow. "
                 + "Keepers saved only a private review copy; it did not upload or change "
-                + "anything in Google Photos.");
+                + "anything in Google Photos." + (importedCount == selectedCount ? ""
+                : " " + (selectedCount - importedCount) + " could not be loaded."));
         message.setTextColor(Color.rgb(95, 99, 104));
         message.setTextSize(14);
         LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
@@ -560,7 +561,7 @@ public final class ReviewActivity extends Activity {
             TextView action = findViewById(R.id.import_google_photos);
             action.setEnabled(true);
             action.setText("Google Photos");
-            action.setContentDescription("Select one photo from Google Photos");
+            action.setContentDescription("Select photos from Google Photos");
             action.setOnClickListener(view -> openGooglePhotosPicker());
             showPickerError(error);
         });

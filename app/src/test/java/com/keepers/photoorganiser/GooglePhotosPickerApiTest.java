@@ -2,6 +2,8 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -34,5 +36,24 @@ public class GooglePhotosPickerApiTest {
         assertEquals("partner-photo-id_123", media.id());
         assertEquals("https://lh3.googleusercontent.com/picker-image=w1200-h1200",
                 media.displayUrl());
+    }
+
+    @Test public void sessionAllowsAReviewSizedBatch() {
+        assertEquals("{\"pickingConfig\":{\"maxItemCount\":\"100\"}}",
+                GooglePhotosPickerApi.sessionRequestBody());
+    }
+
+    @Test public void extractsEverySelectedItemAndPaginationToken() {
+        GooglePhotosPickerApi.MediaPage page = GooglePhotosPickerApi.parseMediaPage(
+                "{\"mediaItems\":["
+                + "{\"id\":\"photo-1\",\"mediaFile\":{\"baseUrl\":\"https://lh3/one\"}},"
+                + "{\"id\":\"photo-2\",\"mediaFile\":{\"baseUrl\":\"https://lh3/two\"}}],"
+                + "\"nextPageToken\":\"page-2\"}");
+
+        assertEquals(List.of(
+                new GooglePhotosPickerApi.PickedMedia("photo-1", "https://lh3/one=w1200-h1200"),
+                new GooglePhotosPickerApi.PickedMedia("photo-2", "https://lh3/two=w1200-h1200")),
+                page.items());
+        assertEquals("page-2", page.nextPageToken());
     }
 }
