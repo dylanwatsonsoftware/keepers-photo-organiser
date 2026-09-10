@@ -9,7 +9,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.view.MotionEvent;
 import android.widget.TextView;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -62,6 +65,38 @@ public class PreviewQuickReviewTest {
         swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
         swipe.invoke(activity, event(MotionEvent.ACTION_UP, 210, 100));
         assertTrue(new KeeperSelectionStore(activity).load().contains(photo.toString()));
+    }
+
+    @Test public void quickAndNormalNavigationTreatAStackAsOneItem() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri first = Uri.parse("content://photo/stack-first");
+        Uri sibling = Uri.parse("content://photo/stack-sibling");
+        Uri single = Uri.parse("content://photo/single");
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.add(new ImportedPhoto(first, 30, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(sibling, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(single, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(first.toString(), sibling.toString());
+        new PhotoStackStore(context).save(Map.of(
+                first.toString(), stack, sibling.toString(), stack));
+
+        PreviewActivity normal = create(context, first, false);
+        PreviewActivity quick = create(context, first, true);
+
+        assertEquals(single, navigator(normal).peekNext());
+        assertEquals(single, navigator(quick).peekNext());
+    }
+
+    private static PreviewActivity create(Context context, Uri photo, boolean quickReview) {
+        return Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(photo)
+                        .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, quickReview)).setup().get();
+    }
+
+    private static PhotoNavigator navigator(PreviewActivity activity) throws Exception {
+        Field field = PreviewActivity.class.getDeclaredField("navigator");
+        field.setAccessible(true);
+        return (PhotoNavigator) field.get(activity);
     }
 
     private static MotionEvent event(int action, float x, float y) {

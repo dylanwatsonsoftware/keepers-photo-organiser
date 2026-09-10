@@ -27,4 +27,19 @@ public final class StackPresentation {
         }
         return visible;
     }
+
+    public static List<String> navigationIds(List<String> orderedIds,
+            Map<String, List<String>> stacks, Set<String> recommended, Set<String> keepers,
+            String currentId) {
+        ArrayList<String> navigation = new ArrayList<>(
+                visibleIds(orderedIds, stacks, recommended, keepers));
+        List<String> currentStack = stacks.get(currentId);
+        if (currentStack == null) return List.copyOf(navigation);
+        for (int index = 0; index < navigation.size(); index++) {
+            if (!currentStack.contains(navigation.get(index))) continue;
+            navigation.set(index, currentId);
+            break;
+        }
+        return List.copyOf(navigation);
+    }
 }

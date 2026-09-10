@@ -84,7 +84,7 @@ public final class PreviewActivity extends Activity {
             photos.add(recent.uri());
         if (photos.isEmpty()) photos.add(photo);
         allPhotos = List.copyOf(photos);
-        navigator = new PhotoNavigator(photos, photo);
+        navigator = stackNavigator(photo);
         frontImage = findViewById(R.id.preview_image);
         adjacentImage = findViewById(R.id.preview_adjacent_image);
         currentSurface = findViewById(R.id.preview_current_surface);
@@ -562,11 +562,25 @@ public final class PreviewActivity extends Activity {
         if (selected.equals(photo)) return;
         resetZoom();
         photo = selected;
-        navigator = new PhotoNavigator(allPhotos, photo);
+        navigator = stackNavigator(photo);
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
         loadCurrent();
         updateButton();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
+    }
+
+    private PhotoNavigator stackNavigator(Uri current) {
+        List<String> orderedIds = allPhotos.stream().map(Uri::toString).toList();
+        HashMap<String, List<String>> stacks = new HashMap<>();
+        PhotoStackStore stackStore = new PhotoStackStore(this);
+        for (String id : orderedIds) {
+            List<String> members = stackStore.load(id);
+            if (!members.isEmpty()) stacks.put(id, members);
+        }
+        List<Uri> navigation = StackPresentation.navigationIds(orderedIds, stacks,
+                        suggestionStore.load(), store.load(), current.toString()).stream()
+                .map(Uri::parse).toList();
+        return new PhotoNavigator(navigation, current);
     }
 
     private void showAnalysis() {

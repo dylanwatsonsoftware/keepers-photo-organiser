@@ -26,4 +26,13 @@ public class StackPresentationTest {
                 Map.of("stack-first", stack, "stack-best", stack, "stack-keeper", stack),
                 Set.of("stack-best"), Set.of("stack-keeper")));
     }
+
+    @Test public void navigationKeepsAnOpenedStackMemberButOmitsItsSiblings() {
+        List<String> stack = List.of("stack-first", "stack-opened", "stack-last");
+
+        assertEquals(List.of("stack-opened", "single"), StackPresentation.navigationIds(
+                List.of("stack-first", "stack-opened", "stack-last", "single"),
+                Map.of("stack-first", stack, "stack-opened", stack, "stack-last", stack),
+                Set.of("stack-first"), Set.of(), "stack-opened"));
+    }
 }
