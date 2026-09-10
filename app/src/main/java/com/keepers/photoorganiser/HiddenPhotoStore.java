@@ -8,9 +8,11 @@ import java.util.Set;
 public final class HiddenPhotoStore {
     private static final String VALUES = "hidden_photo_ids";
     private final SharedPreferences preferences;
+    private final PhotoStackStore stacks;
 
     public HiddenPhotoStore(Context context) {
         preferences = context.getSharedPreferences("hidden_photos", Context.MODE_PRIVATE);
+        stacks = new PhotoStackStore(context);
     }
 
     public Set<String> load() {
@@ -19,7 +21,10 @@ public final class HiddenPhotoStore {
 
     public void hide(Set<String> photoIds) {
         HashSet<String> hidden = new HashSet<>(load());
-        hidden.addAll(photoIds);
+        for (String photoId : photoIds) {
+            hidden.add(photoId);
+            hidden.addAll(stacks.load(photoId));
+        }
         preferences.edit().putStringSet(VALUES, hidden).apply();
     }
 

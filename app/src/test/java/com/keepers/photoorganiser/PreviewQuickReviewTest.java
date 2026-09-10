@@ -52,6 +52,31 @@ public class PreviewQuickReviewTest {
         assertTrue(new HiddenPhotoStore(activity).load().contains(photo.toString()));
     }
 
+    @Test public void hidingAStackInQuickReviewSkipsEveryHiddenMember() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
+        Uri first = Uri.parse("content://photo/hide-stack-first");
+        Uri sibling = Uri.parse("content://photo/hide-stack-sibling");
+        Uri next = Uri.parse("content://photo/after-hidden-stack");
+        imports.add(new ImportedPhoto(first, 30, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(sibling, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(next, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(first.toString(), sibling.toString());
+        new PhotoStackStore(context).save(Map.of(
+                first.toString(), stack, sibling.toString(), stack));
+        PreviewActivity activity = create(context, first, true);
+
+        activity.findViewById(R.id.preview_hide).performClick();
+
+        assertEquals(Set.of(first.toString(), sibling.toString()),
+                new HiddenPhotoStore(activity).load());
+        assertEquals(next, currentPhoto(activity));
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
+    }
+
     @Test public void upwardSwipeDoesNotOpenMetadataInQuickReview() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PreviewActivity activity = create(context,

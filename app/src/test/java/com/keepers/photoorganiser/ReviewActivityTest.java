@@ -146,6 +146,29 @@ public class ReviewActivityTest {
         assertEquals(0, grid.getChildCount());
     }
 
+    @Test public void galleryBulkHideHidesEveryPhotoInASelectedStack() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String first = "content://media/photo/hide-stack-1";
+        String second = "content://media/photo/hide-stack-2";
+        String single = "content://media/photo/keep-visible";
+        activity.showPhotos(List.of(Uri.parse(first), Uri.parse(second), Uri.parse(single)));
+        List<String> stack = List.of(first, second);
+        activity.showStacks(Map.of(
+                first, new PhotoStackPosition(1, 2),
+                second, new PhotoStackPosition(2, 2)),
+                Map.of(first, stack, second, stack));
+        new PhotoStackStore(activity).save(Map.of(first, stack, second, stack));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.select_photos_to_hide).performClick();
+        grid.getChildAt(0).performClick();
+        activity.findViewById(R.id.confirm_hide_photos).performClick();
+
+        assertEquals(Set.of(first, second), new HiddenPhotoStore(activity).load());
+        assertEquals(1, grid.getChildCount());
+        assertEquals(single, grid.getChildAt(0).getTag().toString());
+    }
+
     @Test public void hiddenFilterShowsOnlyHiddenPhotos() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Uri visible = Uri.parse("content://media/photo/visible");

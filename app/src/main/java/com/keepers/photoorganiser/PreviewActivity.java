@@ -155,10 +155,12 @@ public final class PreviewActivity extends Activity {
 
     private void hideCurrentPhoto() {
         String hiddenId = photo.toString();
-        new HiddenPhotoStore(this).hide(Set.of(hiddenId));
+        HiddenPhotoStore hiddenStore = new HiddenPhotoStore(this);
+        hiddenStore.hide(Set.of(hiddenId));
+        Set<String> hidden = hiddenStore.load();
         ArrayList<Uri> remaining = new ArrayList<>(allPhotos);
         int hiddenIndex = remaining.indexOf(photo);
-        remaining.remove(photo);
+        remaining.removeIf(candidate -> hidden.contains(candidate.toString()));
         if (remaining.isEmpty()) {
             finish();
             return;
