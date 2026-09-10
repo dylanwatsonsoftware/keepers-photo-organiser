@@ -123,6 +123,26 @@ public class BestShotEngineTest {
         assertEquals(Map.of(), BestShotEngine.stacks(sequence, namedFaces));
     }
 
+    @Test public void visuallySimilarPhotosWithDifferentKnownPeopleDoNotStack() {
+        List<PhotoFeatures> sequence = List.of(
+                feature("child-a", 1_000, 7L, .7),
+                feature("child-b", 10_000, 7L, .8));
+
+        assertEquals(Map.of(), BestShotEngine.stacks(sequence, Map.of(
+                "child-a", Set.of("person-a"),
+                "child-b", Set.of("person-b"))));
+    }
+
+    @Test public void addingAnotherKnownPersonStartsANewStack() {
+        List<PhotoFeatures> sequence = List.of(
+                feature("one-person", 1_000, 7L, .7),
+                feature("two-people", 10_000, 7L, .8));
+
+        assertEquals(Map.of(), BestShotEngine.stacks(sequence, Map.of(
+                "one-person", Set.of("person-a"),
+                "two-people", Set.of("person-a", "person-b"))));
+    }
+
     @Test public void recommendsOnlyOneBestPhotoFromOneDisplayedStack() {
         assertEquals(Set.of("best"), BestShotEngine.recommend(List.of(
                 feature("one", 1_000, 0L, 0.4),

@@ -126,13 +126,15 @@ public final class BestShotEngine {
             PhotoFeatures previous = latest == null ? null : latest.get(latest.size() - 1);
             boolean timeBreak = previous != null && photo.takenAtMillis()
                     - previous.takenAtMillis() > SCENE_WINDOW_MILLIS;
+            boolean peopleBreak = previous != null && knownPeopleDiffer(
+                    previous.id(), photo.id(), namedFaces);
             boolean sameNamedMoment = previous != null && photo.takenAtMillis()
                     - previous.takenAtMillis() <= NAMED_FACE_WINDOW_MILLIS
-                    && sharesNamedFace(previous.id(), photo.id(), namedFaces);
+                    && sameKnownPeople(previous.id(), photo.id(), namedFaces);
             boolean visualBreak = previous != null && Long.bitCount(previous.perceptualHash()
                     ^ photo.perceptualHash()) > MAX_WITHIN_STACK_HASH_DISTANCE
                     && !sameNamedMoment;
-            if (previous == null || timeBreak || visualBreak) {
+            if (previous == null || timeBreak || peopleBreak || visualBreak) {
                 latest = new ArrayList<>();
                 groups.add(latest);
             }
@@ -141,11 +143,18 @@ public final class BestShotEngine {
         return groups;
     }
 
-    private static boolean sharesNamedFace(String first, String second,
+    private static boolean knownPeopleDiffer(String first, String second,
             Map<String, Set<String>> namedFaces) {
         Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
         Set<String> secondFaces = namedFaces.getOrDefault(second, Set.of());
-        return !firstFaces.isEmpty() && firstFaces.stream().anyMatch(secondFaces::contains);
+        return !firstFaces.isEmpty() && !secondFaces.isEmpty() && !firstFaces.equals(secondFaces);
+    }
+
+    private static boolean sameKnownPeople(String first, String second,
+            Map<String, Set<String>> namedFaces) {
+        Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
+        Set<String> secondFaces = namedFaces.getOrDefault(second, Set.of());
+        return !firstFaces.isEmpty() && firstFaces.equals(secondFaces);
     }
 
     private static List<PhotoFeatures> ordered(List<PhotoFeatures> photos) {

@@ -18,6 +18,7 @@ public final class NamedFaceResolver {
                 String faceKey = FaceCorrectionStore.key(face);
                 String person = faceCorrections.containsKey(faceKey)
                         ? faceCorrections.get(faceKey) : groupPerson;
+                if (person == null || person.isBlank()) person = group.id();
                 if (person == null || person.isBlank()
                         || FaceCorrectionStore.IGNORE.equals(person)) continue;
                 peopleByPhoto.computeIfAbsent(face.photoId(), ignored -> new HashSet<>())

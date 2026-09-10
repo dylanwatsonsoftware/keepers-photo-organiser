@@ -23,6 +23,19 @@ public class NamedFaceResolverTest {
                 Map.of(FaceCorrectionStore.key(corrected), "child-b")));
     }
 
+    @Test public void mapsUnassignedFaceGroupsAsStableDetectedIdentities() {
+        FaceIdentityGroup firstPerson = new FaceIdentityGroup("face-group-a", List.of(
+                face("photo-a", 0, "1,0"), face("photo-b", 0, "1,0")));
+        FaceIdentityGroup secondPerson = new FaceIdentityGroup("face-group-b", List.of(
+                face("photo-c", 0, "0,1")));
+
+        assertEquals(Map.of(
+                "photo-a", Set.of("face-group-a"),
+                "photo-b", Set.of("face-group-a"),
+                "photo-c", Set.of("face-group-b")),
+                NamedFaceResolver.resolve(List.of(firstPerson, secondPerson), Map.of(), Map.of()));
+    }
+
     private static FaceObservation face(String photo, int index, String descriptor) {
         return new FaceObservation(photo, index, 0, 0, 1, 1,
                 .5, .8, .8, 0, 0, descriptor);
