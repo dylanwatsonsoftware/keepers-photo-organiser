@@ -9,6 +9,7 @@ import java.util.Set;
 
 public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
+    static final long NAMED_FACE_WINDOW_MILLIS = 60_000;
     static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
     static final double MIN_USABLE_STACK_QUALITY = 0.03;
     static final int NEAR_IDENTICAL_HASH_DISTANCE = 6;
@@ -24,8 +25,18 @@ public final class BestShotEngine {
     }
 
     public static BestShotResult classify(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
+        return classify(photos, RecommendationPreferenceProfile.learn(List.of()), namedFaces);
+    }
+
+    public static BestShotResult classify(List<PhotoFeatures> photos,
             RecommendationPreferenceProfile profile) {
-        Set<String> initial = recommendInitial(photos, profile);
+        return classify(photos, profile, Map.of());
+    }
+
+    public static BestShotResult classify(List<PhotoFeatures> photos,
+            RecommendationPreferenceProfile profile, Map<String, Set<String>> namedFaces) {
+        Set<String> initial = recommendInitial(photos, profile, namedFaces);
         List<PhotoFeatures> ranked = new ArrayList<>(photos);
         ranked.sort(java.util.Comparator.comparingDouble(profile::score).reversed()
                 .thenComparing(PhotoFeatures::id));
@@ -55,8 +66,8 @@ public final class BestShotEngine {
     }
 
     private static Set<String> recommendInitial(List<PhotoFeatures> photos,
-            RecommendationPreferenceProfile profile) {
-        List<List<PhotoFeatures>> groups = sceneGroups(photos);
+            RecommendationPreferenceProfile profile, Map<String, Set<String>> namedFaces) {
+        List<List<PhotoFeatures>> groups = sceneGroups(photos, namedFaces);
         List<PhotoFeatures> candidates = new ArrayList<>();
         for (List<PhotoFeatures> group : groups) candidates.add(best(group, profile));
         candidates.sort(java.util.Comparator.comparingDouble(profile::score).reversed()
@@ -75,8 +86,13 @@ public final class BestShotEngine {
     }
 
     public static Map<String, PhotoStackPosition> stacks(List<PhotoFeatures> photos) {
+        return stacks(photos, Map.of());
+    }
+
+    public static Map<String, PhotoStackPosition> stacks(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
         Map<String, PhotoStackPosition> result = new LinkedHashMap<>();
-        for (List<PhotoFeatures> group : sceneGroups(photos)) {
+        for (List<PhotoFeatures> group : sceneGroups(photos, namedFaces)) {
             if (group.size() < 2) continue;
             for (int index = 0; index < group.size(); index++) {
                 result.put(group.get(index).id(),
@@ -87,8 +103,13 @@ public final class BestShotEngine {
     }
 
     public static Map<String, List<String>> stackMembers(List<PhotoFeatures> photos) {
+        return stackMembers(photos, Map.of());
+    }
+
+    public static Map<String, List<String>> stackMembers(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
         Map<String, List<String>> result = new LinkedHashMap<>();
-        for (List<PhotoFeatures> group : sceneGroups(photos)) {
+        for (List<PhotoFeatures> group : sceneGroups(photos, namedFaces)) {
             if (group.size() < 2) continue;
             List<String> ids = group.stream().map(PhotoFeatures::id).toList();
             for (String id : ids) result.put(id, ids);
@@ -96,7 +117,8 @@ public final class BestShotEngine {
         return result;
     }
 
-    private static List<List<PhotoFeatures>> sceneGroups(List<PhotoFeatures> photos) {
+    private static List<List<PhotoFeatures>> sceneGroups(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
         List<PhotoFeatures> ordered = ordered(photos);
         List<List<PhotoFeatures>> groups = new ArrayList<>();
         for (PhotoFeatures photo : ordered) {
@@ -104,8 +126,12 @@ public final class BestShotEngine {
             PhotoFeatures previous = latest == null ? null : latest.get(latest.size() - 1);
             boolean timeBreak = previous != null && photo.takenAtMillis()
                     - previous.takenAtMillis() > SCENE_WINDOW_MILLIS;
+            boolean sameNamedMoment = previous != null && photo.takenAtMillis()
+                    - previous.takenAtMillis() <= NAMED_FACE_WINDOW_MILLIS
+                    && sharesNamedFace(previous.id(), photo.id(), namedFaces);
             boolean visualBreak = previous != null && Long.bitCount(previous.perceptualHash()
-                    ^ photo.perceptualHash()) > MAX_WITHIN_STACK_HASH_DISTANCE;
+                    ^ photo.perceptualHash()) > MAX_WITHIN_STACK_HASH_DISTANCE
+                    && !sameNamedMoment;
             if (previous == null || timeBreak || visualBreak) {
                 latest = new ArrayList<>();
                 groups.add(latest);
@@ -113,6 +139,13 @@ public final class BestShotEngine {
             latest.add(photo);
         }
         return groups;
+    }
+
+    private static boolean sharesNamedFace(String first, String second,
+            Map<String, Set<String>> namedFaces) {
+        Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
+        Set<String> secondFaces = namedFaces.getOrDefault(second, Set.of());
+        return !firstFaces.isEmpty() && firstFaces.stream().anyMatch(secondFaces::contains);
     }
 
     private static List<PhotoFeatures> ordered(List<PhotoFeatures> photos) {

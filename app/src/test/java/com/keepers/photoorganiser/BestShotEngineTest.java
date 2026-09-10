@@ -95,6 +95,34 @@ public class BestShotEngineTest {
                 feature("entrance-b", 40_000, -256L, 0.6))));
     }
 
+    @Test public void groupsSameNamedFacesWithinAMinuteDespiteFramingChanges() {
+        List<PhotoFeatures> sequence = List.of(
+                feature("wide", 1_000, 0L, .5),
+                feature("closer", 25_000, -1L, .8),
+                feature("portrait", 55_000, 0xAAAAAAAAAAAAAAAAL, .7));
+        Map<String, Set<String>> namedFaces = Map.of(
+                "wide", Set.of("child-a", "child-b"),
+                "closer", Set.of("child-a", "child-b"),
+                "portrait", Set.of("child-a", "child-b"));
+
+        assertEquals(Set.of("wide", "closer", "portrait"),
+                BestShotEngine.stacks(sequence, namedFaces).keySet());
+        assertEquals(Set.of("closer"),
+                BestShotEngine.classify(sequence, namedFaces).recommended());
+    }
+
+    @Test public void distinctInterveningPhotoStillBreaksNamedFaceSequence() {
+        List<PhotoFeatures> sequence = List.of(
+                feature("children-a", 1_000, 0L, .5),
+                feature("noticeboard", 20_000, -1L, .9),
+                feature("children-b", 40_000, 0xAAAAAAAAAAAAAAAAL, .8));
+        Map<String, Set<String>> namedFaces = Map.of(
+                "children-a", Set.of("child-a", "child-b"),
+                "children-b", Set.of("child-a", "child-b"));
+
+        assertEquals(Map.of(), BestShotEngine.stacks(sequence, namedFaces));
+    }
+
     @Test public void recommendsOnlyOneBestPhotoFromOneDisplayedStack() {
         assertEquals(Set.of("best"), BestShotEngine.recommend(List.of(
                 feature("one", 1_000, 0L, 0.4),

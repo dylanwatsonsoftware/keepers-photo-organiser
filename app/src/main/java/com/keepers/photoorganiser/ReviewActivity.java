@@ -370,11 +370,18 @@ public final class ReviewActivity extends Activity {
                             RecommendationFeedback.LOVED,
                             previous == null ? "" : previous.comment()));
                 }
-                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features);
-                Map<String, List<String>> members = BestShotEngine.stackMembers(features);
+                List<FaceIdentityGroup> faceGroups = FaceClusterer.cluster(
+                        new FaceObservationStore(this).loadAll(), .30);
+                Map<String, Set<String>> namedFaces = NamedFaceResolver.resolve(faceGroups,
+                        new FaceGroupAssignmentStore(this).load(),
+                        new FaceCorrectionStore(this).load());
+                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(
+                        features, namedFaces);
+                Map<String, List<String>> members = BestShotEngine.stackMembers(
+                        features, namedFaces);
                 RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
                         feedbackStore.load());
-                BestShotResult result = BestShotEngine.classify(features, profile);
+                BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
                 new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),
                         result.goodAlternatives());
