@@ -540,7 +540,9 @@ public final class PreviewActivity extends Activity {
         card.setClickable(true);
         card.setFocusable(true);
         boolean knownPerson = display.personId() != null;
-        card.setContentDescription(knownPerson ? "Open " + display.name() + " associated faces"
+        card.setContentDescription(display.suggested() ? "Suggested " + display.name()
+                + ". Confirm or change identity."
+                : knownPerson ? "Open " + display.name() + " associated faces"
                 : "Identify " + display.name());
         card.setOnClickListener(view -> {
             if (knownPerson) startActivity(new Intent(this, PersonDetailActivity.class)
@@ -572,7 +574,49 @@ public final class PreviewActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         labelParams.setMargins(0, dp(6), 0, 0);
         card.addView(label, labelParams);
+        if (display.suggested()) card.addView(faceSuggestionActions(display));
         return card;
+    }
+
+    private LinearLayout faceSuggestionActions(FaceDisplay display) {
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
+                0, dp(34), 1);
+        actionParams.setMargins(0, dp(6), 0, 0);
+        TextView confirm = faceSuggestionAction("Yes", "confirm_face_identity", true);
+        confirm.setOnClickListener(view -> confirmFaceIdentity(display.face(), display.personId()));
+        actions.addView(confirm, actionParams);
+        TextView change = faceSuggestionAction("Change", "change_face_identity", false);
+        LinearLayout.LayoutParams changeParams = new LinearLayout.LayoutParams(0, dp(34), 1);
+        changeParams.setMargins(dp(5), dp(6), 0, 0);
+        change.setOnClickListener(view -> showFaceIdentityChooser(display.face()));
+        actions.addView(change, changeParams);
+        return actions;
+    }
+
+    private TextView faceSuggestionAction(String label, String tag, boolean primary) {
+        TextView action = new TextView(this);
+        action.setText(label);
+        action.setTag(tag);
+        action.setTextSize(12);
+        action.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        action.setGravity(android.view.Gravity.CENTER);
+        action.setTextColor(primary ? 0xFFFFFFFF : 0xFF3C4043);
+        action.setBackgroundResource(primary ? R.drawable.gallery_primary_action
+                : R.drawable.gallery_filter_chip);
+        action.setClickable(true);
+        action.setFocusable(true);
+        return action;
+    }
+
+    private void confirmFaceIdentity(FaceObservation face, String personId) {
+        FaceCorrectionStore store = new FaceCorrectionStore(this);
+        HashMap<String, String> corrections = new HashMap<>(store.load());
+        corrections.put(FaceCorrectionStore.key(face), personId);
+        store.save(corrections);
+        AlbumApprovalInvalidator.invalidate(this);
+        showAnalysisFaces();
     }
 
     private FaceObservation featurePortrait(FaceDisplay display) {

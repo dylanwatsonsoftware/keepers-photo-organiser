@@ -113,6 +113,38 @@ public class PreviewFaceGridTest {
         assertEquals("ada", started.getStringExtra(PersonDetailActivity.EXTRA_PERSON_ID));
     }
 
+    @Test public void suggestedPersonCanBeConfirmedDirectlyOnTheFaceCard() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String confirmedPhoto = "content://photos/confirmed-person";
+        String suggestedPhoto = "content://photos/suggested-person";
+        new FaceObservationStore(context).save(confirmedPhoto, List.of(
+                face(confirmedPhoto, 0, .10, "1,0,0")));
+        new FaceObservationStore(context).save(suggestedPhoto, List.of(
+                face(suggestedPhoto, 0, .10, ".99,.01,0")));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        new FaceCorrectionStore(context).save(Map.of(confirmedPhoto + "#0", "ada"));
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(suggestedPhoto)))
+                .setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        TextView confirm = grid.getChildAt(0).findViewWithTag("confirm_face_identity");
+        TextView change = grid.getChildAt(0).findViewWithTag("change_face_identity");
+
+        assertNotNull(confirm);
+        assertNotNull(change);
+        assertEquals("Yes", confirm.getText().toString());
+        confirm.performClick();
+
+        assertEquals("ada", new FaceCorrectionStore(activity).load()
+                .get(suggestedPhoto + "#0"));
+        assertEquals("Ada", label(grid, 0));
+    }
+
     @Test public void unknownFaceCanCreateAndTeachANewTrackedPersonInPlace() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         String photo = "content://photos/new-person-face";
