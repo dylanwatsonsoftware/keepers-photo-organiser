@@ -87,14 +87,17 @@ public class ReviewLayoutTest {
         assertTrue(label.isClickable());
     }
 
-    @Test public void albumDestinationScreenNamesGooglePhotosExplicitly() {
+    @Test public void albumDestinationScreenUsesACompactSingleLineTitle() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_album_review, null);
         android.view.ViewGroup toolbar = (android.view.ViewGroup)
                 ((android.view.ViewGroup) layout).getChildAt(0);
+        TextView title = (TextView) toolbar.getChildAt(1);
 
-        assertTrue("Add to Google Photos albums".contentEquals(
-                ((TextView) toolbar.getChildAt(1)).getText()));
+        assertTrue("Choose albums".contentEquals(title.getText()));
+        assertTrue(title.getTextSize() <= 24 * title.getResources()
+                .getDisplayMetrics().scaledDensity);
+        assertTrue(title.getMaxLines() == 1);
     }
 
     @Test public void galleryCentersQuickReviewIconAndLabelAsOneGroup() {
