@@ -32,6 +32,7 @@ import java.util.Locale;
 
 public final class PreviewActivity extends Activity {
     public static final String EXTRA_QUICK_REVIEW = "quick_review";
+    private static final int QUICK_REVIEW_THRESHOLD_DP = 96;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
     private KeeperSelectionStore store;
@@ -301,6 +302,7 @@ public final class PreviewActivity extends Activity {
             analysisDragStarted = false;
             analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
             photoGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
+            if (quickReview) hideQuickReviewIndicators();
             // Once open, let the analysis ScrollView handle its long factor breakdown.
             return AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen);
         }
@@ -335,6 +337,7 @@ public final class PreviewActivity extends Activity {
                     adjacentSurface.setScaleX(card.nextScale());
                     adjacentSurface.setScaleY(card.nextScale());
                     adjacentSurface.setAlpha(card.nextAlpha());
+                    showQuickReviewIndicator(deltaX);
                     return true;
                 }
                 CarouselTransform carousel = CarouselTransform.from(deltaX,
@@ -360,8 +363,9 @@ public final class PreviewActivity extends Activity {
             else hideAnalysis();
             return true;
         }
+        float releaseThreshold = dp(quickReview ? QUICK_REVIEW_THRESHOLD_DP : 64);
         SwipeDirection direction = SwipeDirection.classify(
-                releaseDeltaX, releaseDeltaY, dp(64));
+                releaseDeltaX, releaseDeltaY, releaseThreshold);
         if (direction == SwipeDirection.BACK) {
             if (analysisSheet.getVisibility() == View.VISIBLE) {
                 hideAnalysis();
@@ -385,7 +389,8 @@ public final class PreviewActivity extends Activity {
         }
         if (quickReview && (direction == SwipeDirection.NEXT
                 || direction == SwipeDirection.PREVIOUS)) {
-            applyQuickReviewDecision(QuickReviewDecision.fromSwipe(releaseDeltaX, dp(64)));
+            applyQuickReviewDecision(QuickReviewDecision.fromSwipe(
+                    releaseDeltaX, dp(QUICK_REVIEW_THRESHOLD_DP)));
             Uri target = navigator.peekNext();
             if (target.equals(photo)) {
                 resetPosition(image);
@@ -401,6 +406,7 @@ public final class PreviewActivity extends Activity {
                         .translationY(Math.abs(exit) * .025f)
                         .rotation(releaseDeltaX > 0 ? 14 : -14).alpha(.35f)
                         .setDuration(180).withEndAction(() -> {
+                            hideQuickReviewIndicators();
                             promoteAdjacentPage();
                             configureQuickReviewCards();
                             Uri next = navigator.peekNext();
@@ -434,6 +440,24 @@ public final class PreviewActivity extends Activity {
         if (selected != shouldSelect) store.toggle(photo);
         recordHeartFeedback(shouldSelect);
         updateButton();
+    }
+
+    private void showQuickReviewIndicator(float deltaX) {
+        TextView keep = findViewById(R.id.quick_review_keep_indicator);
+        TextView pass = findViewById(R.id.quick_review_pass_indicator);
+        TextView active = deltaX > 0 ? keep : pass;
+        TextView inactive = deltaX > 0 ? pass : keep;
+        inactive.setVisibility(View.GONE);
+        float progress = Math.min(1, Math.abs(deltaX) / dp(QUICK_REVIEW_THRESHOLD_DP));
+        active.setAlpha(.38f + .62f * progress);
+        active.setScaleX(.88f + .12f * progress);
+        active.setScaleY(.88f + .12f * progress);
+        active.setVisibility(View.VISIBLE);
+    }
+
+    private void hideQuickReviewIndicators() {
+        findViewById(R.id.quick_review_keep_indicator).setVisibility(View.GONE);
+        findViewById(R.id.quick_review_pass_indicator).setVisibility(View.GONE);
     }
 
     private void configureQuickReviewCards() {
@@ -965,6 +989,7 @@ public final class PreviewActivity extends Activity {
 
     private void resetPosition(View image) {
         if (quickReview) {
+            hideQuickReviewIndicators();
             adjacentSurface.animate().translationX(0).translationY(dp(12))
                     .scaleX(.94f).scaleY(.94f).alpha(.72f).setDuration(160).start();
             image.animate().translationX(0).translationY(0).rotation(0).alpha(1)

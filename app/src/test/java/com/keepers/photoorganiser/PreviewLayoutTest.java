@@ -20,6 +20,21 @@ import org.robolectric.RuntimeEnvironment;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
+    @Test public void previewIncludesHiddenQuickReviewDecisionIndicators() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        TextView keep = layout.findViewById(R.id.quick_review_keep_indicator);
+        TextView pass = layout.findViewById(R.id.quick_review_pass_indicator);
+        assertNotNull(keep);
+        assertNotNull(pass);
+        assertEquals(View.GONE, keep.getVisibility());
+        assertEquals(View.GONE, pass.getVisibility());
+        assertTrue(keep.getText().toString().contains("✓"));
+        assertTrue(pass.getText().toString().contains("✕"));
+        assertNotNull(keep.getBackground());
+        assertNotNull(pass.getBackground());
+    }
     @Test public void metadataSheetExplainsHorizontalPhotoNavigation() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

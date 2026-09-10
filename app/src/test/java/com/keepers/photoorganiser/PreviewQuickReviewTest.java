@@ -28,7 +28,7 @@ public class PreviewQuickReviewTest {
         swipe.setAccessible(true);
 
         swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
-        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 190, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 220, 100));
 
         assertTrue(new KeeperSelectionStore(activity).load().contains(photo.toString()));
         assertTrue(((TextView) activity.findViewById(R.id.preview_hint)).getText().toString()
@@ -46,15 +46,21 @@ public class PreviewQuickReviewTest {
         swipe.setAccessible(true);
 
         swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
-        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 150, 103));
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 170, 103));
 
         assertTrue(activity.findViewById(R.id.preview_current_surface).getRotation() > 0);
+        assertEquals(android.view.View.VISIBLE,
+                activity.findViewById(R.id.quick_review_keep_indicator).getVisibility());
+        assertEquals(android.view.View.GONE,
+                activity.findViewById(R.id.quick_review_pass_indicator).getVisibility());
         assertFalse(new KeeperSelectionStore(activity).load().contains(photo.toString()));
-        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 150, 103));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 170, 103));
         assertFalse(new KeeperSelectionStore(activity).load().contains(photo.toString()));
+        assertEquals(android.view.View.GONE,
+                activity.findViewById(R.id.quick_review_keep_indicator).getVisibility());
 
         swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
-        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 180, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 210, 100));
         assertTrue(new KeeperSelectionStore(activity).load().contains(photo.toString()));
     }
 
