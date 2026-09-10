@@ -145,6 +145,35 @@ public class PreviewFaceGridTest {
         assertEquals("Ada", label(grid, 0));
     }
 
+    @Test public void suggestedPersonCanBeRejectedWithoutIgnoringTheFace() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String known = "content://photos/reject-known";
+        String suggested = "content://photos/reject-suggested";
+        new FaceObservationStore(context).save(known, List.of(face(known, 0, .10, "1,0,0")));
+        new FaceObservationStore(context).save(suggested,
+                List.of(face(suggested, 0, .10, ".99,.01,0")));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        new FaceCorrectionStore(context).save(Map.of(known + "#0", "ada"));
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(suggested)))
+                .setup().get();
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        TextView reject = grid.getChildAt(0).findViewWithTag("reject_face_identity");
+
+        assertNotNull(reject);
+        assertEquals("No", reject.getText().toString());
+        reject.performClick();
+
+        assertEquals("Unknown", label(grid, 0));
+        assertTrue(new FaceSuggestionRejectionStore(activity)
+                .isRejected(suggested + "#0", "ada"));
+        assertTrue(!new FaceCorrectionStore(activity).load().containsKey(suggested + "#0"));
+    }
+
     @Test public void unknownFaceCanCreateAndTeachANewTrackedPersonInPlace() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         String photo = "content://photos/new-person-face";

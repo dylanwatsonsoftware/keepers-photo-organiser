@@ -533,7 +533,7 @@ public final class PreviewActivity extends Activity {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.width = dp(92);
+        params.width = dp(112);
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
         params.setMargins(0, 0, dp(10), dp(12));
         card.setLayoutParams(params);
@@ -587,9 +587,14 @@ public final class PreviewActivity extends Activity {
         TextView confirm = faceSuggestionAction("Yes", "confirm_face_identity", true);
         confirm.setOnClickListener(view -> confirmFaceIdentity(display.face(), display.personId()));
         actions.addView(confirm, actionParams);
+        TextView reject = faceSuggestionAction("No", "reject_face_identity", false);
+        LinearLayout.LayoutParams rejectParams = new LinearLayout.LayoutParams(0, dp(34), 1);
+        rejectParams.setMargins(dp(4), dp(6), 0, 0);
+        reject.setOnClickListener(view -> rejectFaceIdentity(display.face(), display.personId()));
+        actions.addView(reject, rejectParams);
         TextView change = faceSuggestionAction("Change", "change_face_identity", false);
         LinearLayout.LayoutParams changeParams = new LinearLayout.LayoutParams(0, dp(34), 1);
-        changeParams.setMargins(dp(5), dp(6), 0, 0);
+        changeParams.setMargins(dp(4), dp(6), 0, 0);
         change.setOnClickListener(view -> showFaceIdentityChooser(display.face()));
         actions.addView(change, changeParams);
         return actions;
@@ -615,6 +620,13 @@ public final class PreviewActivity extends Activity {
         HashMap<String, String> corrections = new HashMap<>(store.load());
         corrections.put(FaceCorrectionStore.key(face), personId);
         store.save(corrections);
+        new FaceSuggestionRejectionStore(this).allow(FaceCorrectionStore.key(face), personId);
+        AlbumApprovalInvalidator.invalidate(this);
+        showAnalysisFaces();
+    }
+
+    private void rejectFaceIdentity(FaceObservation face, String personId) {
+        new FaceSuggestionRejectionStore(this).reject(FaceCorrectionStore.key(face), personId);
         AlbumApprovalInvalidator.invalidate(this);
         showAnalysisFaces();
     }
@@ -745,19 +757,22 @@ public final class PreviewActivity extends Activity {
         Map<String, String> corrections = new FaceCorrectionStore(this).load();
         Map<String, String> learned = FaceIdentityLearner.predict(allFaces, groups, assignments,
                 corrections, .15);
+        FaceSuggestionRejectionStore rejections = new FaceSuggestionRejectionStore(this);
         Map<String, String> names = new TrackedPersonStore(this).load().stream().collect(
                 java.util.stream.Collectors.toMap(TrackedPerson::id, TrackedPerson::name,
                         (first, ignored) -> first));
         return observations.load(photoId).stream()
                 .sorted(Comparator.comparingDouble(FaceObservation::top)
                         .thenComparingDouble(FaceObservation::left))
-                .map(face -> displayFor(face, groups, assignments, corrections, learned, names))
+                .map(face -> displayFor(face, groups, assignments, corrections, learned, names,
+                        rejections))
                 .toList();
     }
 
     private static FaceDisplay displayFor(FaceObservation face, List<FaceIdentityGroup> groups,
             Map<String, String> assignments, Map<String, String> corrections,
-            Map<String, String> learned, Map<String, String> names) {
+            Map<String, String> learned, Map<String, String> names,
+            FaceSuggestionRejectionStore rejections) {
         String key = FaceCorrectionStore.key(face);
         String corrected = corrections.get(key);
         if (FaceCorrectionStore.IGNORE.equals(corrected))
@@ -772,7 +787,8 @@ public final class PreviewActivity extends Activity {
             break;
         }
         String predicted = learned.get(key);
-        if (predicted != null && names.containsKey(predicted))
+        if (predicted != null && names.containsKey(predicted)
+                && !rejections.isRejected(key, predicted))
             return new FaceDisplay(face, displayName(names.get(predicted)), predicted, true);
         return new FaceDisplay(face, "Unknown", null, false);
     }
