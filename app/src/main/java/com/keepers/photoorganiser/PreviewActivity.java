@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
@@ -88,6 +89,7 @@ public final class PreviewActivity extends Activity {
         currentSurface = findViewById(R.id.preview_current_surface);
         adjacentSurface = findViewById(R.id.preview_adjacent_surface);
         pages = new CarouselPagePair(currentSurface, frontImage, adjacentSurface, adjacentImage);
+        if (quickReview) configureQuickReviewCards();
         analysisSheet = findViewById(R.id.preview_analysis_sheet);
         analysisSheet.setOnTouchListener((view, event) -> handleAnalysisScroll(event));
         previewStage = findViewById(R.id.preview_stage);
@@ -123,6 +125,8 @@ public final class PreviewActivity extends Activity {
         findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
         if (quickReview) ((TextView) findViewById(R.id.preview_hint)).setText(
                 "Swipe right to keep  ·  Swipe left to pass  ·  Up for details");
+        if (quickReview && !navigator.peekNext().equals(photo))
+            showDragPreview(navigator.peekNext());
         updateButton();
     }
 
@@ -319,6 +323,20 @@ public final class PreviewActivity extends Activity {
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > dp(8)) {
                 showDragPreview(quickReview ? navigator.peekNext()
                         : deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious());
+                if (quickReview) {
+                    QuickReviewCardTransform card = QuickReviewCardTransform.from(deltaX,
+                            previewStage.getWidth());
+                    image.setTranslationX(card.translationX());
+                    image.setTranslationY(card.translationY());
+                    image.setRotation(card.rotation());
+                    image.setAlpha(1);
+                    adjacentSurface.setTranslationX(0);
+                    adjacentSurface.setTranslationY(dp(Math.round(card.nextTranslationY())));
+                    adjacentSurface.setScaleX(card.nextScale());
+                    adjacentSurface.setScaleY(card.nextScale());
+                    adjacentSurface.setAlpha(card.nextAlpha());
+                    return true;
+                }
                 CarouselTransform carousel = CarouselTransform.from(deltaX,
                         previewStage.getWidth(), dp(8));
                 image.setTranslationX(carousel.currentX());
@@ -369,12 +387,25 @@ public final class PreviewActivity extends Activity {
                 || direction == SwipeDirection.PREVIOUS)) {
             applyQuickReviewDecision(QuickReviewDecision.fromSwipe(releaseDeltaX, dp(64)));
             Uri target = navigator.peekNext();
-            resetPosition(image);
-            adjacentSurface.setVisibility(View.INVISIBLE);
             if (target.equals(photo)) {
+                resetPosition(image);
                 Toast.makeText(this, "Quick review complete", Toast.LENGTH_SHORT).show();
             } else {
-                selectStackPhoto(target);
+                float exit = releaseDeltaX > 0
+                        ? previewStage.getWidth() + dp(80) : -previewStage.getWidth() - dp(80);
+                photo = navigator.next();
+                setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+                adjacentSurface.animate().scaleX(1).scaleY(1).translationY(0).alpha(1)
+                        .setDuration(180).start();
+                image.animate().translationX(exit)
+                        .translationY(Math.abs(exit) * .025f)
+                        .rotation(releaseDeltaX > 0 ? 14 : -14).alpha(.35f)
+                        .setDuration(180).withEndAction(() -> {
+                            promoteAdjacentPage();
+                            configureQuickReviewCards();
+                            Uri next = navigator.peekNext();
+                            if (!next.equals(photo)) showDragPreview(next);
+                        }).start();
             }
             return true;
         }
@@ -403,6 +434,33 @@ public final class PreviewActivity extends Activity {
         if (selected != shouldSelect) store.toggle(photo);
         recordHeartFeedback(shouldSelect);
         updateButton();
+    }
+
+    private void configureQuickReviewCards() {
+        configureQuickReviewCard(currentSurface, dp(7));
+        configureQuickReviewCard(adjacentSurface, dp(3));
+        currentSurface.setScaleX(1);
+        currentSurface.setScaleY(1);
+        currentSurface.setRotation(0);
+        currentSurface.setAlpha(1);
+        adjacentSurface.setScaleX(.94f);
+        adjacentSurface.setScaleY(.94f);
+        adjacentSurface.setTranslationX(0);
+        adjacentSurface.setTranslationY(dp(12));
+        adjacentSurface.setRotation(0);
+        adjacentSurface.setAlpha(.72f);
+    }
+
+    private void configureQuickReviewCard(FrameLayout card, float elevation) {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) card.getLayoutParams();
+        params.setMargins(dp(22), dp(68), dp(22), dp(150));
+        card.setLayoutParams(params);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(0xFF202124);
+        background.setCornerRadius(dp(20));
+        card.setBackground(background);
+        card.setClipToOutline(true);
+        card.setElevation(elevation);
     }
 
     private void promoteAdjacentPage() {
@@ -906,6 +964,13 @@ public final class PreviewActivity extends Activity {
     }
 
     private void resetPosition(View image) {
+        if (quickReview) {
+            adjacentSurface.animate().translationX(0).translationY(dp(12))
+                    .scaleX(.94f).scaleY(.94f).alpha(.72f).setDuration(160).start();
+            image.animate().translationX(0).translationY(0).rotation(0).alpha(1)
+                    .setDuration(160).start();
+            return;
+        }
         float pageDistance = previewStage.getWidth() + dp(8);
         float adjacentRest = image.getTranslationX() < 0 ? pageDistance : -pageDistance;
         adjacentSurface.animate().translationX(adjacentRest).setDuration(140).start();

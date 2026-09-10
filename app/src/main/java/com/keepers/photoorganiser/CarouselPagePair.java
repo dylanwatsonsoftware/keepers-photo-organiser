@@ -29,11 +29,17 @@ final class CarouselPagePair {
         currentSurface.setTranslationX(0);
         currentSurface.setTranslationY(0);
         currentSurface.setAlpha(1);
+        currentSurface.setRotation(0);
+        currentSurface.setScaleX(1);
+        currentSurface.setScaleY(1);
         currentSurface.setElevation(1);
         currentSurface.setVisibility(View.VISIBLE);
         adjacentSurface.setTranslationX(0);
         adjacentSurface.setTranslationY(0);
         adjacentSurface.setAlpha(1);
+        adjacentSurface.setRotation(0);
+        adjacentSurface.setScaleX(1);
+        adjacentSurface.setScaleY(1);
         adjacentSurface.setElevation(0);
         adjacentSurface.setVisibility(View.INVISIBLE);
     }

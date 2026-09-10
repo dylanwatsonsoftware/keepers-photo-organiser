@@ -1,5 +1,7 @@
 package com.keepers.photoorganiser;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -31,6 +33,29 @@ public class PreviewQuickReviewTest {
         assertTrue(new KeeperSelectionStore(activity).load().contains(photo.toString()));
         assertTrue(((TextView) activity.findViewById(R.id.preview_hint)).getText().toString()
                 .contains("right to keep"));
+    }
+
+    @Test public void dragRotatesCardButOnlyReleasePastThresholdRecordsDecision()
+            throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://photo/quick-release-threshold");
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(photo)
+                        .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, true)).setup().get();
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 150, 103));
+
+        assertTrue(activity.findViewById(R.id.preview_current_surface).getRotation() > 0);
+        assertFalse(new KeeperSelectionStore(activity).load().contains(photo.toString()));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 150, 103));
+        assertFalse(new KeeperSelectionStore(activity).load().contains(photo.toString()));
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 180, 100));
+        assertTrue(new KeeperSelectionStore(activity).load().contains(photo.toString()));
     }
 
     private static MotionEvent event(int action, float x, float y) {
