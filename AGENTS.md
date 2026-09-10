@@ -7,7 +7,7 @@
 - Keep each commit scoped to the task. Preserve unrelated user changes and do not include them unless the user explicitly asks.
 - If a commit or push cannot be completed, report the exact blocker before handing the task back.
 - After every task that changes the Android app or its build inputs, rebuild and verify the debug APK, then include a clickable link to the APK in the final response.
-- After a successful debug APK rebuild, install it on the connected device via Wi-Fi ADB. If no Wi-Fi ADB device is available, report that exact blocker.
+- After a successful debug APK rebuild, install it on every connected and authorized ADB device, including both USB and Wi-Fi transports. Verify each installation independently, and report the exact status of any offline, unauthorized, skipped, or failed target. If no deployable ADB device is available, report that exact blocker.
 - Use the absolute workspace path for the APK link so it can be opened directly from the conversation.
 
 ## Android visual design
