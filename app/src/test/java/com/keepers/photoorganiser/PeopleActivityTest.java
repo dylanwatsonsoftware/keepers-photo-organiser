@@ -39,6 +39,34 @@ public class PeopleActivityTest {
         assertTrue(google.getBackground() != null);
     }
 
+    @Test public void settingsOffersAStyledFeedbackExport() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        View export = activity.findViewById(R.id.settings_export_feedback);
+
+        assertTrue(export instanceof TextView);
+        assertTrue(!(export instanceof Button));
+        assertTrue(export.isClickable());
+        assertTrue(export.getBackground() != null);
+    }
+
+    @Test public void settingsFeedbackExportSharesPrivacySafeJson() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        new RecommendationFeedbackStore(activity).clear();
+        new RecommendationFeedbackStore(activity).save(RecommendationFeedback.from(
+                new PhotoFeatures("content://private/settings-photo", 123, 456, .8),
+                RecommendationFeedback.LOVED, "Great expression"));
+
+        activity.findViewById(R.id.settings_export_feedback).performClick();
+
+        Intent chooser = Shadows.shadowOf(activity).getNextStartedActivity();
+        Intent share = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals(Intent.ACTION_SEND, share.getAction());
+        assertEquals("application/json", share.getType());
+        assertTrue(share.getStringExtra(Intent.EXTRA_TEXT).contains("Great expression"));
+        assertTrue(!share.getStringExtra(Intent.EXTRA_TEXT).contains("content://"));
+    }
+
     @Test public void settingsImportChoicesReturnToTheReviewPickerFlow() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 

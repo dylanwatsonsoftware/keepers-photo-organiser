@@ -39,23 +39,6 @@ public class ReviewActivityTest {
         assertTrue(started.getBooleanExtra(PreviewActivity.EXTRA_QUICK_REVIEW, false));
     }
 
-    @Test public void feedbackExportSharesPrivacySafeJson() {
-        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
-        new RecommendationFeedbackStore(activity).clear();
-        new RecommendationFeedbackStore(activity).save(RecommendationFeedback.from(
-                new PhotoFeatures("content://private/photo", 123, 456, .8),
-                RecommendationFeedback.LOVED, "Lovely moment"));
-
-        activity.findViewById(R.id.export_feedback).performClick();
-
-        Intent chooser = Shadows.shadowOf(activity).getNextStartedActivity();
-        Intent share = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
-        assertEquals(Intent.ACTION_SEND, share.getAction());
-        assertEquals("application/json", share.getType());
-        String exported = share.getStringExtra(Intent.EXTRA_TEXT);
-        assertTrue(exported.contains("Lovely moment"));
-        assertTrue(!exported.contains("content://"));
-    }
     @Test public void metadataToggleShowsRankedPercentagesOverGalleryPhotos() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String photo = "content://media/photo/metadata";

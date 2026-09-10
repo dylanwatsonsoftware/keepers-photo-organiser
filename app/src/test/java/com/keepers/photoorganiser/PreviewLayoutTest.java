@@ -54,6 +54,17 @@ public class PreviewLayoutTest {
         assertTrue(feedback.isClickable());
         assertNotNull(feedback.getBackground());
     }
+    @Test public void fullscreenOffersAStyledQuickReviewEntryPoint() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        View quickReview = layout.findViewById(R.id.preview_start_quick_review);
+        assertNotNull(quickReview);
+        assertTrue(quickReview instanceof TextView);
+        assertTrue(!(quickReview instanceof android.widget.Button));
+        assertTrue(quickReview.isClickable());
+        assertNotNull(quickReview.getBackground());
+    }
     @Test public void analysisBreakdownIsScrollable() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

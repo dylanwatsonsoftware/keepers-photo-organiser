@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewQuickReviewTest {
@@ -89,6 +90,19 @@ public class PreviewQuickReviewTest {
         assertEquals(sibling, currentPhoto(quick));
         assertEquals(single, navigator(normal).peekNext());
         assertEquals(single, navigator(quick).peekNext());
+    }
+
+    @Test public void fullscreenPhotoCanLaunchQuickReviewFromItsCurrentItem() {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://photo/fullscreen-quick-start");
+        PreviewActivity activity = create(context, photo, false);
+
+        activity.findViewById(R.id.preview_start_quick_review).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals(photo, started.getData());
+        assertTrue(started.getBooleanExtra(PreviewActivity.EXTRA_QUICK_REVIEW, false));
     }
 
     private static PreviewActivity create(Context context, Uri photo, boolean quickReview) {

@@ -118,6 +118,11 @@ public final class PreviewActivity extends Activity {
                 });
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
+        View quickReviewEntry = findViewById(R.id.preview_start_quick_review);
+        quickReviewEntry.setVisibility(quickReview ? View.GONE : View.VISIBLE);
+        quickReviewEntry.setOnClickListener(view -> startActivity(
+                PreviewPageRequest.forPhoto(getIntent(), photo)
+                        .putExtra(EXTRA_QUICK_REVIEW, true)));
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             boolean selected = store.toggle(photo);

@@ -98,7 +98,6 @@ public final class ReviewActivity extends Activity {
                 toggleFilter(GalleryFilter.RECOMMENDED));
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
-        findViewById(R.id.export_feedback).setOnClickListener(view -> exportFeedback());
         findViewById(R.id.filter_origin_all).setOnClickListener(view -> showAllPhotos());
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.LOCAL));
@@ -150,26 +149,6 @@ public final class ReviewActivity extends Activity {
         startActivity(new Intent(this, PreviewActivity.class).setData(photos.get(0))
                 .putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())
                 .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, true));
-    }
-
-    private void exportFeedback() {
-        List<RecommendationFeedback> feedback = new RecommendationFeedbackStore(this).load();
-        if (feedback.isEmpty()) {
-            Toast.makeText(this, "No recommendation feedback to export yet",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String appVersion;
-        try {
-            appVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-        } catch (PackageManager.NameNotFoundException impossible) {
-            appVersion = "unknown";
-        }
-        String json = RecommendationFeedbackExport.toJson(feedback, appVersion);
-        Intent share = new Intent(Intent.ACTION_SEND).setType("application/json")
-                .putExtra(Intent.EXTRA_SUBJECT, "Keepers recommendation feedback")
-                .putExtra(Intent.EXTRA_TEXT, json);
-        startActivity(Intent.createChooser(share, "Share private feedback export"));
     }
 
     private void loadOrRequestPhotos() {

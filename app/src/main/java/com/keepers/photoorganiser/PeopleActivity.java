@@ -42,6 +42,8 @@ public final class PeopleActivity extends Activity {
                 openImport(ReviewActivity.ACTION_IMPORT_DEVICE_PHOTOS));
         findViewById(R.id.settings_import_google_photos).setOnClickListener(view ->
                 openImport(ReviewActivity.ACTION_IMPORT_GOOGLE_PHOTOS));
+        findViewById(R.id.settings_export_feedback).setOnClickListener(view ->
+                RecommendationFeedbackSharing.share(this));
         findViewById(R.id.add_person).setOnClickListener(view -> {
             TrackedPerson person = new TrackedPerson(nextPersonId(), "", "", true);
             ArrayList<TrackedPerson> changed = new ArrayList<>(new TrackedPersonStore(this).load());
