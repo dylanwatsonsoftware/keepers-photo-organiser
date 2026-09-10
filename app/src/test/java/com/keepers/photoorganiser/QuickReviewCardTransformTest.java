@@ -7,9 +7,12 @@ import org.junit.Test;
 
 public class QuickReviewCardTransformTest {
     @Test public void cardTracksAndRotatesWithDragWhileNextCardComesForward() {
+        QuickReviewCardTransform resting = QuickReviewCardTransform.from(0, 400);
         QuickReviewCardTransform right = QuickReviewCardTransform.from(120, 400);
         QuickReviewCardTransform left = QuickReviewCardTransform.from(-120, 400);
 
+        assertEquals(.96f, resting.nextScale(), .001);
+        assertEquals(24f, resting.nextTranslationY(), .001);
         assertEquals(120, right.translationX(), .001);
         assertTrue(right.rotation() > 0);
         assertTrue(left.rotation() < 0);

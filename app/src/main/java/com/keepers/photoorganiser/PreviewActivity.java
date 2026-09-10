@@ -450,6 +450,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void showQuickReviewIndicator(float deltaX) {
+        findViewById(R.id.quick_review_mode_badge).setVisibility(View.GONE);
         TextView keep = findViewById(R.id.quick_review_keep_indicator);
         TextView pass = findViewById(R.id.quick_review_pass_indicator);
         TextView active = deltaX > 0 ? keep : pass;
@@ -465,30 +466,35 @@ public final class PreviewActivity extends Activity {
     private void hideQuickReviewIndicators() {
         findViewById(R.id.quick_review_keep_indicator).setVisibility(View.GONE);
         findViewById(R.id.quick_review_pass_indicator).setVisibility(View.GONE);
+        findViewById(R.id.quick_review_mode_badge).setVisibility(
+                quickReview ? View.VISIBLE : View.GONE);
     }
 
     private void configureQuickReviewCards() {
-        configureQuickReviewCard(currentSurface, dp(7));
-        configureQuickReviewCard(adjacentSurface, dp(3));
+        configureQuickReviewCard(currentSurface, dp(12), 0xFF202124, 0xCCFFD38A);
+        configureQuickReviewCard(adjacentSurface, dp(6), 0xFF3C4043, 0x996C727A);
+        findViewById(R.id.quick_review_mode_badge).setVisibility(View.VISIBLE);
         currentSurface.setScaleX(1);
         currentSurface.setScaleY(1);
         currentSurface.setRotation(0);
         currentSurface.setAlpha(1);
-        adjacentSurface.setScaleX(.94f);
-        adjacentSurface.setScaleY(.94f);
+        adjacentSurface.setScaleX(.96f);
+        adjacentSurface.setScaleY(.96f);
         adjacentSurface.setTranslationX(0);
-        adjacentSurface.setTranslationY(dp(12));
+        adjacentSurface.setTranslationY(dp(24));
         adjacentSurface.setRotation(0);
         adjacentSurface.setAlpha(.72f);
     }
 
-    private void configureQuickReviewCard(FrameLayout card, float elevation) {
+    private void configureQuickReviewCard(FrameLayout card, float elevation, int color,
+            int outlineColor) {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) card.getLayoutParams();
-        params.setMargins(dp(22), dp(68), dp(22), dp(150));
+        params.setMargins(dp(26), dp(82), dp(26), dp(190));
         card.setLayoutParams(params);
         GradientDrawable background = new GradientDrawable();
-        background.setColor(0xFF202124);
-        background.setCornerRadius(dp(20));
+        background.setColor(color);
+        background.setCornerRadius(dp(24));
+        background.setStroke(dp(2), outlineColor);
         card.setBackground(background);
         card.setClipToOutline(true);
         card.setElevation(elevation);

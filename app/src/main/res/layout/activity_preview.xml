@@ -51,6 +51,22 @@
         android:tint="#FFFFFF" />
 
     <TextView
+        android:id="@+id/quick_review_mode_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/preview_recommendation_chip"
+        android:elevation="8dp"
+        android:gravity="center"
+        android:paddingHorizontal="18dp"
+        android:text="Quick review · Swipe cards"
+        android:textColor="#FFD38A"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/quick_review_keep_indicator"
         android:layout_width="wrap_content"
         android:layout_height="44dp"

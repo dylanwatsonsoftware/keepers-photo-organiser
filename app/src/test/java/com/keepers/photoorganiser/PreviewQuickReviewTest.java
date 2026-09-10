@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -103,6 +105,31 @@ public class PreviewQuickReviewTest {
         assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
         assertEquals(photo, started.getData());
         assertTrue(started.getBooleanExtra(PreviewActivity.EXTRA_QUICK_REVIEW, false));
+    }
+
+    @Test public void quickReviewUsesAnInsetElevatedCardDeckAndModeBadge() {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://photo/card-treatment");
+        PreviewActivity normal = create(context, photo, false);
+        PreviewActivity quick = create(context, photo, true);
+
+        TextView normalBadge = normal.findViewById(R.id.quick_review_mode_badge);
+        TextView quickBadge = quick.findViewById(R.id.quick_review_mode_badge);
+        FrameLayout quickCard = quick.findViewById(R.id.preview_current_surface);
+        FrameLayout nextCard = quick.findViewById(R.id.preview_adjacent_surface);
+        FrameLayout.LayoutParams normalParams = (FrameLayout.LayoutParams) normal
+                .findViewById(R.id.preview_current_surface).getLayoutParams();
+        FrameLayout.LayoutParams quickParams = (FrameLayout.LayoutParams) quickCard.getLayoutParams();
+
+        assertEquals(View.GONE, normalBadge.getVisibility());
+        assertEquals(View.VISIBLE, quickBadge.getVisibility());
+        assertTrue(quickBadge.getText().toString().contains("Quick review"));
+        assertEquals(0, normalParams.leftMargin);
+        assertTrue(quickParams.leftMargin >= 24);
+        assertTrue(quickCard.getClipToOutline());
+        assertTrue(quickCard.getElevation() >= 10);
+        assertTrue(nextCard.getScaleX() < 1);
+        assertTrue(nextCard.getTranslationY() >= 16);
     }
 
     private static PreviewActivity create(Context context, Uri photo, boolean quickReview) {

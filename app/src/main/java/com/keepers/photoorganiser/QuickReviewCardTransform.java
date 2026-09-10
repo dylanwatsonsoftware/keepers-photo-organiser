@@ -7,7 +7,7 @@ public record QuickReviewCardTransform(float translationX, float translationY, f
         float progress = Math.min(1, Math.abs(dragX) / (safeWidth * .45f));
         float rotation = Math.max(-11, Math.min(11, dragX / safeWidth * 18));
         return new QuickReviewCardTransform(dragX, Math.abs(dragX) * .025f, rotation,
-                .94f + .06f * progress, .72f + .28f * progress,
-                12f * (1 - progress));
+                .96f + .04f * progress, .72f + .28f * progress,
+                24f * (1 - progress));
     }
 }
