@@ -142,7 +142,7 @@ public final class PreviewActivity extends Activity {
         findViewById(R.id.preview_hide).setOnClickListener(view -> hideCurrentPhoto());
         findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
         if (quickReview) ((TextView) findViewById(R.id.preview_hint)).setText(
-                "Swipe right to keep  ·  Swipe left to pass  ·  Up for details");
+                "Swipe right to keep  ·  Swipe left to pass");
         if (quickReview && !navigator.peekNext().equals(photo))
             showDragPreview(navigator.peekNext());
         updateButton();
@@ -347,7 +347,8 @@ public final class PreviewActivity extends Activity {
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             float deltaX = photoGesture.deltaX(event.getRawX());
             float deltaY = photoGesture.deltaY(event.getRawY());
-            if (!analysisWasOpen && deltaY < 0 && Math.abs(deltaY) > Math.abs(deltaX)
+            if (!quickReview && !analysisWasOpen && deltaY < 0
+                    && Math.abs(deltaY) > Math.abs(deltaX)
                     && Math.abs(deltaY) > dp(8)) {
                 if (!analysisDragStarted) {
                     showAnalysis();
@@ -416,8 +417,10 @@ public final class PreviewActivity extends Activity {
         }
         if (direction == SwipeDirection.DETAILS) {
             resetPosition(image);
-            showAnalysis();
-            openAnalysis();
+            if (!quickReview) {
+                showAnalysis();
+                openAnalysis();
+            }
             return true;
         }
         if (direction == SwipeDirection.NONE) {

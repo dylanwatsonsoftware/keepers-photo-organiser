@@ -52,6 +52,23 @@ public class PreviewQuickReviewTest {
         assertTrue(new HiddenPhotoStore(activity).load().contains(photo.toString()));
     }
 
+    @Test public void upwardSwipeDoesNotOpenMetadataInQuickReview() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/quick-no-metadata-swipe"), true);
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 300));
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 150));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 100, 150));
+
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.preview_analysis_sheet).getVisibility());
+        assertFalse(((TextView) activity.findViewById(R.id.preview_hint)).getText().toString()
+                .contains("Up for details"));
+    }
+
     @Test public void dragRotatesCardButOnlyReleasePastThresholdRecordsDecision()
             throws Exception {
         Context context = RuntimeEnvironment.getApplication();
