@@ -186,6 +186,9 @@ public class ReviewActivityTest {
         ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
 
         assertEquals("No new keepers", text(activity, R.id.keeper_count));
+        assertEquals(0, grid.getChildCount());
+        activity.findViewById(R.id.filter_keepers).performClick();
+        assertEquals(1, grid.getChildCount());
         assertEquals("Saved Keeper photo. Tap to remove.",
                 grid.getChildAt(0).getContentDescription());
     }
@@ -253,6 +256,34 @@ public class ReviewActivityTest {
         assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
         assertEquals("content://media/photo/2", grid.getChildAt(1).getTag().toString());
         assertEquals("content://media/photo/3", grid.getChildAt(2).getTag().toString());
+    }
+
+    @Test public void defaultGalleryHidesSavedKeepersButKeepsNewKeepersVisible() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String keeper = "content://media/photo/keep-then-return";
+        activity.showPhotos(List.of(
+                Uri.parse(keeper),
+                Uri.parse("content://media/photo/still-to-review")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        ((ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
+        assertEquals(2, grid.getChildCount());
+
+        new AlbumCompletionStore(activity).mark(keeper, "Family");
+        activity.onResume();
+        assertEquals(1, grid.getChildCount());
+        assertEquals("content://media/photo/still-to-review",
+                grid.getChildAt(0).getTag().toString());
+
+        activity.findViewById(R.id.filter_keepers).performClick();
+        assertEquals(1, grid.getChildCount());
+        ((ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
+        assertEquals(0, grid.getChildCount());
+
+        activity.findViewById(R.id.filter_keepers).performClick();
+        assertEquals(2, grid.getChildCount());
+        assertEquals("content://media/photo/keep-then-return",
+                grid.getChildAt(0).getTag().toString());
     }
 
     @Test public void originFiltersSeparateLocalAndCloudPhotos() {
@@ -374,7 +405,7 @@ public class ReviewActivityTest {
         assertEquals("2", badge.getText().toString());
     }
 
-    @Test public void keeperBecomesTheGalleryCoverForItsStack() {
+    @Test public void savingOneKeeperHidesItsStackUntilTheKeepersFilterIsSelected() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/1";
         String recommended = "content://media/photo/2";
@@ -390,6 +421,14 @@ public class ReviewActivityTest {
         activity.onResume();
 
         GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(first, grid.getChildAt(0).getTag().toString());
+
+        new AlbumCompletionStore(activity).mark(first, "Family");
+        activity.onResume();
+        assertEquals(0, grid.getChildCount());
+
+        activity.findViewById(R.id.filter_keepers).performClick();
         assertEquals(1, grid.getChildCount());
         assertEquals(first, grid.getChildAt(0).getTag().toString());
         assertEquals("2", ((TextView) ((android.view.ViewGroup)

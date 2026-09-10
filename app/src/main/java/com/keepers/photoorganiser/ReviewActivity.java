@@ -851,6 +851,9 @@ public final class ReviewActivity extends Activity {
 
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
+        Set<String> savedKeepers = keepers.stream().filter(completions::hasAny)
+                .collect(java.util.stream.Collectors.toSet());
         Set<String> hidden = new HiddenPhotoStore(this).load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
@@ -867,9 +870,19 @@ public final class ReviewActivity extends Activity {
         Map<String, FrameLayout> tilesById = new HashMap<>();
         for (FrameLayout tile : tiles) tilesById.put(tile.getTag().toString(), tile);
         int visible = 0;
-        List<String> typeFiltered = galleryFilter == GalleryFilter.ALL || showingHidden ? stackCovers
-                : orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
-                        ? keepers.contains(id) : suggestions.contains(id)).toList();
+        List<String> typeFiltered;
+        if (showingHidden) {
+            typeFiltered = stackCovers;
+        } else if (galleryFilter == GalleryFilter.ALL) {
+            typeFiltered = stackCovers.stream().filter(id -> {
+                List<String> stack = stackMembers.get(id);
+                return stack == null ? !savedKeepers.contains(id)
+                        : stack.stream().noneMatch(savedKeepers::contains);
+            }).toList();
+        } else {
+            typeFiltered = orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
+                    ? keepers.contains(id) : suggestions.contains(id)).toList();
+        }
         List<String> visibleIds = PhotoOriginFilter.apply(typeFiltered, photoOrigins, originFilter);
         for (String id : visibleIds) {
             FrameLayout tile = tilesById.get(id);
@@ -890,6 +903,7 @@ public final class ReviewActivity extends Activity {
             empty.setText(showingHidden ? "No hidden photos."
                     : originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."
                     : originFilter == PhotoOrigin.LOCAL ? "No local photos in this view."
+                    : galleryFilter == GalleryFilter.ALL ? "No photos left to review."
                     : galleryFilter == GalleryFilter.KEEPERS
                     ? "No Keepers in the loaded photos yet."
                     : "No recommended photos in the loaded photos yet.");
