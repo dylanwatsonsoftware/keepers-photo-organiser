@@ -46,6 +46,11 @@ public class ReviewLayoutTest {
         assertTrue(googlePhotos instanceof TextView);
         assertTrue(!(googlePhotos instanceof Button));
         assertTrue(googlePhotos.isClickable());
+        View metadata = layout.findViewById(R.id.toggle_metadata);
+        assertTrue(metadata instanceof TextView);
+        assertTrue(!(metadata instanceof Button));
+        assertTrue(metadata.isClickable());
+        assertNotNull(metadata.getBackground());
     }
 
     @Test public void albumReviewActionUsesTheCompactKeepersCallToAction() {

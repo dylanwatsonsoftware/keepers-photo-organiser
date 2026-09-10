@@ -69,6 +69,7 @@ public final class ReviewActivity extends Activity {
     private AuthorizationClient photosAuthorization;
     private String pickerAccessToken;
     private String pickerSessionId;
+    private boolean metadataVisible;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,6 +77,8 @@ public final class ReviewActivity extends Activity {
         selectionStore = new KeeperSelectionStore(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         faceAnalyzer = createFaceAnalyzer();
+        metadataVisible = getSharedPreferences("gallery_display", MODE_PRIVATE)
+                .getBoolean("metadata_visible", false);
         findViewById(R.id.open_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.open_album_review).setOnClickListener(view ->
@@ -89,6 +92,7 @@ public final class ReviewActivity extends Activity {
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.RECOMMENDED));
+        findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.import_photos).setOnClickListener(view -> openPhotoPicker());
         findViewById(R.id.import_google_photos).setOnClickListener(view ->
                 openGooglePhotosPicker());
@@ -329,6 +333,25 @@ public final class ReviewActivity extends Activity {
                 Gravity.BOTTOM | Gravity.END);
         originParams.setMargins(0, 0, dp(7), dp(7));
         tile.addView(origin, originParams);
+
+        TextView metadata = new TextView(this);
+        metadata.setTag("metadata_overlay");
+        metadata.setTextColor(Color.WHITE);
+        metadata.setTextSize(11);
+        metadata.setTypeface(android.graphics.Typeface.DEFAULT,
+                android.graphics.Typeface.BOLD);
+        metadata.setLineSpacing(0, 1.08f);
+        metadata.setPadding(dp(7), dp(5), dp(7), dp(5));
+        GradientDrawable metadataBackground = new GradientDrawable();
+        metadataBackground.setColor(0xD9202124);
+        metadataBackground.setCornerRadius(dp(8));
+        metadata.setBackground(metadataBackground);
+        metadata.setVisibility(View.GONE);
+        FrameLayout.LayoutParams metadataParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        metadataParams.setMargins(dp(7), 0, dp(7), dp(7));
+        tile.addView(metadata, metadataParams);
         tile.setContentDescription("Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
                 .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
@@ -355,6 +378,7 @@ public final class ReviewActivity extends Activity {
                 new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),
                         result.goodAlternatives());
+                updateMetadataOverlays();
                 showStacks(stacks, members);
                 showSuggestions(result.recommended(), result.goodAlternatives());
         }
@@ -714,6 +738,31 @@ public final class ReviewActivity extends Activity {
         applyFilter();
     }
 
+    private void toggleMetadata() {
+        metadataVisible = !metadataVisible;
+        getSharedPreferences("gallery_display", MODE_PRIVATE).edit()
+                .putBoolean("metadata_visible", metadataVisible).apply();
+        updateMetadataOverlays();
+    }
+
+    private void updateMetadataOverlays() {
+        PhotoInsightStore insights = new PhotoInsightStore(this);
+        for (FrameLayout tile : tiles) {
+            TextView overlay = tile.findViewWithTag("metadata_overlay");
+            PhotoFeatures photo = insights.loadFeatures(tile.getTag().toString());
+            if (photo == null) photo = features.stream()
+                    .filter(item -> item.id().equals(tile.getTag().toString()))
+                    .findFirst().orElse(null);
+            overlay.setText(photo == null ? "Analysing…"
+                    : GalleryMetadataOverlay.topSignals(photo, 3));
+            overlay.setVisibility(metadataVisible ? View.VISIBLE : View.GONE);
+        }
+        View toggle = findViewById(R.id.toggle_metadata);
+        toggle.setSelected(metadataVisible);
+        toggle.setContentDescription(metadataVisible
+                ? "Hide photo rating overlays" : "Show photo rating overlays");
+    }
+
     private void setOriginFilter(PhotoOrigin requested) {
         originFilter = requested;
         applyFilter();
@@ -745,6 +794,7 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_origin_all).setSelected(originFilter == null);
         findViewById(R.id.filter_origin_local).setSelected(originFilter == PhotoOrigin.LOCAL);
         findViewById(R.id.filter_origin_cloud).setSelected(originFilter == PhotoOrigin.CLOUD);
+        updateMetadataOverlays();
         TextView empty = findViewById(R.id.review_empty);
         if (!photos.isEmpty() && visible == 0) {
             empty.setText(originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."

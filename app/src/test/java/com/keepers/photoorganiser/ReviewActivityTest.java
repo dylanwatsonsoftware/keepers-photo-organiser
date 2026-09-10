@@ -26,6 +26,23 @@ import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
+    @Test public void metadataToggleShowsRankedPercentagesOverGalleryPhotos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String photo = "content://media/photo/metadata";
+        new PhotoInsightStore(activity).save(List.of(new PhotoFeatures(photo, 0, 0, .81,
+                .92, .63, .88, .47, 0, -1, -1)), Map.of(), Set.of());
+        activity.showPhotos(List.of(Uri.parse(photo)));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        ViewGroup tile = (ViewGroup) grid.getChildAt(0);
+        TextView overlay = tile.findViewWithTag("metadata_overlay");
+
+        assertEquals(View.GONE, overlay.getVisibility());
+        activity.findViewById(R.id.toggle_metadata).performClick();
+
+        assertEquals(View.VISIBLE, overlay.getVisibility());
+        assertEquals("Focus 92%\nComposition 88%\nDetail 81%", overlay.getText().toString());
+        assertTrue(activity.findViewById(R.id.toggle_metadata).isSelected());
+    }
     @Test public void appLauncherOpensPhotoGallery() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Intent launcher = new Intent(Intent.ACTION_MAIN)
