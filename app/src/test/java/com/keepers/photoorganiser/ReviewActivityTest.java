@@ -278,6 +278,31 @@ public class ReviewActivityTest {
                 grid.getChildAt(1)).getChildAt(3).getVisibility());
     }
 
+    @Test public void savedStacksAndRecommendationsRenderBeforeReassessmentFinishes() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String first = "content://media/photo/cached-1";
+        String recommended = "content://media/photo/cached-2";
+        List<PhotoFeatures> cachedFeatures = List.of(
+                new PhotoFeatures(first, 10, 1, .6),
+                new PhotoFeatures(recommended, 11, 2, .9));
+        Map<String, PhotoStackPosition> cachedStacks = Map.of(
+                first, new PhotoStackPosition(1, 2),
+                recommended, new PhotoStackPosition(2, 2));
+        List<String> members = List.of(first, recommended);
+        new PhotoInsightStore(activity).save(cachedFeatures, cachedStacks,
+                Set.of(recommended));
+        new PhotoStackStore(activity).save(Map.of(first, members, recommended, members));
+
+        activity.showPhotos(List.of(Uri.parse(first), Uri.parse(recommended)));
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(recommended, grid.getChildAt(0).getTag().toString());
+        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
+        TextView badge = (TextView) ((ViewGroup) grid.getChildAt(0)).getChildAt(3);
+        assertEquals("2", badge.getText().toString());
+    }
+
     @Test public void keeperBecomesTheGalleryCoverForItsStack() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/1";

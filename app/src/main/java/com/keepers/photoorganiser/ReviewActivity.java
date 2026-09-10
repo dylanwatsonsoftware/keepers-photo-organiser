@@ -170,7 +170,7 @@ public final class ReviewActivity extends Activity {
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
         int previousCount = photos.size();
-        boolean appending = recentPhotos.size() > previousCount
+        boolean appending = previousCount > 0 && recentPhotos.size() > previousCount
                 && uris.subList(0, previousCount).equals(photos);
         int generation = appending ? analysisGeneration : ++analysisGeneration;
         photos = List.copyOf(uris);
@@ -195,7 +195,29 @@ public final class ReviewActivity extends Activity {
         empty.setText("No recent local camera photos found.");
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
         if (photos.isEmpty()) showSuggestions(Set.of());
+        else if (!appending) restoreCachedInsights();
         updateSelectionDisplay();
+    }
+
+    private void restoreCachedInsights() {
+        PhotoInsightStore insights = new PhotoInsightStore(this);
+        PhotoStackStore stacks = new PhotoStackStore(this);
+        HashMap<String, PhotoStackPosition> positions = new HashMap<>();
+        HashMap<String, List<String>> members = new HashMap<>();
+        HashSet<String> recommended = new HashSet<>();
+        HashSet<String> alternatives = new HashSet<>();
+        for (Uri photo : photos) {
+            String id = photo.toString();
+            PhotoInsight insight = insights.load(id);
+            if (insight == null) continue;
+            if (insight.stack() != null) positions.put(id, insight.stack());
+            if (insight.recommended()) recommended.add(id);
+            if (insight.goodAlternative()) alternatives.add(id);
+            List<String> stack = stacks.load(id);
+            if (!stack.isEmpty()) members.put(id, stack);
+        }
+        showStacks(positions, members);
+        showSuggestions(recommended, alternatives);
     }
 
     private FrameLayout createTile(RecentPhoto recentPhoto, int size, int generation) {
