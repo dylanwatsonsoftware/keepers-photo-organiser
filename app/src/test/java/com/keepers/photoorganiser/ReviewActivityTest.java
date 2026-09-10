@@ -466,6 +466,23 @@ public class ReviewActivityTest {
         assertEquals(120, activity.reviewLimit());
     }
 
+    @Test public void shortFilteredGridLoadsAnotherPageWithoutAUserScroll() throws Exception {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        java.lang.reflect.Field hasMore = ReviewActivity.class
+                .getDeclaredField("hasMorePhotos");
+        hasMore.setAccessible(true);
+        hasMore.setBoolean(activity, true);
+        android.widget.ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        scroll.layout(0, 0, 900, 900);
+        grid.layout(0, 0, 900, 300);
+
+        assertEquals(120, activity.reviewLimit());
+        grid.layout(0, 0, 900, 301);
+        assertEquals(120, activity.reviewLimit());
+    }
+
     @Test public void addingTheNextPagePreservesAlreadyRenderedTiles() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(

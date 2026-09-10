@@ -107,11 +107,14 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_origin_cloud).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.CLOUD));
         ScrollView scroll = findViewById(R.id.review_scroll);
+        GridLayout grid = findViewById(R.id.photo_grid);
         scroll.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
             View content = scroll.getChildAt(0);
             if (content != null && infiniteScroll.onScroll(scrollY, scroll.getHeight(),
                     content.getHeight(), hasMorePhotos)) loadNextPage();
         });
+        grid.addOnLayoutChangeListener((view, left, top, right, bottom,
+                oldLeft, oldTop, oldRight, oldBottom) -> fillFilteredViewport());
         loadOrRequestPhotos();
         handleImportAction(getIntent());
     }
@@ -690,6 +693,15 @@ public final class ReviewActivity extends Activity {
         reviewWindow.expand();
         findViewById(R.id.review_loading).setVisibility(View.VISIBLE);
         if (hasLocalPhotoAccess()) loadRecentPhotos();
+    }
+
+    private void fillFilteredViewport() {
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        GridLayout grid = findViewById(R.id.photo_grid);
+        String state = photos.size() + "|" + galleryFilter + "|" + originFilter
+                + "|" + grid.getChildCount();
+        if (infiniteScroll.onContentLayout(scroll.getHeight(), grid.getHeight(),
+                hasMorePhotos, state)) loadNextPage();
     }
 
     int reviewLimit() { return reviewWindow.limit(); }
