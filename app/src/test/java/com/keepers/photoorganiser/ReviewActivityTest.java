@@ -209,6 +209,20 @@ public class ReviewActivityTest {
         assertEquals(2, grid.getChildCount());
     }
 
+    @Test public void savedCloudReviewsLoadEvenWithoutLocalLibraryPermission() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri cloud = Uri.parse("content://com.keepers.photoorganiser.cloud/saved.jpg");
+        imports.add(new ImportedPhoto(cloud, 50, PhotoOrigin.CLOUD));
+
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(cloud.toString(), grid.getChildAt(0).getTag().toString());
+    }
+
     @Test public void tappingPhotoOpensLargePreview() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Uri photo = Uri.parse("content://media/photo/1");

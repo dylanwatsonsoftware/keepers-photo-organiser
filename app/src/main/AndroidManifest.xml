@@ -32,6 +32,11 @@
         <activity android:name=".AlbumDetailActivity" android:exported="false" />
         <activity android:name=".AlbumReviewActivity" android:exported="false" />
         <activity android:name=".FaceGroupReviewActivity" android:exported="false" />
+        <provider
+            android:name=".CloudPhotoProvider"
+            android:authorities="com.keepers.photoorganiser.cloud"
+            android:exported="false"
+            android:grantUriPermissions="false" />
         <service
             android:name=".KeepersAccessibilityService"
             android:exported="true"

@@ -488,12 +488,14 @@ public final class AlbumReviewActivity extends Activity {
         for (RegisteredAlbum album : new RegisteredAlbumStore(this).load())
             otherAlbums.put(albumKey(album), album);
         AlbumCompletionStore completions = new AlbumCompletionStore(this);
+        ImportedPhotoStore imports = new ImportedPhotoStore(this);
         ArrayList<AlbumAction> actions = new ArrayList<>();
         for (String key : reviewStore.load()) {
             int split = key.lastIndexOf('\n');
             if (split < 0) continue;
             String destinationId = key.substring(split + 1);
             String photoId = key.substring(0, split);
+            if (imports.originOf(photoId) == PhotoOrigin.CLOUD) continue;
             TrackedPerson person = people.get(destinationId);
             RegisteredAlbum album = otherAlbums.get(destinationId);
             String albumName = person != null ? person.albumName()

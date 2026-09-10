@@ -26,6 +26,7 @@ import android.app.AlertDialog;
 import android.provider.Settings;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
@@ -238,6 +239,28 @@ public class AlbumReviewActivityTest {
         AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
         assertEquals("Open accessibility settings",
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+    }
+
+    @Test public void cloudOnlyKeepersAreSuggestedButNeverQueuedAsUploads() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        String cloud = "content://com.keepers.photoorganiser.cloud/google-item-1";
+        new KeeperSelectionStore(context).replace(Set.of("content://photos/a", cloud));
+        new ImportedPhotoStore(context).add(new ImportedPhoto(Uri.parse(cloud), 42,
+                PhotoOrigin.CLOUD));
+        new AlbumReviewSelectionStore(context).save(Set.of(
+                AlbumReviewSelectionStore.key("content://photos/a", "ada"),
+                AlbumReviewSelectionStore.key(cloud, "ada")));
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+
+        assertEquals(2, activity.<LinearLayout>findViewById(R.id.album_review_items)
+                .getChildCount());
+        activity.startApprovedQueue();
+
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(activity);
+        assertEquals(1, queue.totalCount());
+        assertEquals("content://photos/a", queue.current().photoId());
     }
 
     @Test public void missingAlbumMappingsGuideTheUserToPeopleSetup() {

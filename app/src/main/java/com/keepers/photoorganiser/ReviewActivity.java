@@ -119,6 +119,7 @@ public final class ReviewActivity extends Activity {
             loadRecentPhotos();
             return;
         }
+        loadImportedPhotos();
         if (Build.VERSION.SDK_INT >= 34) {
             requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED}, PHOTO_PERMISSION);
@@ -320,6 +321,15 @@ public final class ReviewActivity extends Activity {
         List<RecentPhoto> local = RecentCameraQuery.loadRecent(
                 getContentResolver(), reviewWindow.limit());
         hasMorePhotos = local.size() == reviewWindow.limit();
+        showLocalAndImportedPhotos(local);
+    }
+
+    private void loadImportedPhotos() {
+        hasMorePhotos = false;
+        showLocalAndImportedPhotos(List.of());
+    }
+
+    private void showLocalAndImportedPhotos(List<RecentPhoto> local) {
         LinkedHashMap<String, RecentPhoto> combined = new LinkedHashMap<>();
         HashMap<String, PhotoOrigin> origins = new HashMap<>();
         for (RecentPhoto photo : local) {
@@ -433,7 +443,11 @@ public final class ReviewActivity extends Activity {
             try {
                 Bitmap bitmap = GooglePhotosPickerApi.downloadDisplayBitmap(
                         pickerAccessToken, media);
+                Uri reviewUri = new CloudPhotoCache(this).save(media.id(), bitmap);
+                new ImportedPhotoStore(this).add(new ImportedPhoto(reviewUri,
+                        System.currentTimeMillis(), PhotoOrigin.CLOUD));
                 new Handler(Looper.getMainLooper()).post(() -> {
+                    if (hasLocalPhotoAccess()) loadRecentPhotos(); else loadImportedPhotos();
                     ImageView image = new ImageView(this);
                     int padding = Math.round(20 * getResources().getDisplayMetrics().density);
                     image.setPadding(padding, padding, padding, padding);
@@ -441,7 +455,9 @@ public final class ReviewActivity extends Activity {
                     image.setImageBitmap(bitmap);
                     showPickedPhotoDialog(image);
                     action.setEnabled(true);
-                    action.setText("View selected photo");
+                    action.setText("Google Photos");
+                    action.setContentDescription("Select one photo from Google Photos");
+                    action.setOnClickListener(view -> openGooglePhotosPicker());
                 });
             } catch (Exception error) {
                 resetGooglePhotosAction("Could not load the selected Google Photos image");
@@ -458,15 +474,16 @@ public final class ReviewActivity extends Activity {
         content.setBackgroundColor(Color.WHITE);
 
         TextView title = new TextView(this);
-        title.setText("Partner photo available");
+        title.setText("Added to review");
         title.setTextColor(Color.rgb(32, 33, 36));
         title.setTextSize(21);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         content.addView(title);
 
         TextView message = new TextView(this);
-        message.setText("Keepers can read this selected Google Photos image. "
-                + "It was not uploaded or duplicated.");
+        message.setText("This selected Google Photos image is now in Keepers’ review flow. "
+                + "Keepers saved only a private review copy; it did not upload or change "
+                + "anything in Google Photos.");
         message.setTextColor(Color.rgb(95, 99, 104));
         message.setTextSize(14);
         LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(

@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import android.content.Context;
 import android.net.Uri;
@@ -27,5 +28,17 @@ public class ImportedPhotoStoreTest {
                 new ImportedPhoto(Uri.parse("content://media/local/1"), 40, PhotoOrigin.LOCAL),
                 new ImportedPhoto(Uri.parse("content://media/picker/cloud/2"), 30, PhotoOrigin.CLOUD)),
                 store.load());
+    }
+
+    @Test public void originCanBeLookedUpForAlbumSafetyChecks() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore store = new ImportedPhotoStore(context);
+        store.clear();
+        store.add(new ImportedPhoto(Uri.parse("content://keepers/cloud/google-item-1"), 30,
+                PhotoOrigin.CLOUD));
+
+        assertEquals(PhotoOrigin.CLOUD,
+                store.originOf("content://keepers/cloud/google-item-1"));
+        assertNull(store.originOf("content://media/local/not-imported"));
     }
 }

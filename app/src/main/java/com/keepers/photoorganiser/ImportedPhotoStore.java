@@ -40,6 +40,11 @@ public final class ImportedPhotoStore {
 
     public void clear() { preferences.edit().clear().apply(); }
 
+    public PhotoOrigin originOf(String photoId) {
+        ImportedPhoto photo = byId(load()).get(photoId);
+        return photo == null ? null : photo.origin();
+    }
+
     private void save(java.util.Collection<ImportedPhoto> photos) {
         java.util.HashSet<String> items = new java.util.HashSet<>();
         for (ImportedPhoto photo : photos) items.add(photo.takenAtMillis() + "\t"

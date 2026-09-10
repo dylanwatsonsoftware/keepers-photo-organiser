@@ -19,6 +19,11 @@ Tap **Review recent photos** to load the first 60 recent images that still exist
 - AI suggestions are not confirmations: only photos you tap receive a blue keeper heart.
 - Tap a thumbnail to inspect it in a large preview, see whether it is recommended, swipe left or right through adjacent photos, swipe down to return, and use the explicit heart control to confirm or remove a keeper.
 - Keeper choices persist locally across app restarts and can be cleared at any time.
+- **Google Photos** imports one explicitly selected Picker item into a private, read-only
+  Keepers review cache. Cloud items participate in the same on-device ranking, keeper selection,
+  face analysis, and album-suggestion screens, including when local-library permission is denied.
+- Cloud-only album suggestions are deliberately excluded from the Google Photos automation queue:
+  handing Keepers' private review copy back to Photos could create a duplicate upload.
 - No image is moved, hidden, deleted, uploaded, or modified by the review screen.
 
 The current ranking is entirely on-device and technical: capture time, perceptual similarity, and image detail. It does not yet identify people, assess expressions, learn personal taste, or navigate Google Photos to the corresponding photo automatically. Those are subsequent milestones built on the now-proven one-shot actions.
