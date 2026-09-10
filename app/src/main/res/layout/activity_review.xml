@@ -228,24 +228,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:paddingBottom="12dp">
 
         <FrameLayout
             android:id="@+id/open_quick_review"
             android:layout_width="match_parent"
-            android:layout_height="42dp"
+            android:layout_height="48dp"
             android:background="@drawable/gallery_primary_action"
             android:clickable="true"
             android:contentDescription="Start quick review"
             android:focusable="true">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="160dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:gravity="center"
+                android:gravity="center_vertical|start"
                 android:importantForAccessibility="no"
                 android:orientation="horizontal">
 
@@ -261,7 +261,7 @@
                     android:layout_marginStart="8dp"
                     android:text="Quick review"
                     android:textColor="#FFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </FrameLayout>
@@ -301,7 +301,7 @@
         android:layout_margin="12dp"
         android:indeterminateTint="#B06000"
         android:visibility="gone" />
-    <TextView
+    <FrameLayout
         android:id="@+id/open_album_review"
         android:layout_width="match_parent"
         android:layout_height="48dp"
@@ -311,13 +311,30 @@
         android:background="@drawable/gallery_primary_action"
         android:clickable="true"
         android:contentDescription="Review and add Keepers to Google Photos albums"
-        android:drawableStart="@drawable/ic_review_albums"
-        android:drawablePadding="10dp"
-        android:focusable="true"
-        android:gravity="center"
-        android:paddingHorizontal="20dp"
-        android:text="Add to albums"
-        android:textColor="#FFFFFFFF"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="160dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:gravity="center_vertical|start"
+            android:importantForAccessibility="no"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_review_albums" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Add to albums"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

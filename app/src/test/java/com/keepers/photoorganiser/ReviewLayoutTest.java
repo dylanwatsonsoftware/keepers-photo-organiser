@@ -88,14 +88,16 @@ public class ReviewLayoutTest {
                 .inflate(R.layout.activity_review, null);
 
         View action = layout.findViewById(R.id.open_album_review);
-        assertTrue(action instanceof TextView);
+        assertTrue(action instanceof FrameLayout);
         assertTrue(!(action instanceof Button));
-        TextView label = (TextView) action;
+        assertNotNull(action.getBackground());
+        LinearLayout content = (LinearLayout) ((FrameLayout) action).getChildAt(0);
+        assertTrue(content.getChildAt(0) instanceof ImageView);
+        TextView label = (TextView) content.getChildAt(1);
         assertTrue("Add to albums".contentEquals(label.getText()));
         assertTrue("Review and add Keepers to Google Photos albums".contentEquals(
-                label.getContentDescription()));
-        assertNotNull(label.getCompoundDrawablesRelative()[0]);
-        assertTrue(label.isClickable());
+                action.getContentDescription()));
+        assertTrue(action.isClickable());
     }
 
     @Test public void albumDestinationScreenUsesACompactSingleLineTitle() {
@@ -111,16 +113,25 @@ public class ReviewLayoutTest {
         assertTrue(title.getMaxLines() == 1);
     }
 
-    @Test public void galleryCentersQuickReviewIconAndLabelAsOneGroup() {
+    @Test public void galleryActionsUseMatchingCenteredIconColumns() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
         View quickReview = layout.findViewById(R.id.open_quick_review);
+        View albumReview = layout.findViewById(R.id.open_album_review);
         assertTrue(quickReview instanceof FrameLayout);
+        assertTrue(albumReview instanceof FrameLayout);
         assertTrue(!(quickReview instanceof Button));
         assertNotNull(quickReview.getBackground());
         LinearLayout content = (LinearLayout) ((FrameLayout) quickReview).getChildAt(0);
-        assertTrue(content.getGravity() == Gravity.CENTER);
+        LinearLayout albumContent = (LinearLayout) ((FrameLayout) albumReview).getChildAt(0);
+        int expectedWidth = Math.round(160 * layout.getResources().getDisplayMetrics().density);
+        assertTrue(content.getLayoutParams().width == expectedWidth);
+        assertTrue(albumContent.getLayoutParams().width == expectedWidth);
+        assertTrue(content.getGravity() == (Gravity.CENTER_VERTICAL | Gravity.START));
+        assertTrue(albumContent.getGravity() == content.getGravity());
+        assertTrue(content.getChildAt(0).getLayoutParams().width
+                == albumContent.getChildAt(0).getLayoutParams().width);
         assertTrue(content.getChildAt(0) instanceof ImageView);
         assertTrue(content.getChildAt(1) instanceof TextView);
         assertTrue("Quick review".contentEquals(
