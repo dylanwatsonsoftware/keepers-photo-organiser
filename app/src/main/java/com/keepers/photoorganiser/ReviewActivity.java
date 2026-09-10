@@ -75,6 +75,7 @@ public final class ReviewActivity extends Activity {
     private String pickerSessionId;
     private boolean metadataVisible;
     private boolean selectingPhotosToHide;
+    private boolean viewportLoadPending;
     private final Set<String> hideSelections = new HashSet<>();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -700,8 +701,13 @@ public final class ReviewActivity extends Activity {
         GridLayout grid = findViewById(R.id.photo_grid);
         String state = photos.size() + "|" + galleryFilter + "|" + originFilter
                 + "|" + grid.getChildCount();
-        if (infiniteScroll.onContentLayout(scroll.getHeight(), grid.getHeight(),
-                hasMorePhotos, state)) loadNextPage();
+        if (viewportLoadPending || !infiniteScroll.onContentLayout(scroll.getHeight(),
+                grid.getHeight(), hasMorePhotos, state)) return;
+        viewportLoadPending = true;
+        grid.post(() -> {
+            viewportLoadPending = false;
+            if (hasMorePhotos) loadNextPage();
+        });
     }
 
     int reviewLimit() { return reviewWindow.limit(); }

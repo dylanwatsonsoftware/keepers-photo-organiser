@@ -35,4 +35,13 @@ public class StackPresentationTest {
                 Map.of("stack-first", stack, "stack-opened", stack, "stack-last", stack),
                 Set.of("stack-first"), Set.of(), "stack-opened"));
     }
+
+    @Test public void overlappingStacksNeverShowTheSameCoverTwice() {
+        assertEquals(List.of("shared"), StackPresentation.visibleIds(
+                List.of("first-stack", "second-stack"),
+                Map.of(
+                        "first-stack", List.of("shared", "first-stack"),
+                        "second-stack", List.of("shared", "second-stack")),
+                Set.of(), Set.of()));
+    }
 }

@@ -478,8 +478,11 @@ public class ReviewActivityTest {
         scroll.layout(0, 0, 900, 900);
         grid.layout(0, 0, 900, 300);
 
+        assertEquals(60, activity.reviewLimit());
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
         assertEquals(120, activity.reviewLimit());
         grid.layout(0, 0, 900, 301);
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
         assertEquals(120, activity.reviewLimit());
     }
 

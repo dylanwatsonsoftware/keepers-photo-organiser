@@ -12,18 +12,19 @@ public final class StackPresentation {
     public static List<String> visibleIds(List<String> orderedIds,
             Map<String, List<String>> stacks, Set<String> recommended, Set<String> keepers) {
         ArrayList<String> visible = new ArrayList<>();
+        Set<String> visibleIds = new HashSet<>();
         Set<List<String>> handled = new HashSet<>();
         for (String id : orderedIds) {
             List<String> stack = stacks.get(id);
             if (stack == null) {
-                visible.add(id);
+                if (visibleIds.add(id)) visible.add(id);
                 continue;
             }
             if (!handled.add(stack)) continue;
             String cover = stack.stream().filter(keepers::contains).findFirst()
                     .orElseGet(() -> stack.stream().filter(recommended::contains).findFirst()
                             .orElse(stack.get(0)));
-            visible.add(cover);
+            if (visibleIds.add(cover)) visible.add(cover);
         }
         return visible;
     }
