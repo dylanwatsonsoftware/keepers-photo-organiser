@@ -74,6 +74,8 @@ public final class ReviewActivity extends Activity {
     private String pickerAccessToken;
     private String pickerSessionId;
     private boolean metadataVisible;
+    private boolean selectingPhotosToHide;
+    private final Set<String> hideSelections = new HashSet<>();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,6 +94,9 @@ public final class ReviewActivity extends Activity {
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
         });
+        findViewById(R.id.select_photos_to_hide).setOnClickListener(view -> beginHideSelection());
+        findViewById(R.id.cancel_hide_photos).setOnClickListener(view -> endHideSelection());
+        findViewById(R.id.confirm_hide_photos).setOnClickListener(view -> hideSelectedPhotos());
         findViewById(R.id.filter_keepers).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
@@ -385,9 +390,21 @@ public final class ReviewActivity extends Activity {
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         metadataParams.setMargins(dp(7), 0, dp(7), dp(7));
         tile.addView(metadata, metadataParams);
+        TextView hideCheck = new TextView(this);
+        hideCheck.setTag("hide_selection_check");
+        hideCheck.setText("✓");
+        hideCheck.setTextColor(Color.WHITE);
+        hideCheck.setTextSize(18);
+        hideCheck.setGravity(Gravity.CENTER);
+        hideCheck.setBackground(recommendationCircle());
+        hideCheck.setVisibility(View.GONE);
+        tile.addView(hideCheck, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
         tile.setContentDescription("Photo. Tap to mark as keeper.");
-        tile.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
-                .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())));
+        tile.setOnClickListener(view -> {
+            if (selectingPhotosToHide) { toggleHideSelection(photo.toString()); return; }
+            startActivity(new Intent(this, PreviewActivity.class)
+                    .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit()));
+        });
         return tile;
     }
 
@@ -767,6 +784,48 @@ public final class ReviewActivity extends Activity {
         updateMetadataOverlays();
     }
 
+    private void beginHideSelection() {
+        selectingPhotosToHide = true;
+        hideSelections.clear();
+        findViewById(R.id.bulk_hide_actions).setVisibility(View.VISIBLE);
+        updateHideSelectionDisplay();
+    }
+
+    private void endHideSelection() {
+        selectingPhotosToHide = false;
+        hideSelections.clear();
+        findViewById(R.id.bulk_hide_actions).setVisibility(View.GONE);
+        updateHideSelectionDisplay();
+    }
+
+    private void toggleHideSelection(String photoId) {
+        if (!hideSelections.add(photoId)) hideSelections.remove(photoId);
+        updateHideSelectionDisplay();
+    }
+
+    private void updateHideSelectionDisplay() {
+        for (FrameLayout tile : tiles) {
+            TextView check = tile.findViewWithTag("hide_selection_check");
+            check.setVisibility(selectingPhotosToHide
+                    && hideSelections.contains(tile.getTag().toString())
+                    ? View.VISIBLE : View.GONE);
+        }
+        TextView status = findViewById(R.id.bulk_hide_status);
+        status.setText(hideSelections.isEmpty() ? "Tap photos to select"
+                : hideSelections.size() + (hideSelections.size() == 1
+                        ? " photo selected" : " photos selected"));
+        View confirm = findViewById(R.id.confirm_hide_photos);
+        confirm.setEnabled(!hideSelections.isEmpty());
+        confirm.setAlpha(hideSelections.isEmpty() ? .4f : 1f);
+    }
+
+    private void hideSelectedPhotos() {
+        if (hideSelections.isEmpty()) return;
+        new HiddenPhotoStore(this).hide(Set.copyOf(hideSelections));
+        endHideSelection();
+        applyFilter();
+    }
+
     private void updateMetadataOverlays() {
         PhotoInsightStore insights = new PhotoInsightStore(this);
         for (FrameLayout tile : tiles) {
@@ -792,11 +851,18 @@ public final class ReviewActivity extends Activity {
 
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
+        Set<String> hidden = new HiddenPhotoStore(this).load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
-        List<String> orderedIds = photos.stream().map(Uri::toString).toList();
+        List<String> orderedIds = photos.stream().map(Uri::toString)
+                .filter(id -> !hidden.contains(id)).toList();
+        HashMap<String, List<String>> visibleStacks = new HashMap<>();
+        stackMembers.forEach((id, members) -> {
+            if (!hidden.contains(id)) visibleStacks.put(id, members.stream()
+                    .filter(member -> !hidden.contains(member)).toList());
+        });
         List<String> stackCovers = StackPresentation.visibleIds(
-                orderedIds, stackMembers, suggestions, keepers);
+                orderedIds, visibleStacks, suggestions, keepers);
         Map<String, FrameLayout> tilesById = new HashMap<>();
         for (FrameLayout tile : tiles) tilesById.put(tile.getTag().toString(), tile);
         int visible = 0;

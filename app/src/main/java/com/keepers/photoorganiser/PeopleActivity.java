@@ -44,6 +44,10 @@ public final class PeopleActivity extends Activity {
                 openImport(ReviewActivity.ACTION_IMPORT_GOOGLE_PHOTOS));
         findViewById(R.id.settings_export_feedback).setOnClickListener(view ->
                 RecommendationFeedbackSharing.share(this));
+        findViewById(R.id.settings_restore_hidden).setOnClickListener(view -> {
+            new HiddenPhotoStore(this).clear();
+            updateHiddenPhotoAction();
+        });
         findViewById(R.id.add_person).setOnClickListener(view -> {
             TrackedPerson person = new TrackedPerson(nextPersonId(), "", "", true);
             ArrayList<TrackedPerson> changed = new ArrayList<>(new TrackedPersonStore(this).load());
@@ -74,6 +78,16 @@ public final class PeopleActivity extends Activity {
         showOtherAlbums();
         showDiscoveryProgress();
         showDiscoveredGroups();
+        updateHiddenPhotoAction();
+    }
+
+    private void updateHiddenPhotoAction() {
+        int count = new HiddenPhotoStore(this).load().size();
+        TextView restore = findViewById(R.id.settings_restore_hidden);
+        restore.setText(count == 0 ? "No hidden photos"
+                : "Restore hidden photos (" + count + ")");
+        restore.setEnabled(count > 0);
+        restore.setAlpha(count > 0 ? 1f : .45f);
     }
 
     private void showPeople() {

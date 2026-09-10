@@ -144,6 +144,23 @@ public class ReviewActivityTest {
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
     }
 
+    @Test public void galleryCanBulkHideSelectedPhotos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri first = Uri.parse("content://media/photo/hide-1");
+        Uri second = Uri.parse("content://media/photo/hide-2");
+        activity.showPhotos(List.of(first, second));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.select_photos_to_hide).performClick();
+        grid.getChildAt(0).performClick();
+        grid.getChildAt(1).performClick();
+        activity.findViewById(R.id.confirm_hide_photos).performClick();
+
+        assertEquals(Set.of(first.toString(), second.toString()),
+                new HiddenPhotoStore(activity).load());
+        assertEquals(0, grid.getChildCount());
+    }
+
     @Test public void savedKeeperIsNotCountedAsNewAndUsesCompletedDescription() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String photo = "content://media/photo/already-saved";

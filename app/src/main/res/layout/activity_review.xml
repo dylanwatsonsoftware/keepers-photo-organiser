@@ -43,6 +43,12 @@
             android:padding="11dp"
             android:src="@drawable/ic_clear"
             android:tint="#5F6368" />
+
+        <ImageButton android:id="@+id/select_photos_to_hide" android:layout_width="44dp"
+            android:layout_height="44dp" android:layout_marginStart="4dp"
+            android:background="@drawable/gallery_icon_button"
+            android:contentDescription="Select photos to hide" android:padding="11dp"
+            android:src="@drawable/ic_hide" android:tint="#5F6368" />
     </LinearLayout>
 
     <LinearLayout
@@ -84,6 +90,26 @@
             android:textColor="#8A4B00"
             android:textSize="14sp"
             android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/bulk_hide_actions" android:layout_width="match_parent"
+        android:layout_height="48dp" android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="10dp" android:gravity="center_vertical"
+        android:orientation="horizontal" android:visibility="gone">
+        <TextView android:id="@+id/bulk_hide_status" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1"
+            android:gravity="center_vertical" android:text="Tap photos to select"
+            android:textColor="#3C4043" android:textStyle="bold" />
+        <TextView android:id="@+id/cancel_hide_photos" android:layout_width="wrap_content"
+            android:layout_height="40dp" android:background="@drawable/gallery_filter_chip"
+            android:clickable="true" android:focusable="true" android:gravity="center"
+            android:paddingHorizontal="14dp" android:text="Cancel" android:textColor="#3C4043"
+            android:textStyle="bold" />
+        <TextView android:id="@+id/confirm_hide_photos" android:layout_width="wrap_content"
+            android:layout_height="40dp" android:layout_marginStart="8dp"
+            android:background="@drawable/gallery_primary_action" android:clickable="true"
+            android:focusable="true" android:gravity="center" android:paddingHorizontal="14dp"
+            android:text="Hide selected" android:textColor="#FFFFFF" android:textStyle="bold" />
     </LinearLayout>
 
     <HorizontalScrollView

@@ -42,6 +42,16 @@ public class PreviewQuickReviewTest {
                 .contains("right to keep"));
     }
 
+    @Test public void hideActionHidesCurrentPhotoInQuickReview() {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://photo/quick-hide");
+        PreviewActivity activity = create(context, photo, true);
+
+        activity.findViewById(R.id.preview_hide).performClick();
+
+        assertTrue(new HiddenPhotoStore(activity).load().contains(photo.toString()));
+    }
+
     @Test public void dragRotatesCardButOnlyReleasePastThresholdRecordsDecision()
             throws Exception {
         Context context = RuntimeEnvironment.getApplication();

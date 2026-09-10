@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -65,6 +66,16 @@ public class PeopleActivityTest {
         assertEquals("application/json", share.getType());
         assertTrue(share.getStringExtra(Intent.EXTRA_TEXT).contains("Great expression"));
         assertTrue(!share.getStringExtra(Intent.EXTRA_TEXT).contains("content://"));
+    }
+
+    @Test public void settingsCanRestoreHiddenPhotos() {
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        new HiddenPhotoStore(activity).hide(Set.of("hidden"));
+        activity.onResume();
+
+        activity.findViewById(R.id.settings_restore_hidden).performClick();
+
+        assertEquals(Set.of(), new HiddenPhotoStore(activity).load());
     }
 
     @Test public void settingsImportChoicesReturnToTheReviewPickerFlow() {

@@ -82,6 +82,9 @@ public final class PreviewActivity extends Activity {
         HashSet<String> seenPhotos = new HashSet<>();
         for (RecentPhoto recent : galleryPhotos) if (seenPhotos.add(recent.uri().toString()))
             photos.add(recent.uri());
+        Set<String> hiddenPhotos = new HiddenPhotoStore(this).load();
+        photos.removeIf(candidate -> hiddenPhotos.contains(candidate.toString())
+                && !candidate.equals(photo));
         if (photos.isEmpty()) photos.add(photo);
         allPhotos = List.copyOf(photos);
         navigator = stackNavigator(photo, false);
@@ -130,6 +133,7 @@ public final class PreviewActivity extends Activity {
             updateButton();
             showStackCarousel();
         });
+        findViewById(R.id.preview_hide).setOnClickListener(view -> hideCurrentPhoto());
         findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
         if (quickReview) ((TextView) findViewById(R.id.preview_hint)).setText(
                 "Swipe right to keep  ·  Swipe left to pass  ·  Up for details");
@@ -140,7 +144,27 @@ public final class PreviewActivity extends Activity {
 
     private void updateButton() {
         ((TextView) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
-                ? "♥ Keeper — tap to remove" : "♡ Mark as keeper");
+                ? "♥ Keeper" : "♡ Keeper");
+    }
+
+    private void hideCurrentPhoto() {
+        String hiddenId = photo.toString();
+        new HiddenPhotoStore(this).hide(Set.of(hiddenId));
+        ArrayList<Uri> remaining = new ArrayList<>(allPhotos);
+        int hiddenIndex = remaining.indexOf(photo);
+        remaining.remove(photo);
+        if (remaining.isEmpty()) {
+            finish();
+            return;
+        }
+        allPhotos = List.copyOf(remaining);
+        Uri requested = remaining.get(Math.min(Math.max(0, hiddenIndex), remaining.size() - 1));
+        navigator = stackNavigator(requested, false);
+        photo = navigator.current();
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+        loadCurrent();
+        updateButton();
+        if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
     private void recordHeartFeedback(boolean selected) {

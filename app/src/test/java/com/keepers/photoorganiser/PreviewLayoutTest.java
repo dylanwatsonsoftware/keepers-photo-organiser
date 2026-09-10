@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -121,6 +122,21 @@ public class PreviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.preview_hint));
         assertNotNull(layout.findViewById(R.id.preview_recommendation).getBackground());
         assertNotNull(layout.findViewById(R.id.preview_keeper).getBackground());
+    }
+
+    @Test public void hideAndKeeperActionsSplitTheDecisionRow() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        View hide = layout.findViewById(R.id.preview_hide);
+        View keeper = layout.findViewById(R.id.preview_keeper);
+        LinearLayout.LayoutParams hideParams = (LinearLayout.LayoutParams) hide.getLayoutParams();
+        LinearLayout.LayoutParams keeperParams = (LinearLayout.LayoutParams) keeper.getLayoutParams();
+
+        assertTrue(hide instanceof TextView);
+        assertTrue(!(hide instanceof android.widget.Button));
+        assertNotNull(hide.getBackground());
+        assertEquals(1f, hideParams.weight, 0f);
+        assertEquals(1f, keeperParams.weight, 0f);
     }
 
     @Test public void carouselUsesDedicatedPageSurfacesAroundItsImages() {
