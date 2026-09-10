@@ -122,6 +122,26 @@ public class AlbumReviewActivityTest {
         assertEquals("content://photos/a", opened.getDataString());
     }
 
+    @Test public void albumCardsUseCompactFullImagePreviewsAndDenseDestinations() {
+        seed();
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout card = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        ImageView photo = (ImageView) card.getChildAt(0);
+        GridLayout destinations = (GridLayout) card.getChildAt(2);
+        ViewGroup firstDestination = (ViewGroup) destinations.getChildAt(0);
+        View destinationImage = firstDestination.getChildAt(0);
+        float density = activity.getResources().getDisplayMetrics().density;
+
+        assertEquals(ImageView.ScaleType.FIT_CENTER, photo.getScaleType());
+        assertEquals(Math.round(112 * density), photo.getLayoutParams().height);
+        assertTrue(photo.getBackground() != null);
+        assertEquals(4, destinations.getColumnCount());
+        assertTrue(firstDestination.getLayoutParams().width <= Math.round(78 * density));
+        assertTrue(destinationImage.getLayoutParams().width <= Math.round(64 * density));
+    }
+
     @Test public void correctionIsPersistedImmediately() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)

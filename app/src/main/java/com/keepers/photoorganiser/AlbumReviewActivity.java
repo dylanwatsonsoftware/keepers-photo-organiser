@@ -157,31 +157,34 @@ public final class AlbumReviewActivity extends Activity {
             AlbumCompletionStore completions) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
         card.setBackgroundResource(R.drawable.person_setup_card);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, 0, 0, dp(12));
+        params.setMargins(0, 0, 0, dp(8));
         card.setLayoutParams(params);
         ImageView image = new ImageView(this);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setBackgroundColor(Color.rgb(232, 234, 237));
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        image.setBackgroundResource(R.drawable.album_full_photo_preview);
+        image.setClipToOutline(true);
         image.setContentDescription("Open Keeper fullscreen");
         image.setClickable(true);
         image.setFocusable(true);
         image.setOnClickListener(view -> startActivity(new Intent(this, PreviewActivity.class)
                 .setData(Uri.parse(photo))));
         card.addView(image, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(112)));
         thumbnailLoader.load(image, Uri.parse(photo), 600);
         TextView instruction = new TextView(this);
         instruction.setText("Add this Keeper to:");
         instruction.setTextColor(0xFF3C4043);
-        instruction.setTextSize(14);
-        instruction.setPadding(0, dp(10), 0, dp(2));
+        instruction.setTextSize(13);
+        instruction.setTypeface(android.graphics.Typeface.DEFAULT,
+                android.graphics.Typeface.BOLD);
+        instruction.setPadding(0, dp(7), 0, dp(2));
         card.addView(instruction);
         GridLayout choices = new GridLayout(this);
-        choices.setColumnCount(3);
+        choices.setColumnCount(4);
         choices.setAlignmentMode(GridLayout.ALIGN_MARGINS);
         card.addView(choices, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -251,17 +254,17 @@ public final class AlbumReviewActivity extends Activity {
         LinearLayout choice = new LinearLayout(this);
         choice.setOrientation(LinearLayout.VERTICAL);
         choice.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        choice.setPadding(dp(3), dp(3), dp(3), dp(8));
+        choice.setPadding(dp(2), dp(2), dp(2), dp(4));
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.width = dp(98);
+        params.width = dp(76);
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        params.setMargins(0, 0, dp(8), dp(8));
+        params.setMargins(0, 0, dp(6), dp(6));
         choice.setLayoutParams(params);
         FrameLayout frame = new FrameLayout(this);
         frame.setTag("portrait_frame");
         frame.setBackgroundResource(R.drawable.album_person_choice);
         frame.setPadding(dp(3), dp(3), dp(3), dp(3));
-        choice.addView(frame, new LinearLayout.LayoutParams(dp(84), dp(84)));
+        choice.addView(frame, new LinearLayout.LayoutParams(dp(64), dp(64)));
         ImageView cover = new ImageView(this);
         cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
         cover.setBackgroundResource(R.drawable.preview_face_crop);
@@ -279,22 +282,22 @@ public final class AlbumReviewActivity extends Activity {
         check.setTag("selection_check");
         check.setText("✓");
         check.setTextColor(Color.WHITE);
-        check.setTextSize(14);
+        check.setTextSize(13);
         check.setGravity(android.view.Gravity.CENTER);
         check.setBackgroundResource(R.drawable.album_choice_check);
-        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(24), dp(24),
+        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(22), dp(22),
                 android.view.Gravity.TOP | android.view.Gravity.END);
         checkParams.setMargins(0, dp(2), dp(2), 0);
         frame.addView(check, checkParams);
         TextView name = new TextView(this);
         name.setText(album.albumName());
         name.setTextColor(0xFF3C4043);
-        name.setTextSize(13);
+        name.setTextSize(12);
         name.setGravity(android.view.Gravity.CENTER);
         name.setMaxLines(2);
         LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        nameParams.setMargins(0, dp(5), 0, 0);
+        nameParams.setMargins(0, dp(3), 0, 0);
         choice.addView(name, nameParams);
         updateAlbumChoice(choice, album, selected, completed);
         return choice;
@@ -317,11 +320,11 @@ public final class AlbumReviewActivity extends Activity {
         LinearLayout choice = new LinearLayout(this);
         choice.setOrientation(LinearLayout.VERTICAL);
         choice.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        choice.setPadding(dp(3), dp(3), dp(3), dp(8));
+        choice.setPadding(dp(2), dp(2), dp(2), dp(4));
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.width = dp(98);
+        params.width = dp(76);
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        params.setMargins(0, 0, dp(8), dp(8));
+        params.setMargins(0, 0, dp(6), dp(6));
         choice.setLayoutParams(params);
         choice.setClickable(true);
         choice.setFocusable(true);
@@ -330,7 +333,7 @@ public final class AlbumReviewActivity extends Activity {
         portraitFrame.setTag("portrait_frame");
         portraitFrame.setBackgroundResource(R.drawable.album_person_choice);
         portraitFrame.setPadding(dp(3), dp(3), dp(3), dp(3));
-        choice.addView(portraitFrame, new LinearLayout.LayoutParams(dp(84), dp(84)));
+        choice.addView(portraitFrame, new LinearLayout.LayoutParams(dp(64), dp(64)));
         ImageView portrait = new ImageView(this);
         portrait.setScaleType(ImageView.ScaleType.CENTER_CROP);
         portrait.setBackgroundResource(R.drawable.preview_face_crop);
@@ -342,34 +345,34 @@ public final class AlbumReviewActivity extends Activity {
         check.setTag("selection_check");
         check.setText("✓");
         check.setTextColor(Color.WHITE);
-        check.setTextSize(14);
+        check.setTextSize(13);
         check.setGravity(android.view.Gravity.CENTER);
         check.setBackgroundResource(R.drawable.album_choice_check);
-        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(24), dp(24),
+        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(22), dp(22),
                 android.view.Gravity.TOP | android.view.Gravity.END);
         checkParams.setMargins(0, dp(2), dp(2), 0);
         portraitFrame.addView(check, checkParams);
         TextView name = new TextView(this);
         name.setText(displayName(person));
         name.setTextColor(0xFF3C4043);
-        name.setTextSize(13);
+        name.setTextSize(12);
         name.setGravity(android.view.Gravity.CENTER);
         name.setMaxLines(2);
         LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        nameParams.setMargins(0, dp(5), 0, 0);
+        nameParams.setMargins(0, dp(3), 0, 0);
         choice.addView(name, nameParams);
         TextView source = new TextView(this);
         source.setTag("assignment_source");
-        source.setTextSize(11);
+        source.setTextSize(10);
         source.setTextColor(suggested ? 0xFFB06000 : 0xFF174EA6);
         source.setGravity(android.view.Gravity.CENTER);
         source.setBackgroundResource(suggested ? R.drawable.suggestion_summary_chip
                 : R.drawable.keeper_summary_chip);
-        source.setPadding(dp(7), 0, dp(7), 0);
+        source.setPadding(dp(5), 0, dp(5), 0);
         LinearLayout.LayoutParams sourceParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(22));
-        sourceParams.setMargins(0, dp(4), 0, 0);
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(20));
+        sourceParams.setMargins(0, dp(2), 0, 0);
         choice.addView(source, sourceParams);
         updateChoice(choice, person, selected, suggested, completed);
         if (face != null) {
