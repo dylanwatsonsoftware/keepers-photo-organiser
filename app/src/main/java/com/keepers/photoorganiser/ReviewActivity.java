@@ -81,6 +81,7 @@ public final class ReviewActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_review);
         selectionStore = new KeeperSelectionStore(this);
+        KeeperSelectionRecovery.runOnce(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         faceAnalyzer = createFaceAnalyzer();
         metadataVisible = getSharedPreferences("gallery_display", MODE_PRIVATE)
@@ -89,11 +90,6 @@ public final class ReviewActivity extends Activity {
                 startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.open_album_review).setOnClickListener(view ->
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
-        findViewById(R.id.clear_keepers).setOnClickListener(view -> {
-            selectionStore.clear();
-            AlbumApprovalInvalidator.invalidate(this);
-            updateSelectionDisplay();
-        });
         findViewById(R.id.select_photos_to_hide).setOnClickListener(view -> beginHideSelection());
         findViewById(R.id.cancel_hide_photos).setOnClickListener(view -> endHideSelection());
         findViewById(R.id.confirm_hide_photos).setOnClickListener(view -> hideSelectedPhotos());
@@ -732,8 +728,6 @@ public final class ReviewActivity extends Activity {
         for (String keeper : visibleSelected) if (!completions.hasAny(keeper)) count++;
         ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
                 ? "No new keepers" : count + (count == 1 ? " new keeper" : " new keepers"));
-        findViewById(R.id.clear_keepers).setEnabled(!visibleSelected.isEmpty());
-        findViewById(R.id.clear_keepers).setAlpha(!visibleSelected.isEmpty() ? 1f : 0.35f);
         applyFilter();
     }
 

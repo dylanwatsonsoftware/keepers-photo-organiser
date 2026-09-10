@@ -33,17 +33,6 @@
             android:src="@drawable/ic_settings"
             android:tint="#5F6368" />
 
-        <ImageButton
-            android:id="@+id/clear_keepers"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/gallery_icon_button"
-            android:contentDescription="Clear keepers"
-            android:padding="11dp"
-            android:src="@drawable/ic_clear"
-            android:tint="#5F6368" />
-
         <ImageButton android:id="@+id/select_photos_to_hide" android:layout_width="44dp"
             android:layout_height="44dp" android:layout_marginStart="4dp"
             android:background="@drawable/gallery_icon_button"

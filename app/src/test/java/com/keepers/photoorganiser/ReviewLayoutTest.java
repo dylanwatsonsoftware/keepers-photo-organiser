@@ -39,7 +39,7 @@ public class ReviewLayoutTest {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
-        assertTrue(layout.findViewById(R.id.clear_keepers) instanceof ImageButton);
+        assertTrue(findViewWithContentDescription(layout, "Clear keepers") == null);
         assertTrue(layout.findViewById(R.id.open_settings) instanceof ImageButton);
         LinearLayout summary = layout.findViewById(R.id.photo_summary);
         assertNotNull(summary);
@@ -67,6 +67,17 @@ public class ReviewLayoutTest {
         android.view.ViewGroup group = (android.view.ViewGroup) view;
         for (int index = 0; index < group.getChildCount(); index++) {
             View match = findViewWithText(group.getChildAt(index), text);
+            if (match != null) return match;
+        }
+        return null;
+    }
+
+    private static View findViewWithContentDescription(View view, String description) {
+        if (description.equals(String.valueOf(view.getContentDescription()))) return view;
+        if (!(view instanceof android.view.ViewGroup)) return null;
+        android.view.ViewGroup group = (android.view.ViewGroup) view;
+        for (int index = 0; index < group.getChildCount(); index++) {
+            View match = findViewWithContentDescription(group.getChildAt(index), description);
             if (match != null) return match;
         }
         return null;
