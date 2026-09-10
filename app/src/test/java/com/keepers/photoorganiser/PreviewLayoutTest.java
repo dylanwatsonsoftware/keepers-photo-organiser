@@ -61,7 +61,11 @@ public class PreviewLayoutTest {
 
         View quickReview = layout.findViewById(R.id.preview_start_quick_review);
         assertNotNull(quickReview);
-        assertTrue(quickReview instanceof ImageButton);
+        assertTrue(quickReview instanceof TextView);
+        assertTrue(!(quickReview instanceof android.widget.Button));
+        TextView label = (TextView) quickReview;
+        assertEquals("Review", label.getText().toString());
+        assertNotNull(label.getCompoundDrawablesRelative()[0]);
         assertTrue(quickReview.isClickable());
         assertNotNull(quickReview.getBackground());
         assertEquals("Start quick review", quickReview.getContentDescription());
