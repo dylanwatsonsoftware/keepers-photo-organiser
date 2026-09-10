@@ -52,6 +52,27 @@ public class PreviewQuickReviewTest {
         assertTrue(new HiddenPhotoStore(activity).load().contains(photo.toString()));
     }
 
+    @Test public void skipAdvancesWithoutKeepingOrHidingThePhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        new KeeperSelectionStore(context).clear();
+        new HiddenPhotoStore(context).clear();
+        Uri first = Uri.parse("content://photo/quick-skip-first");
+        Uri second = Uri.parse("content://photo/quick-skip-second");
+        imports.add(new ImportedPhoto(first, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(second, 10, PhotoOrigin.LOCAL));
+        PreviewActivity activity = create(context, first, true);
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_skip).getVisibility());
+        activity.findViewById(R.id.preview_skip).performClick();
+
+        assertEquals(second, currentPhoto(activity));
+        assertTrue(new KeeperSelectionStore(activity).load().isEmpty());
+        assertTrue(new HiddenPhotoStore(activity).load().isEmpty());
+        imports.clear();
+    }
+
     @Test public void hidingAStackInQuickReviewSkipsEveryHiddenMember() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);

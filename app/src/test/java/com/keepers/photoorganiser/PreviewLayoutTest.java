@@ -128,18 +128,24 @@ public class PreviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.preview_keeper).getBackground());
     }
 
-    @Test public void hideAndKeeperActionsSplitTheDecisionRow() {
+    @Test public void hideSkipAndKeeperActionsShareTheDecisionRow() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
         View hide = layout.findViewById(R.id.preview_hide);
+        View skip = layout.findViewById(R.id.preview_skip);
         View keeper = layout.findViewById(R.id.preview_keeper);
         LinearLayout.LayoutParams hideParams = (LinearLayout.LayoutParams) hide.getLayoutParams();
+        LinearLayout.LayoutParams skipParams = (LinearLayout.LayoutParams) skip.getLayoutParams();
         LinearLayout.LayoutParams keeperParams = (LinearLayout.LayoutParams) keeper.getLayoutParams();
 
         assertTrue(hide instanceof TextView);
         assertTrue(!(hide instanceof android.widget.Button));
         assertNotNull(hide.getBackground());
+        assertTrue(skip instanceof TextView);
+        assertTrue(!(skip instanceof android.widget.Button));
+        assertNotNull(skip.getBackground());
         assertEquals(1f, hideParams.weight, 0f);
+        assertEquals(1f, skipParams.weight, 0f);
         assertEquals(1f, keeperParams.weight, 0f);
     }
 

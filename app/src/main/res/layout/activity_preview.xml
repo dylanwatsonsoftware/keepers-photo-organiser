@@ -191,13 +191,19 @@
                 android:layout_height="match_parent" android:layout_weight="1"
                 android:background="@drawable/gallery_filter_chip" android:clickable="true"
                 android:focusable="true" android:gravity="center" android:text="Hide"
-                android:textColor="@color/gallery_filter_text" android:textSize="16sp"
+                android:textColor="@color/gallery_filter_text" android:textSize="15sp"
                 android:textStyle="bold" />
+            <TextView android:id="@+id/preview_skip" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_marginStart="8dp"
+                android:layout_weight="1" android:background="@drawable/gallery_filter_chip"
+                android:clickable="true" android:focusable="true" android:gravity="center"
+                android:text="Skip" android:textColor="@color/gallery_filter_text"
+                android:textSize="15sp" android:textStyle="bold" android:visibility="gone" />
             <TextView android:id="@+id/preview_keeper" android:layout_width="0dp"
                 android:layout_height="match_parent" android:layout_marginStart="8dp"
                 android:layout_weight="1" android:background="@drawable/preview_keeper_button"
                 android:clickable="true" android:focusable="true" android:gravity="center"
-                android:text="♡ Keeper" android:textColor="#202124" android:textSize="16sp"
+                android:text="♡ Keeper" android:textColor="#202124" android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 

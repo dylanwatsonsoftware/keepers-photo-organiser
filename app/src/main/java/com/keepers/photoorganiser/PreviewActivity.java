@@ -140,9 +140,12 @@ public final class PreviewActivity extends Activity {
             showStackCarousel();
         });
         findViewById(R.id.preview_hide).setOnClickListener(view -> hideCurrentPhoto());
+        View skip = findViewById(R.id.preview_skip);
+        skip.setVisibility(quickReview ? View.VISIBLE : View.GONE);
+        skip.setOnClickListener(view -> skipCurrentPhoto());
         findViewById(R.id.preview_feedback).setOnClickListener(view -> showFeedbackDialog());
         if (quickReview) ((TextView) findViewById(R.id.preview_hint)).setText(
-                "Swipe right to keep  ·  Swipe left to pass");
+                "Swipe right to keep  ·  Swipe left to pass  ·  Skip leaves unchanged");
         if (quickReview && !navigator.peekNext().equals(photo))
             showDragPreview(navigator.peekNext());
         updateButton();
@@ -173,6 +176,21 @@ public final class PreviewActivity extends Activity {
         loadCurrent();
         updateButton();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
+    }
+
+    private void skipCurrentPhoto() {
+        Uri next = navigator.peekNext();
+        if (next.equals(photo)) {
+            Toast.makeText(this, "Quick review complete", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        photo = navigator.next();
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
+        loadCurrent();
+        updateButton();
+        configureQuickReviewCards();
+        Uri following = navigator.peekNext();
+        if (!following.equals(photo)) showDragPreview(following);
     }
 
     private void recordHeartFeedback(boolean selected) {
