@@ -60,10 +60,13 @@ public class PreviewLayoutTest {
 
         View quickReview = layout.findViewById(R.id.preview_start_quick_review);
         assertNotNull(quickReview);
-        assertTrue(quickReview instanceof TextView);
-        assertTrue(!(quickReview instanceof android.widget.Button));
+        assertTrue(quickReview instanceof ImageButton);
         assertTrue(quickReview.isClickable());
         assertNotNull(quickReview.getBackground());
+        assertEquals("Start quick review", quickReview.getContentDescription());
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) quickReview.getLayoutParams();
+        assertEquals(Gravity.TOP, params.gravity & Gravity.TOP);
+        assertEquals(Gravity.RIGHT, params.gravity & Gravity.RIGHT);
     }
     @Test public void analysisBreakdownIsScrollable() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
@@ -134,14 +137,15 @@ public class PreviewLayoutTest {
         assertTrue(layout.findViewById(adjacentSurface) instanceof FrameLayout);
     }
 
-    @Test public void photoViewHasACompactCloseAction() {
+    @Test public void photoViewHasACompactBackChevronAction() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
 
         View close = layout.findViewById(R.id.preview_close);
 
         assertEquals(true, close instanceof ImageButton);
-        assertEquals("Close photo", close.getContentDescription());
+        assertEquals("Back to gallery", close.getContentDescription());
+        assertNotNull(((ImageButton) close).getDrawable());
     }
 
     @Test public void photoViewIncludesAHiddenAnalysisSheet() {

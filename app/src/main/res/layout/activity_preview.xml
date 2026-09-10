@@ -44,10 +44,23 @@
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
         android:background="@drawable/photo_icon_button"
-        android:contentDescription="Close photo"
+        android:contentDescription="Back to gallery"
         android:elevation="3dp"
         android:padding="12dp"
-        android:src="@drawable/ic_close"
+        android:src="@drawable/ic_back_chevron"
+        android:tint="#FFFFFF" />
+
+    <ImageButton
+        android:id="@+id/preview_start_quick_review"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/photo_icon_button"
+        android:contentDescription="Start quick review"
+        android:elevation="3dp"
+        android:padding="11dp"
+        android:src="@drawable/ic_review_albums"
         android:tint="#FFFFFF" />
 
     <TextView
@@ -175,19 +188,6 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/preview_start_quick_review"
-            android:layout_width="match_parent"
-            android:layout_height="42dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="Start quick review"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="14sp"
-            android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
