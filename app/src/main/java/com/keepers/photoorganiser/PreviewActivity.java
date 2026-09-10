@@ -84,8 +84,14 @@ public final class PreviewActivity extends Activity {
             photos.add(recent.uri());
         Set<String> hiddenPhotos = new HiddenPhotoStore(this).load();
         photos.removeIf(candidate -> hiddenPhotos.contains(candidate.toString())
-                && !candidate.equals(photo));
-        if (photos.isEmpty()) photos.add(photo);
+                && (quickReview || !candidate.equals(photo)));
+        if (photos.isEmpty() && (!quickReview || !hiddenPhotos.contains(photo.toString())))
+            photos.add(photo);
+        if (photos.isEmpty()) {
+            Toast.makeText(this, "No visible photos to review", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         allPhotos = List.copyOf(photos);
         navigator = stackNavigator(photo, false);
         photo = navigator.current();
@@ -561,6 +567,9 @@ public final class PreviewActivity extends Activity {
 
     private void showStackCarousel() {
         List<String> members = new PhotoStackStore(this).load(photo.toString());
+        Set<String> hidden = new HiddenPhotoStore(this).load();
+        members = members.stream().filter(member -> !hidden.contains(member)
+                || (!quickReview && member.equals(photo.toString()))).toList();
         HorizontalScrollView carousel = findViewById(R.id.preview_stack_carousel);
         LinearLayout thumbnails = findViewById(R.id.preview_stack_thumbnails);
         thumbnails.removeAllViews();
@@ -608,10 +617,12 @@ public final class PreviewActivity extends Activity {
 
     private PhotoNavigator stackNavigator(Uri current, boolean preserveCurrentMember) {
         List<String> orderedIds = allPhotos.stream().map(Uri::toString).toList();
+        Set<String> orderedSet = Set.copyOf(orderedIds);
         HashMap<String, List<String>> stacks = new HashMap<>();
         PhotoStackStore stackStore = new PhotoStackStore(this);
         for (String id : orderedIds) {
-            List<String> members = stackStore.load(id);
+            List<String> members = stackStore.load(id).stream()
+                    .filter(orderedSet::contains).toList();
             if (!members.isEmpty()) stacks.put(id, members);
         }
         Set<String> recommendations = suggestionStore.load();

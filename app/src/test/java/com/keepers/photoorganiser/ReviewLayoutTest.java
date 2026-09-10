@@ -46,6 +46,7 @@ public class ReviewLayoutTest {
         assertTrue(filters.getParent() instanceof HorizontalScrollView);
         assertTrue(layout.findViewById(R.id.filter_keepers).getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_recommended).getParent() == filters);
+        assertTrue(layout.findViewById(R.id.filter_hidden).getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_origin_local).getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_origin_cloud).getParent() == filters);
         assertTrue(findViewWithText(layout, "On-device photos") == null);

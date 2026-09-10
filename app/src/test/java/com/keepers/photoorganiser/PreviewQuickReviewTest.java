@@ -104,6 +104,29 @@ public class PreviewQuickReviewTest {
         assertEquals(single, navigator(quick).peekNext());
     }
 
+    @Test public void fullscreenStackCarouselDoesNotExposeHiddenMembers() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
+        Uri visible = Uri.parse("content://photo/visible-stack-member");
+        Uri hidden = Uri.parse("content://photo/hidden-stack-member");
+        imports.add(new ImportedPhoto(visible, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(hidden, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(visible.toString(), hidden.toString());
+        new PhotoStackStore(context).save(Map.of(
+                visible.toString(), stack, hidden.toString(), stack));
+        new HiddenPhotoStore(context).hide(Set.of(hidden.toString()));
+
+        PreviewActivity activity = create(context, visible, false);
+
+        assertEquals(0, ((android.view.ViewGroup) activity.findViewById(
+                R.id.preview_stack_thumbnails)).getChildCount());
+        assertEquals(View.GONE, activity.findViewById(R.id.preview_stack_carousel).getVisibility());
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
+    }
+
     @Test public void fullscreenPhotoCanLaunchQuickReviewFromItsCurrentItem() {
         Context context = RuntimeEnvironment.getApplication();
         Uri photo = Uri.parse("content://photo/fullscreen-quick-start");
@@ -115,6 +138,29 @@ public class PreviewQuickReviewTest {
         assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
         assertEquals(photo, started.getData());
         assertTrue(started.getBooleanExtra(PreviewActivity.EXTRA_QUICK_REVIEW, false));
+    }
+
+    @Test public void quickReviewLaunchedFromHiddenFullscreenSkipsTheHiddenPhoto()
+            throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
+        Uri hidden = Uri.parse("content://photo/hidden-fullscreen");
+        Uri visible = Uri.parse("content://photo/visible-fullscreen");
+        imports.add(new ImportedPhoto(hidden, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(visible, 10, PhotoOrigin.LOCAL));
+        new HiddenPhotoStore(context).hide(Set.of(hidden.toString()));
+        PreviewActivity fullscreen = create(context, hidden, false);
+
+        fullscreen.findViewById(R.id.preview_start_quick_review).performClick();
+        Intent started = Shadows.shadowOf(fullscreen).getNextStartedActivity();
+        PreviewActivity quickReview = Robolectric.buildActivity(PreviewActivity.class, started)
+                .setup().get();
+
+        assertEquals(visible, currentPhoto(quickReview));
+        imports.clear();
+        new HiddenPhotoStore(context).clear();
     }
 
     @Test public void quickReviewUsesAnInsetElevatedCardDeckAndModeBadge() {

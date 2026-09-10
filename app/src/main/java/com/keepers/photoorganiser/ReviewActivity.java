@@ -46,7 +46,7 @@ public final class ReviewActivity extends Activity {
     private static final int AUTHORIZE_GOOGLE_PHOTOS = 202;
     private static final String PHOTOS_PICKER_SCOPE =
             "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
-    private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED }
+    private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED, HIDDEN }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     public static final String ACTION_IMPORT_DEVICE_PHOTOS =
             "com.keepers.photoorganiser.action.IMPORT_DEVICE_PHOTOS";
@@ -101,6 +101,8 @@ public final class ReviewActivity extends Activity {
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.RECOMMENDED));
+        findViewById(R.id.filter_hidden).setOnClickListener(view ->
+                toggleFilter(GalleryFilter.HIDDEN));
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
         findViewById(R.id.filter_origin_all).setOnClickListener(view -> showAllPhotos());
@@ -147,11 +149,15 @@ public final class ReviewActivity extends Activity {
     }
 
     private void openQuickReview() {
-        if (photos.isEmpty()) {
+        Set<String> hidden = new HiddenPhotoStore(this).load();
+        Uri firstVisible = photos.stream()
+                .filter(candidate -> !hidden.contains(candidate.toString()))
+                .findFirst().orElse(null);
+        if (firstVisible == null) {
             Toast.makeText(this, "No photos to review yet", Toast.LENGTH_SHORT).show();
             return;
         }
-        startActivity(new Intent(this, PreviewActivity.class).setData(photos.get(0))
+        startActivity(new Intent(this, PreviewActivity.class).setData(firstVisible)
                 .putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())
                 .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, true));
     }
@@ -854,19 +860,20 @@ public final class ReviewActivity extends Activity {
         Set<String> hidden = new HiddenPhotoStore(this).load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
+        boolean showingHidden = galleryFilter == GalleryFilter.HIDDEN;
         List<String> orderedIds = photos.stream().map(Uri::toString)
-                .filter(id -> !hidden.contains(id)).toList();
+                .filter(id -> hidden.contains(id) == showingHidden).toList();
         HashMap<String, List<String>> visibleStacks = new HashMap<>();
         stackMembers.forEach((id, members) -> {
-            if (!hidden.contains(id)) visibleStacks.put(id, members.stream()
-                    .filter(member -> !hidden.contains(member)).toList());
+            if (hidden.contains(id) == showingHidden) visibleStacks.put(id, members.stream()
+                    .filter(member -> hidden.contains(member) == showingHidden).toList());
         });
         List<String> stackCovers = StackPresentation.visibleIds(
                 orderedIds, visibleStacks, suggestions, keepers);
         Map<String, FrameLayout> tilesById = new HashMap<>();
         for (FrameLayout tile : tiles) tilesById.put(tile.getTag().toString(), tile);
         int visible = 0;
-        List<String> typeFiltered = galleryFilter == GalleryFilter.ALL ? stackCovers
+        List<String> typeFiltered = galleryFilter == GalleryFilter.ALL || showingHidden ? stackCovers
                 : orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
                         ? keepers.contains(id) : suggestions.contains(id)).toList();
         List<String> visibleIds = PhotoOriginFilter.apply(typeFiltered, photoOrigins, originFilter);
@@ -879,13 +886,15 @@ public final class ReviewActivity extends Activity {
         View recommendedFilter = findViewById(R.id.filter_recommended);
         keeperFilter.setSelected(galleryFilter == GalleryFilter.KEEPERS);
         recommendedFilter.setSelected(galleryFilter == GalleryFilter.RECOMMENDED);
+        findViewById(R.id.filter_hidden).setSelected(showingHidden);
         findViewById(R.id.filter_origin_all).setSelected(originFilter == null);
         findViewById(R.id.filter_origin_local).setSelected(originFilter == PhotoOrigin.LOCAL);
         findViewById(R.id.filter_origin_cloud).setSelected(originFilter == PhotoOrigin.CLOUD);
         updateMetadataOverlays();
         TextView empty = findViewById(R.id.review_empty);
         if (!photos.isEmpty() && visible == 0) {
-            empty.setText(originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."
+            empty.setText(showingHidden ? "No hidden photos."
+                    : originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."
                     : originFilter == PhotoOrigin.LOCAL ? "No local photos in this view."
                     : galleryFilter == GalleryFilter.KEEPERS
                     ? "No Keepers in the loaded photos yet."

@@ -161,6 +161,34 @@ public class ReviewActivityTest {
         assertEquals(0, grid.getChildCount());
     }
 
+    @Test public void hiddenFilterShowsOnlyHiddenPhotos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri visible = Uri.parse("content://media/photo/visible");
+        Uri hidden = Uri.parse("content://media/photo/hidden");
+        activity.showPhotos(List.of(visible, hidden));
+        new HiddenPhotoStore(activity).hide(Set.of(hidden.toString()));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.filter_hidden).performClick();
+
+        assertEquals(1, grid.getChildCount());
+        assertEquals(hidden.toString(), grid.getChildAt(0).getTag().toString());
+        assertTrue(activity.findViewById(R.id.filter_hidden).isSelected());
+    }
+
+    @Test public void quickReviewStartsOnFirstVisiblePhoto() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri hidden = Uri.parse("content://media/photo/hidden-first");
+        Uri visible = Uri.parse("content://media/photo/visible-second");
+        activity.showPhotos(List.of(hidden, visible));
+        new HiddenPhotoStore(activity).hide(Set.of(hidden.toString()));
+
+        activity.findViewById(R.id.open_quick_review).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(visible, started.getData());
+    }
+
     @Test public void savedKeeperIsNotCountedAsNewAndUsesCompletedDescription() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String photo = "content://media/photo/already-saved";
