@@ -23,17 +23,23 @@ public class NamedFaceResolverTest {
                 Map.of(FaceCorrectionStore.key(corrected), "child-b")));
     }
 
-    @Test public void mapsUnassignedFaceGroupsAsStableDetectedIdentities() {
+    @Test public void ignoresUnknownFacesFromUnassignedGroups() {
         FaceIdentityGroup firstPerson = new FaceIdentityGroup("face-group-a", List.of(
                 face("photo-a", 0, "1,0"), face("photo-b", 0, "1,0")));
         FaceIdentityGroup secondPerson = new FaceIdentityGroup("face-group-b", List.of(
                 face("photo-c", 0, "0,1")));
 
-        assertEquals(Map.of(
-                "photo-a", Set.of("face-group-a"),
-                "photo-b", Set.of("face-group-a"),
-                "photo-c", Set.of("face-group-b")),
+        assertEquals(Map.of(),
                 NamedFaceResolver.resolve(List.of(firstPerson, secondPerson), Map.of(), Map.of()));
+    }
+
+    @Test public void includesOnlyConfirmedPersonWhenAnotherFaceIsUnknown() {
+        FaceObservation confirmed = face("photo-a", 0, "1,0");
+        FaceObservation unknown = face("photo-a", 1, "0,1");
+
+        assertEquals(Map.of("photo-a", Set.of("child-a")), NamedFaceResolver.resolve(
+                List.of(new FaceIdentityGroup("unassigned", List.of(confirmed, unknown))),
+                Map.of(), Map.of(FaceCorrectionStore.key(confirmed), "child-a")));
     }
 
     private static FaceObservation face(String photo, int index, String descriptor) {
