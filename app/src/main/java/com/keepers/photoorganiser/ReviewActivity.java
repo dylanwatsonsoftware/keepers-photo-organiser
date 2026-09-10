@@ -436,16 +436,8 @@ public final class ReviewActivity extends Activity {
                             pickerAccessToken, pickerSessionId)) {
                         GooglePhotosPickerApi.PickedMedia media = GooglePhotosPickerApi.firstMedia(
                                 pickerAccessToken, pickerSessionId);
-                        new Handler(Looper.getMainLooper()).post(() -> {
-                            TextView action = findViewById(R.id.import_google_photos);
-                            action.setEnabled(true);
-                            action.setText("View selected photo");
-                            action.setContentDescription(
-                                    "View the selected Google Photos photo in Keepers");
-                            action.setOnClickListener(view -> showPickedPhoto(media));
-                            Toast.makeText(this, "Photo selected — return to Keepers to test it",
-                                    Toast.LENGTH_LONG).show();
-                        });
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                importCompletedGoogleSelection(() -> showPickedPhoto(media)));
                         return;
                     }
                     Thread.sleep(3_000);
@@ -457,10 +449,16 @@ public final class ReviewActivity extends Activity {
         }, "google-photos-picker-poll").start();
     }
 
-    private void showPickedPhoto(GooglePhotosPickerApi.PickedMedia media) {
+    void importCompletedGoogleSelection(Runnable importSelectedPhoto) {
         TextView action = findViewById(R.id.import_google_photos);
         action.setEnabled(false);
-        action.setText("Loading photo…");
+        action.setText("Adding to review…");
+        action.setContentDescription("Adding the selected Google Photos photo to review");
+        importSelectedPhoto.run();
+    }
+
+    private void showPickedPhoto(GooglePhotosPickerApi.PickedMedia media) {
+        TextView action = findViewById(R.id.import_google_photos);
         new Thread(() -> {
             try {
                 Bitmap bitmap = GooglePhotosPickerApi.downloadDisplayBitmap(

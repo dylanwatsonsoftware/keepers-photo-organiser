@@ -17,6 +17,7 @@ import android.widget.TextView;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -70,6 +71,18 @@ public class ReviewActivityTest {
         assertEquals(android.provider.MediaStore.ACTION_PICK_IMAGES, started.getAction());
         assertEquals("image/*", started.getType());
         assertTrue(started.getIntExtra(android.provider.MediaStore.EXTRA_PICK_IMAGES_MAX, 0) > 1);
+    }
+
+    @Test public void completedGoogleSelectionStartsImportWithoutASecondTap() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        AtomicBoolean importStarted = new AtomicBoolean();
+
+        activity.importCompletedGoogleSelection(() -> importStarted.set(true));
+
+        assertTrue(importStarted.get());
+        TextView action = activity.findViewById(R.id.import_google_photos);
+        assertEquals("Adding to review…", action.getText().toString());
+        assertTrue(!action.isEnabled());
     }
 
     @Test public void selectingPhotoKeepsEveryTileAtFullStrength() {
