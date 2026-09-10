@@ -203,51 +203,75 @@ public final class AlbumReviewActivity extends Activity {
         choices.setAlignmentMode(GridLayout.ALIGN_MARGINS);
         scroll.addView(choices, new HorizontalScrollView.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        for (TrackedPerson person : people) {
-            String key = AlbumReviewSelectionStore.key(photo, person.id());
-            boolean completed = completions.contains(photo, person.albumName());
-            LinearLayout choice = personChoice(person, portraits.get(person.id()),
-                    selected.contains(key) && !completed, proposed.contains(key), completed);
-            if (!completed) choice.setOnClickListener(view -> {
-                boolean checked = !choice.isSelected();
-                HashSet<String> changed = new HashSet<>(reviewStore.load());
-                if (checked) changed.add(key); else changed.remove(key);
-                AlbumApprovalInvalidator.invalidate(this);
-                reviewStore.save(changed);
-                updateChoice(choice, person, checked, proposed.contains(key), false);
-                updateConfirmAction(changed);
-            });
-            else if (showReviewed) {
-                choice.setClickable(true);
-                choice.setFocusable(true);
-                choice.setOnClickListener(view -> confirmRetry(
-                        photo, person.id(), person.albumName()));
+        for (boolean selectedGroup : new boolean[]{true, false}) {
+            for (int index = 0; index < people.size(); index++) {
+                TrackedPerson person = people.get(index);
+                String key = AlbumReviewSelectionStore.key(photo, person.id());
+                boolean completed = completions.contains(photo, person.albumName());
+                boolean isSelected = selected.contains(key) && !completed;
+                if (isSelected != selectedGroup) continue;
+                LinearLayout choice = personChoice(person, portraits.get(person.id()),
+                        isSelected, proposed.contains(key), completed);
+                choice.setTag(index);
+                if (!completed) choice.setOnClickListener(view -> {
+                    boolean checked = !choice.isSelected();
+                    HashSet<String> changed = new HashSet<>(reviewStore.load());
+                    if (checked) changed.add(key); else changed.remove(key);
+                    AlbumApprovalInvalidator.invalidate(this);
+                    reviewStore.save(changed);
+                    updateChoice(choice, person, checked, proposed.contains(key), false);
+                    reorderDestinations(choices);
+                    scroll.scrollTo(0, 0);
+                    updateConfirmAction(changed);
+                });
+                else if (showReviewed) {
+                    choice.setClickable(true);
+                    choice.setFocusable(true);
+                    choice.setOnClickListener(view -> confirmRetry(
+                            photo, person.id(), person.albumName()));
+                }
+                choices.addView(choice);
             }
-            choices.addView(choice);
-        }
-        for (RegisteredAlbum album : otherAlbums) {
-            String key = AlbumReviewSelectionStore.key(photo, albumKey(album));
-            boolean completed = completions.contains(photo, album.albumName());
-            LinearLayout choice = albumChoice(album, selected.contains(key) && !completed,
-                    completed);
-            if (!completed) choice.setOnClickListener(view -> {
-                boolean checked = !choice.isSelected();
-                HashSet<String> changed = new HashSet<>(reviewStore.load());
-                if (checked) changed.add(key); else changed.remove(key);
-                AlbumApprovalInvalidator.invalidate(this);
-                reviewStore.save(changed);
-                updateAlbumChoice(choice, album, checked, false);
-                updateConfirmAction(changed);
-            });
-            else if (showReviewed) {
-                choice.setClickable(true);
-                choice.setFocusable(true);
-                choice.setOnClickListener(view -> confirmRetry(
-                        photo, albumKey(album), album.albumName()));
+            for (int index = 0; index < otherAlbums.size(); index++) {
+                RegisteredAlbum album = otherAlbums.get(index);
+                String key = AlbumReviewSelectionStore.key(photo, albumKey(album));
+                boolean completed = completions.contains(photo, album.albumName());
+                boolean isSelected = selected.contains(key) && !completed;
+                if (isSelected != selectedGroup) continue;
+                LinearLayout choice = albumChoice(album, isSelected, completed);
+                choice.setTag(people.size() + index);
+                if (!completed) choice.setOnClickListener(view -> {
+                    boolean checked = !choice.isSelected();
+                    HashSet<String> changed = new HashSet<>(reviewStore.load());
+                    if (checked) changed.add(key); else changed.remove(key);
+                    AlbumApprovalInvalidator.invalidate(this);
+                    reviewStore.save(changed);
+                    updateAlbumChoice(choice, album, checked, false);
+                    reorderDestinations(choices);
+                    scroll.scrollTo(0, 0);
+                    updateConfirmAction(changed);
+                });
+                else if (showReviewed) {
+                    choice.setClickable(true);
+                    choice.setFocusable(true);
+                    choice.setOnClickListener(view -> confirmRetry(
+                            photo, albumKey(album), album.albumName()));
+                }
+                choices.addView(choice);
             }
-            choices.addView(choice);
         }
         return card;
+    }
+
+    private static void reorderDestinations(GridLayout choices) {
+        ArrayList<android.view.View> ordered = new ArrayList<>();
+        for (int index = 0; index < choices.getChildCount(); index++)
+            ordered.add(choices.getChildAt(index));
+        ordered.sort(Comparator
+                .comparing((android.view.View choice) -> !choice.isSelected())
+                .thenComparingInt(choice -> (Integer) choice.getTag()));
+        choices.removeAllViews();
+        for (android.view.View choice : ordered) choices.addView(choice);
     }
 
     private void confirmRetry(String photoId, String destinationId, String albumName) {

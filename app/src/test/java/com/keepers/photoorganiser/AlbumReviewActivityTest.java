@@ -108,6 +108,54 @@ public class AlbumReviewActivityTest {
         assertTrue(new AlbumActionQueueStore(activity).isActive());
     }
 
+    @Test public void selectedDestinationsMoveFirstWithoutChangingNaturalGroupOrder() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        RegisteredAlbum album = new RegisteredAlbum(
+                "album-1", "Family adventures", "content://cover/1");
+        new RegisteredAlbumStore(context).save(List.of(album));
+        new AlbumReviewSelectionStore(context).save(Set.of(
+                AlbumReviewSelectionStore.key("content://photos/a", "ben"),
+                AlbumReviewSelectionStore.key("content://photos/a", "cam"),
+                AlbumReviewSelectionStore.key("content://photos/a", "album:album-1")));
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        GridLayout destinations = destinations(first);
+
+        assertEquals("Ben", destinationName(destinations.getChildAt(0)));
+        assertEquals("Cam", destinationName(destinations.getChildAt(1)));
+        assertEquals("Family adventures", destinationName(destinations.getChildAt(2)));
+        assertEquals("Ada", destinationName(destinations.getChildAt(3)));
+    }
+
+    @Test public void changingASelectionImmediatelyRestoresSelectedFirstNaturalOrder() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new AlbumReviewSelectionStore(context).save(Set.of(
+                AlbumReviewSelectionStore.key("content://photos/a", "ben")));
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout first = (LinearLayout) activity.<LinearLayout>findViewById(
+                R.id.album_review_items).getChildAt(0);
+        GridLayout destinations = destinations(first);
+        assertEquals("Ben", destinationName(destinations.getChildAt(0)));
+        assertEquals("Ada", destinationName(destinations.getChildAt(1)));
+
+        destinations.getChildAt(1).performClick();
+
+        assertEquals("Ada", destinationName(destinations.getChildAt(0)));
+        assertEquals("Ben", destinationName(destinations.getChildAt(1)));
+
+        destinations.getChildAt(0).performClick();
+
+        assertEquals("Ben", destinationName(destinations.getChildAt(0)));
+        assertEquals("Ada", destinationName(destinations.getChildAt(1)));
+        assertEquals("Cam", destinationName(destinations.getChildAt(2)));
+    }
+
     @Test public void keeperThumbnailOpensFullscreenForExpressionReview() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
@@ -399,5 +447,9 @@ public class AlbumReviewActivityTest {
 
     private static GridLayout destinations(View card) {
         return card.findViewWithTag("album_destinations");
+    }
+
+    private static String destinationName(View destination) {
+        return ((TextView) ((ViewGroup) destination).getChildAt(1)).getText().toString();
     }
 }
