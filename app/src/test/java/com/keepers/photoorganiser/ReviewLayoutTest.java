@@ -105,7 +105,7 @@ public class ReviewLayoutTest {
                 ((android.view.ViewGroup) layout).getChildAt(0);
         TextView title = (TextView) toolbar.getChildAt(1);
 
-        assertTrue("Choose albums".contentEquals(title.getText()));
+        assertTrue("Add to albums".contentEquals(title.getText()));
         assertTrue(title.getTextSize() <= 24 * title.getResources()
                 .getDisplayMetrics().scaledDensity);
         assertTrue(title.getMaxLines() == 1);
