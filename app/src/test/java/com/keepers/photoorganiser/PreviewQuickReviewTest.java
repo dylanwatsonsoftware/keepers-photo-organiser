@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -79,10 +80,13 @@ public class PreviewQuickReviewTest {
         List<String> stack = List.of(first.toString(), sibling.toString());
         new PhotoStackStore(context).save(Map.of(
                 first.toString(), stack, sibling.toString(), stack));
+        new SuggestionStore(context).save(Set.of(sibling.toString()));
 
         PreviewActivity normal = create(context, first, false);
         PreviewActivity quick = create(context, first, true);
 
+        assertEquals(sibling, currentPhoto(normal));
+        assertEquals(sibling, currentPhoto(quick));
         assertEquals(single, navigator(normal).peekNext());
         assertEquals(single, navigator(quick).peekNext());
     }
@@ -97,6 +101,12 @@ public class PreviewQuickReviewTest {
         Field field = PreviewActivity.class.getDeclaredField("navigator");
         field.setAccessible(true);
         return (PhotoNavigator) field.get(activity);
+    }
+
+    private static Uri currentPhoto(PreviewActivity activity) throws Exception {
+        Field field = PreviewActivity.class.getDeclaredField("photo");
+        field.setAccessible(true);
+        return (Uri) field.get(activity);
     }
 
     private static MotionEvent event(int action, float x, float y) {

@@ -84,7 +84,9 @@ public final class PreviewActivity extends Activity {
             photos.add(recent.uri());
         if (photos.isEmpty()) photos.add(photo);
         allPhotos = List.copyOf(photos);
-        navigator = stackNavigator(photo);
+        navigator = stackNavigator(photo, false);
+        photo = navigator.current();
+        setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
         frontImage = findViewById(R.id.preview_image);
         adjacentImage = findViewById(R.id.preview_adjacent_image);
         currentSurface = findViewById(R.id.preview_current_surface);
@@ -562,14 +564,14 @@ public final class PreviewActivity extends Activity {
         if (selected.equals(photo)) return;
         resetZoom();
         photo = selected;
-        navigator = stackNavigator(photo);
+        navigator = stackNavigator(photo, true);
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
         loadCurrent();
         updateButton();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
-    private PhotoNavigator stackNavigator(Uri current) {
+    private PhotoNavigator stackNavigator(Uri current, boolean preserveCurrentMember) {
         List<String> orderedIds = allPhotos.stream().map(Uri::toString).toList();
         HashMap<String, List<String>> stacks = new HashMap<>();
         PhotoStackStore stackStore = new PhotoStackStore(this);
@@ -577,10 +579,18 @@ public final class PreviewActivity extends Activity {
             List<String> members = stackStore.load(id);
             if (!members.isEmpty()) stacks.put(id, members);
         }
-        List<Uri> navigation = StackPresentation.navigationIds(orderedIds, stacks,
-                        suggestionStore.load(), store.load(), current.toString()).stream()
-                .map(Uri::parse).toList();
-        return new PhotoNavigator(navigation, current);
+        Set<String> recommendations = suggestionStore.load();
+        Set<String> keepers = store.load();
+        List<String> navigationIds = preserveCurrentMember
+                ? StackPresentation.navigationIds(orderedIds, stacks, recommendations,
+                        keepers, current.toString())
+                : StackPresentation.visibleIds(orderedIds, stacks, recommendations, keepers);
+        String requestedId = current.toString();
+        List<String> currentStack = stacks.get(requestedId);
+        if (!preserveCurrentMember && currentStack != null) requestedId = navigationIds.stream()
+                .filter(currentStack::contains).findFirst().orElse(requestedId);
+        List<Uri> navigation = navigationIds.stream().map(Uri::parse).toList();
+        return new PhotoNavigator(navigation, Uri.parse(requestedId));
     }
 
     private void showAnalysis() {
