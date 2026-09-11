@@ -16,18 +16,28 @@ public final class RecommendationPreferenceProfile {
     public static RecommendationPreferenceProfile learn(List<RecommendationFeedback> feedback) {
         double[] loved = new double[7];
         double[] rejected = new double[7];
+        int[] lovedSignalCounts = new int[7];
+        int[] rejectedSignalCounts = new int[7];
         int lovedCount = 0;
         int rejectedCount = 0;
         for (RecommendationFeedback item : feedback) {
             double[] values = values(item.features());
             double[] target = item.rating() == RecommendationFeedback.LOVED ? loved : rejected;
+            int[] signalCounts = item.rating() == RecommendationFeedback.LOVED
+                    ? lovedSignalCounts : rejectedSignalCounts;
             if (item.rating() == RecommendationFeedback.LOVED) lovedCount++; else rejectedCount++;
-            for (int index = 0; index < values.length; index++) target[index] += values[index];
+            for (int index = 0; index < values.length; index++) {
+                if (Double.isNaN(values[index])) continue;
+                target[index] += values[index];
+                signalCounts[index]++;
+            }
         }
         double[] weights = new double[7];
         for (int index = 0; index < weights.length; index++) {
-            double positiveMean = lovedCount == 0 ? .5 : loved[index] / lovedCount;
-            double negativeMean = rejectedCount == 0 ? .5 : rejected[index] / rejectedCount;
+            double positiveMean = lovedSignalCounts[index] == 0
+                    ? .5 : loved[index] / lovedSignalCounts[index];
+            double negativeMean = rejectedSignalCounts[index] == 0
+                    ? .5 : rejected[index] / rejectedSignalCounts[index];
             weights[index] = Math.max(.05, 1 + 2 * (positiveMean - negativeMean));
         }
         int count = feedback.size();
@@ -37,22 +47,35 @@ public final class RecommendationPreferenceProfile {
     }
 
     public double score(PhotoFeatures photo) {
-        if (feedbackCount == 0) return photo.quality();
+        double[] values = values(photo);
+        double baseline = averageAvailable(values);
+        if (feedbackCount == 0) return baseline;
         double weighted = 0;
         double totalWeight = 0;
-        double[] values = values(photo);
         for (int index = 0; index < weights.length; index++) {
+            if (Double.isNaN(values[index])) continue;
             weighted += weights[index] * values[index];
             totalWeight += weights[index];
         }
-        return photo.quality() * (1 - strength) + weighted / totalWeight * strength;
+        return baseline * (1 - strength) + weighted / totalWeight * strength;
     }
 
     public int feedbackCount() { return feedbackCount; }
 
     private static double[] values(PhotoFeatures photo) {
         return new double[] { photo.quality(), photo.focus(), photo.exposure(), photo.composition(),
-                photo.motionStability(), photo.smile() < 0 ? .5 : photo.smile(),
-                photo.eyesOpen() < 0 ? .5 : photo.eyesOpen() };
+                photo.motionStability(), photo.smile() < 0 ? Double.NaN : photo.smile(),
+                photo.eyesOpen() < 0 ? Double.NaN : photo.eyesOpen() };
+    }
+
+    private static double averageAvailable(double[] values) {
+        double total = 0;
+        int count = 0;
+        for (double value : values) {
+            if (Double.isNaN(value)) continue;
+            total += value;
+            count++;
+        }
+        return count == 0 ? 0 : total / count;
     }
 }

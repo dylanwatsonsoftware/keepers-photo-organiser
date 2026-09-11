@@ -15,6 +15,16 @@ public class BestShotEngineTest {
         assertEquals(Set.of("sharp"), BestShotEngine.recommend(List.of(softer, sharper)));
     }
 
+    @Test public void openEyesBreakATechnicalTieBetweenPortraits() {
+        PhotoFeatures closedEyes = new PhotoFeatures("a-closed", 1_000, 0L, .8,
+                .8, .8, .8, .8, 1, .7, .05);
+        PhotoFeatures openEyes = new PhotoFeatures("z-open", 2_000, 1L, .8,
+                .8, .8, .8, .8, 1, .7, .95);
+
+        assertEquals(Set.of("z-open"), BestShotEngine.recommend(
+                List.of(closedEyes, openEyes)));
+    }
+
     @Test public void learnedPreferencesCanChangeTheBestPhotoWithinAStack() {
         PhotoFeatures technical = new PhotoFeatures("technical", 1_000, 0L, .80,
                 .9, .5, .2, .9, 0, -1, -1);
