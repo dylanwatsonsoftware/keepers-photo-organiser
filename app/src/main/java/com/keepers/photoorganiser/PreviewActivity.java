@@ -68,6 +68,7 @@ public final class PreviewActivity extends Activity {
     private boolean quickReview;
     private View previewQuickReview;
     private Map<String, RecentPhoto> mediaDetails = Map.of();
+    private boolean photoChromeVisible = true;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -473,6 +474,9 @@ public final class PreviewActivity extends Activity {
         }
         if (direction == SwipeDirection.NONE) {
             resetPosition(image);
+            if (!quickReview && analysisSheet.getVisibility() != View.VISIBLE
+                    && Math.abs(releaseDeltaX) <= dp(8)
+                    && Math.abs(releaseDeltaY) <= dp(8)) togglePhotoChrome();
             return true;
         }
         if (quickReview && (direction == SwipeDirection.NEXT
@@ -612,7 +616,7 @@ public final class PreviewActivity extends Activity {
             video.setVideoURI(photo);
             video.setVisibility(View.VISIBLE);
             if (play != null) {
-                play.setVisibility(View.VISIBLE);
+                play.setVisibility(photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
                 play.setOnClickListener(view -> {
                     if (video.isPlaying()) {
                         video.pause();
@@ -1129,7 +1133,8 @@ public final class PreviewActivity extends Activity {
                     analysisSheet.setTranslationY(0);
                     analysisSheet.setTranslationX(0);
                     analysisSheet.setAlpha(1);
-                    previewQuickReview.setVisibility(quickReview ? View.GONE : View.VISIBLE);
+                    previewQuickReview.setVisibility(quickReview ? View.GONE
+                            : photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
                 }).start();
     }
 
@@ -1196,6 +1201,17 @@ public final class PreviewActivity extends Activity {
 
     private void resetAnalysisHorizontalPosition() {
         analysisSheet.animate().translationX(0).alpha(1).setDuration(140).start();
+    }
+
+    private void togglePhotoChrome() {
+        photoChromeVisible = !photoChromeVisible;
+        int visibility = photoChromeVisible ? View.VISIBLE : View.INVISIBLE;
+        previewClose.setVisibility(visibility);
+        previewControls.setVisibility(visibility);
+        previewQuickReview.setVisibility(visibility);
+        View play = currentSurface.findViewWithTag("video_play");
+        if (play != null && mediaTypeOf(photo) == MediaType.VIDEO)
+            play.setVisibility(visibility);
     }
 
     private MediaType mediaTypeOf(Uri media) {

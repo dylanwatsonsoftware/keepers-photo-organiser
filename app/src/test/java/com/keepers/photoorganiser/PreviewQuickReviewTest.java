@@ -25,6 +25,43 @@ import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewQuickReviewTest {
+    @Test public void tappingFullscreenPhotoTogglesAllPhotoChrome() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/fullscreen-chrome-toggle"), false);
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 100, 100));
+
+        assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_close).getVisibility());
+        assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
+        assertEquals(View.INVISIBLE,
+                activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 100, 100));
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_close).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+    }
+
+    @Test public void tappingQuickReviewCardDoesNotHideDecisionControls() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/quick-review-no-chrome-toggle"), true);
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_UP, 100, 100));
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
+    }
+
     @Test public void rightSwipeMarksCurrentPhotoAsKeeper() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         Uri photo = Uri.parse("content://photo/quick-keep");
