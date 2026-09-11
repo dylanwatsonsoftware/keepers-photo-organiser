@@ -435,10 +435,15 @@ public final class ReviewActivity extends Activity {
                         features, namedFaces);
                 Map<String, List<String>> members = BestShotEngine.stackMembers(
                         features, namedFaces);
+                Set<String> hiddenIds = new HiddenPhotoStore(this).load();
+                List<PhotoFeatures> visibleFeatures = features.stream()
+                        .filter(feature -> !hiddenIds.contains(feature.id())).toList();
+                List<PhotoFeatures> hiddenFeatures = features.stream()
+                        .filter(feature -> hiddenIds.contains(feature.id())).toList();
                 List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
-                        features, members, keepers);
+                        visibleFeatures, members, keepers);
                 RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
-                        feedbackStore.load(), comparisons);
+                        feedbackStore.load(), comparisons, hiddenFeatures);
                 BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
                 new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),

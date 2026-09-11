@@ -49,6 +49,20 @@ public class RecommendationPreferenceProfileTest {
         assertEquals(1, profile.feedbackCount());
     }
 
+    @Test public void hiddenPhotosActAsCurrentNegativePreferenceEvidence() {
+        PhotoFeatures hidden = comparisonFeature("hidden", .95, .3);
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
+                List.of(RecommendationFeedback.from(hidden, RecommendationFeedback.LOVED, "")),
+                List.of(new StackPreferenceComparison(
+                        hidden,
+                        comparisonFeature("stack-alternative", .3, .95))),
+                List.of(hidden));
+
+        assertTrue(profile.score(comparisonFeature("unlike-hidden", .35, .9))
+                > profile.score(comparisonFeature("like-hidden", .9, .35)));
+        assertEquals(1, profile.feedbackCount());
+    }
+
     private static PhotoFeatures feature(String id, double focus, double composition) {
         return new PhotoFeatures(id, 0, id.hashCode(), (focus + composition) / 2,
                 focus, .5, composition, focus, 0, -1, -1);

@@ -1,21 +1,33 @@
 package com.keepers.photoorganiser;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class RecommendationFeedbackExport {
     private RecommendationFeedbackExport() {}
 
     public static String toJson(List<RecommendationFeedback> feedback, String appVersion) {
-        return toJson(feedback, List.of(), appVersion);
+        return toJson(feedback, List.of(), List.of(), appVersion);
     }
 
     public static String toJson(List<RecommendationFeedback> feedback,
             List<StackPreferenceComparison> comparisons, String appVersion) {
-        StringBuilder json = new StringBuilder("{\"schemaVersion\":2,\"appVersion\":\"")
+        return toJson(feedback, comparisons, List.of(), appVersion);
+    }
+
+    public static String toJson(List<RecommendationFeedback> feedback,
+            List<StackPreferenceComparison> comparisons, List<PhotoFeatures> hiddenPhotos,
+            String appVersion) {
+        Set<String> hiddenIds = new HashSet<>();
+        for (PhotoFeatures hidden : hiddenPhotos) hiddenIds.add(hidden.id());
+        StringBuilder json = new StringBuilder("{\"schemaVersion\":3,\"appVersion\":\"")
                 .append(escape(appVersion)).append("\",\"feedback\":[");
-        for (int index = 0; index < feedback.size(); index++) {
-            if (index > 0) json.append(',');
-            RecommendationFeedback item = feedback.get(index);
+        boolean hasPrevious = false;
+        for (RecommendationFeedback item : feedback) {
+            if (hiddenIds.contains(item.features().id())) continue;
+            if (hasPrevious) json.append(',');
+            hasPrevious = true;
             PhotoFeatures f = item.features();
             json.append("{\"rating\":\"")
                     .append(item.rating() == RecommendationFeedback.LOVED ? "loved" : "not_for_me")
@@ -24,12 +36,24 @@ public final class RecommendationFeedbackExport {
             appendSignals(json, f).append('}');
         }
         json.append("],\"comparisons\":[");
-        for (int index = 0; index < comparisons.size(); index++) {
-            if (index > 0) json.append(',');
-            StackPreferenceComparison comparison = comparisons.get(index);
+        hasPrevious = false;
+        for (StackPreferenceComparison comparison : comparisons) {
+            if (hiddenIds.contains(comparison.preferred().id())
+                    || hiddenIds.contains(comparison.alternative().id())) continue;
+            if (hasPrevious) json.append(',');
+            hasPrevious = true;
             json.append("{\"preferredSignals\":");
             appendSignals(json, comparison.preferred()).append(",\"alternativeSignals\":");
             appendSignals(json, comparison.alternative()).append('}');
+        }
+        json.append("],\"hiddenSignals\":[");
+        hasPrevious = false;
+        Set<String> exportedHiddenIds = new HashSet<>();
+        for (PhotoFeatures hidden : hiddenPhotos) {
+            if (!exportedHiddenIds.add(hidden.id())) continue;
+            if (hasPrevious) json.append(',');
+            hasPrevious = true;
+            appendSignals(json, hidden);
         }
         return json.append("]}").toString();
     }

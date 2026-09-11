@@ -33,10 +33,29 @@ public class RecommendationFeedbackExportTest {
         String json = RecommendationFeedbackExport.toJson(List.of(), List.of(
                 new StackPreferenceComparison(keeper, alternative)), "0.1-poc");
 
-        assertTrue(json.contains("\"schemaVersion\":2"));
+        assertTrue(json.contains("\"schemaVersion\":3"));
         assertTrue(json.contains("\"comparisons\":[{"));
         assertTrue(json.contains("\"preferredSignals\""));
         assertTrue(json.contains("\"alternativeSignals\""));
+        assertFalse(json.contains("content://"));
+    }
+
+    @Test public void exportsAnonymousHiddenPhotoSignals() {
+        PhotoFeatures hidden = new PhotoFeatures("content://private/hidden", 6, 7,
+                .4, .5, .6, .7, .8, 0, -1, -1);
+
+        String json = RecommendationFeedbackExport.toJson(
+                List.of(RecommendationFeedback.from(hidden,
+                        RecommendationFeedback.LOVED, "Old choice")),
+                List.of(new StackPreferenceComparison(hidden,
+                        new PhotoFeatures("alternative", 0, 0, .5))),
+                List.of(hidden), "0.1-poc");
+
+        assertTrue(json.contains("\"schemaVersion\":3"));
+        assertTrue(json.contains("\"hiddenSignals\":[{"));
+        assertTrue(json.contains("\"focus\":0.5"));
+        assertFalse(json.contains("Old choice"));
+        assertFalse(json.contains("preferredSignals"));
         assertFalse(json.contains("content://"));
     }
 }

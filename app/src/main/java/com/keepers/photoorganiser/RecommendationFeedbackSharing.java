@@ -7,6 +7,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class RecommendationFeedbackSharing {
     private RecommendationFeedbackSharing() {}
@@ -16,14 +17,20 @@ public final class RecommendationFeedbackSharing {
                 new RecommendationFeedbackStore(activity).load();
         Map<String, List<String>> stacks = new PhotoStackStore(activity).loadAll();
         PhotoInsightStore insights = new PhotoInsightStore(activity);
+        Set<String> hiddenIds = new HiddenPhotoStore(activity).load();
         ArrayList<PhotoFeatures> features = new ArrayList<>();
         for (String photoId : stacks.keySet()) {
             PhotoFeatures feature = insights.loadFeatures(photoId);
-            if (feature != null) features.add(feature);
+            if (feature != null && !hiddenIds.contains(photoId)) features.add(feature);
+        }
+        ArrayList<PhotoFeatures> hiddenFeatures = new ArrayList<>();
+        for (String photoId : hiddenIds) {
+            PhotoFeatures feature = insights.loadFeatures(photoId);
+            if (feature != null) hiddenFeatures.add(feature);
         }
         List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
                 features, stacks, new KeeperSelectionStore(activity).load());
-        if (feedback.isEmpty() && comparisons.isEmpty()) {
+        if (feedback.isEmpty() && comparisons.isEmpty() && hiddenFeatures.isEmpty()) {
             Toast.makeText(activity, "No recommendation feedback to export yet",
                     Toast.LENGTH_SHORT).show();
             return;
@@ -35,7 +42,8 @@ public final class RecommendationFeedbackSharing {
         } catch (PackageManager.NameNotFoundException impossible) {
             appVersion = "unknown";
         }
-        String json = RecommendationFeedbackExport.toJson(feedback, comparisons, appVersion);
+        String json = RecommendationFeedbackExport.toJson(
+                feedback, comparisons, hiddenFeatures, appVersion);
         Intent share = new Intent(Intent.ACTION_SEND).setType("application/json")
                 .putExtra(Intent.EXTRA_SUBJECT, "Keepers recommendation feedback")
                 .putExtra(Intent.EXTRA_TEXT, json);
