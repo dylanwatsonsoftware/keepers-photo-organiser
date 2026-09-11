@@ -247,6 +247,7 @@ public class PreviewQuickReviewTest {
         assertEquals(0, normalParams.leftMargin);
         assertTrue(quickParams.leftMargin >= 24);
         assertTrue(quickCard.getClipToOutline());
+        assertTrue(quickCard.getForeground() instanceof android.graphics.drawable.GradientDrawable);
         assertTrue(quickCard.getElevation() >= 10);
         assertTrue(nextCard.getScaleX() < 1);
         assertTrue(nextCard.getTranslationY() >= 16);
