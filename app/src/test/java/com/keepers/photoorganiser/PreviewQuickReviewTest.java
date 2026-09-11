@@ -2,8 +2,6 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -57,11 +55,13 @@ public class PreviewQuickReviewTest {
     @Test public void hideButtonShowsAnIconInQuickReviewOnly() {
         Context context = RuntimeEnvironment.getApplication();
         Uri photo = Uri.parse("content://photo/quick-hide-icon");
-        TextView normalHide = create(context, photo, false).findViewById(R.id.preview_hide);
-        TextView quickHide = create(context, photo, true).findViewById(R.id.preview_hide);
+        FrameLayout normalHide = create(context, photo, false).findViewById(R.id.preview_hide);
+        FrameLayout quickHide = create(context, photo, true).findViewById(R.id.preview_hide);
+        View normalIcon = ((android.view.ViewGroup) normalHide.getChildAt(0)).getChildAt(0);
+        View quickIcon = ((android.view.ViewGroup) quickHide.getChildAt(0)).getChildAt(0);
 
-        assertNull(normalHide.getCompoundDrawablesRelative()[0]);
-        assertNotNull(quickHide.getCompoundDrawablesRelative()[0]);
+        assertEquals(View.GONE, normalIcon.getVisibility());
+        assertEquals(View.VISIBLE, quickIcon.getVisibility());
     }
 
     @Test public void skipAdvancesWithoutKeepingOrHidingThePhoto() throws Exception {

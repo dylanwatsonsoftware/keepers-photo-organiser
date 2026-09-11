@@ -11,6 +11,7 @@ import android.widget.ScrollView;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -138,9 +139,14 @@ public class PreviewLayoutTest {
         LinearLayout.LayoutParams skipParams = (LinearLayout.LayoutParams) skip.getLayoutParams();
         LinearLayout.LayoutParams keeperParams = (LinearLayout.LayoutParams) keeper.getLayoutParams();
 
-        assertTrue(hide instanceof TextView);
+        assertTrue(hide instanceof FrameLayout);
         assertTrue(!(hide instanceof android.widget.Button));
         assertNotNull(hide.getBackground());
+        LinearLayout hideContent = (LinearLayout) ((FrameLayout) hide).getChildAt(0);
+        assertEquals(Gravity.CENTER, hideContent.getGravity());
+        assertTrue(hideContent.getChildAt(0) instanceof ImageView);
+        assertTrue(hideContent.getChildAt(1) instanceof TextView);
+        assertEquals("Hide", ((TextView) hideContent.getChildAt(1)).getText().toString());
         assertTrue(skip instanceof TextView);
         assertTrue(!(skip instanceof android.widget.Button));
         assertNotNull(skip.getBackground());
