@@ -289,6 +289,8 @@ public final class ReviewActivity extends Activity {
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
         if (photos.isEmpty()) showSuggestions(Set.of());
         else if (!appending) restoreCachedInsights();
+        if (!photos.isEmpty() && analyzedCount < photos.size())
+            showAnalysisProgress(analyzedCount, photos.size());
         updateSelectionDisplay();
     }
 
@@ -487,6 +489,7 @@ public final class ReviewActivity extends Activity {
     private void finishPhotoAnalysis(int generation) {
         if (generation != analysisGeneration) return;
         analyzedCount++;
+        showAnalysisProgress(analyzedCount, photos.size());
         if (analyzedCount == photos.size()) {
                 RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
                 Set<String> keepers = selectionStore.load();
@@ -843,10 +846,17 @@ public final class ReviewActivity extends Activity {
         new SuggestionStore(this).save(suggestions);
         new SuggestionStore(this).saveAlternatives(goodAlternatives);
         int count = suggestions.size();
+        findViewById(R.id.suggestion_progress).setVisibility(View.GONE);
         ((TextView) findViewById(R.id.suggestion_count)).setText(count == 0
                 ? "No near-duplicate groups found" : count
                 + (count == 1 ? " suggested best shot" : " suggested best shots"));
         updateSelectionDisplay();
+    }
+
+    void showAnalysisProgress(int completed, int total) {
+        findViewById(R.id.suggestion_progress).setVisibility(View.VISIBLE);
+        ((TextView) findViewById(R.id.suggestion_count)).setText(
+                "Analysing · " + completed + "/" + total);
     }
 
     private GradientDrawable recommendationCircle() {

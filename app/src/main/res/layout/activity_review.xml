@@ -64,21 +64,38 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/suggestion_count"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/suggestion_summary_chip"
-            android:ellipsize="end"
             android:gravity="center"
-            android:maxLines="1"
-            android:paddingHorizontal="12dp"
-            android:text="Finding best shots…"
-            android:textColor="#8A4B00"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <ProgressBar
+                android:id="@+id/suggestion_progress"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="7dp"
+                android:indeterminate="true"
+                android:indeterminateTint="#8A4B00"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/suggestion_count"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Finding best shots…"
+                android:textColor="#8A4B00"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout android:id="@+id/bulk_hide_actions" android:layout_width="match_parent"

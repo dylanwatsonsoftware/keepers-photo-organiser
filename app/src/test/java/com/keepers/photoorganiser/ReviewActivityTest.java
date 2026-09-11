@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.Manifest;
 import java.util.List;
@@ -27,6 +28,21 @@ import org.robolectric.Shadows;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
+    @Test public void suggestedBestBadgeShowsLivePhotoAnalysisProgress() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        ProgressBar progress = activity.findViewById(R.id.suggestion_progress);
+
+        activity.showAnalysisProgress(17, 60);
+
+        assertEquals(View.VISIBLE, progress.getVisibility());
+        assertEquals("Analysing · 17/60", text(activity, R.id.suggestion_count));
+
+        activity.showSuggestions(Set.of("photo"));
+
+        assertEquals(View.GONE, progress.getVisibility());
+        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
+    }
+
     @Test public void quickReviewActionOpensFirstPhotoInOptionalMode() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Uri first = Uri.parse("content://media/photo/quick-first");
@@ -453,7 +469,7 @@ public class ReviewActivityTest {
                 grid.getChildAt(1)).getChildAt(3).getVisibility());
     }
 
-    @Test public void savedStacksAndRecommendationsRenderBeforeReassessmentFinishes() {
+    @Test public void savedStacksRenderWhileBadgeMakesReassessmentVisible() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/cached-1";
         String recommended = "content://media/photo/cached-2";
@@ -473,7 +489,9 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         assertEquals(1, grid.getChildCount());
         assertEquals(recommended, grid.getChildAt(0).getTag().toString());
-        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
+        assertEquals("Analysing · 0/2", text(activity, R.id.suggestion_count));
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.suggestion_progress).getVisibility());
         TextView badge = (TextView) ((ViewGroup) grid.getChildAt(0)).getChildAt(3);
         assertEquals("2", badge.getText().toString());
     }
