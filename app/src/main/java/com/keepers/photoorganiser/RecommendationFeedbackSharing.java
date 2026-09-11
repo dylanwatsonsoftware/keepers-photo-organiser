@@ -42,8 +42,10 @@ public final class RecommendationFeedbackSharing {
         } catch (PackageManager.NameNotFoundException impossible) {
             appVersion = "unknown";
         }
+        RecommendationExportMetadata exportMetadata =
+                new RecommendationExportIdentityStore(activity).nextSnapshot();
         String json = RecommendationFeedbackExport.toJson(
-                feedback, comparisons, hiddenFeatures, appVersion);
+                feedback, comparisons, hiddenFeatures, appVersion, exportMetadata);
         Intent share = new Intent(Intent.ACTION_SEND).setType("application/json")
                 .putExtra(Intent.EXTRA_SUBJECT, "Keepers recommendation feedback")
                 .putExtra(Intent.EXTRA_TEXT, json);

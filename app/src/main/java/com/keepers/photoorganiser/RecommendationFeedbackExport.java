@@ -8,21 +8,46 @@ public final class RecommendationFeedbackExport {
     private RecommendationFeedbackExport() {}
 
     public static String toJson(List<RecommendationFeedback> feedback, String appVersion) {
-        return toJson(feedback, List.of(), List.of(), appVersion);
+        return toJson(feedback, List.of(), List.of(), appVersion,
+                new RecommendationExportMetadata("untracked", 0));
     }
 
     public static String toJson(List<RecommendationFeedback> feedback,
             List<StackPreferenceComparison> comparisons, String appVersion) {
-        return toJson(feedback, comparisons, List.of(), appVersion);
+        return toJson(feedback, comparisons, List.of(), appVersion,
+                new RecommendationExportMetadata("untracked", 0));
     }
 
     public static String toJson(List<RecommendationFeedback> feedback,
             List<StackPreferenceComparison> comparisons, List<PhotoFeatures> hiddenPhotos,
             String appVersion) {
+        return toJson(feedback, comparisons, hiddenPhotos, appVersion,
+                new RecommendationExportMetadata("untracked", 0));
+    }
+
+    public static String toJson(List<RecommendationFeedback> feedback,
+            List<StackPreferenceComparison> comparisons, List<PhotoFeatures> hiddenPhotos,
+            String appVersion, RecommendationExportMetadata metadata) {
         Set<String> hiddenIds = new HashSet<>();
         for (PhotoFeatures hidden : hiddenPhotos) hiddenIds.add(hidden.id());
-        StringBuilder json = new StringBuilder("{\"schemaVersion\":4,\"appVersion\":\"")
-                .append(escape(appVersion)).append("\",\"feedback\":[");
+        int feedbackCount = 0;
+        for (RecommendationFeedback item : feedback)
+            if (!hiddenIds.contains(item.features().id())) feedbackCount++;
+        int comparisonCount = 0;
+        for (StackPreferenceComparison comparison : comparisons)
+            if (!hiddenIds.contains(comparison.preferred().id())
+                    && !hiddenIds.contains(comparison.alternative().id())) comparisonCount++;
+        int hiddenCount = (int) hiddenPhotos.stream().map(PhotoFeatures::id).distinct().count();
+        StringBuilder json = new StringBuilder("{\"schemaVersion\":5,\"appVersion\":\"")
+                .append(escape(appVersion)).append("\",\"export\":{\"sourceId\":\"")
+                .append(escape(metadata.sourceId())).append("\",\"snapshotSequence\":")
+                .append(metadata.snapshotSequence())
+                .append(",\"kind\":\"snapshot\",\"mergePolicy\":")
+                .append("\"latest_snapshot_per_source\",\"missingEvidence\":\"unknown\",")
+                .append("\"coverage\":{\"feedback\":").append(feedbackCount)
+                .append(",\"comparisons\":").append(comparisonCount)
+                .append(",\"hiddenSignals\":").append(hiddenCount)
+                .append("}},\"feedback\":[");
         boolean hasPrevious = false;
         for (RecommendationFeedback item : feedback) {
             if (hiddenIds.contains(item.features().id())) continue;

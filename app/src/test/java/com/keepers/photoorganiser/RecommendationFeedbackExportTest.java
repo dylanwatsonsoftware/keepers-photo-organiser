@@ -20,7 +20,7 @@ public class RecommendationFeedbackExportTest {
         assertTrue(json.contains("\"focus\":0.9"));
         assertTrue(json.contains("\"faceCount\":2"));
         assertTrue(json.contains("\"cameraFacing\":0.72"));
-        assertTrue(json.contains("\"schemaVersion\":4"));
+        assertTrue(json.contains("\"schemaVersion\":5"));
         assertFalse(json.contains("content://"));
         assertFalse(json.contains("987654"));
         assertFalse(json.contains("12345"));
@@ -35,7 +35,7 @@ public class RecommendationFeedbackExportTest {
         String json = RecommendationFeedbackExport.toJson(List.of(), List.of(
                 new StackPreferenceComparison(keeper, alternative)), "0.1-poc");
 
-        assertTrue(json.contains("\"schemaVersion\":4"));
+        assertTrue(json.contains("\"schemaVersion\":5"));
         assertTrue(json.contains("\"comparisons\":[{"));
         assertTrue(json.contains("\"preferredSignals\""));
         assertTrue(json.contains("\"alternativeSignals\""));
@@ -67,11 +67,24 @@ public class RecommendationFeedbackExportTest {
                         new PhotoFeatures("alternative", 0, 0, .5))),
                 List.of(hidden), "0.1-poc");
 
-        assertTrue(json.contains("\"schemaVersion\":4"));
+        assertTrue(json.contains("\"schemaVersion\":5"));
         assertTrue(json.contains("\"hiddenSignals\":[{"));
         assertTrue(json.contains("\"focus\":0.5"));
         assertFalse(json.contains("Old choice"));
         assertFalse(json.contains("preferredSignals"));
         assertFalse(json.contains("content://"));
+    }
+
+    @Test public void identifiesReplaceableSnapshotsAndTreatsMissingEvidenceAsUnknown() {
+        String json = RecommendationFeedbackExport.toJson(List.of(), List.of(), List.of(),
+                "0.1-poc", new RecommendationExportMetadata("anonymous-source", 7));
+
+        assertTrue(json.contains("\"schemaVersion\":5"));
+        assertTrue(json.contains("\"sourceId\":\"anonymous-source\""));
+        assertTrue(json.contains("\"snapshotSequence\":7"));
+        assertTrue(json.contains("\"mergePolicy\":\"latest_snapshot_per_source\""));
+        assertTrue(json.contains("\"missingEvidence\":\"unknown\""));
+        assertTrue(json.contains("\"coverage\":{\"feedback\":0,\"comparisons\":0,"
+                + "\"hiddenSignals\":0}"));
     }
 }
