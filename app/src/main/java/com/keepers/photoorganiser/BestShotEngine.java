@@ -169,10 +169,18 @@ public final class BestShotEngine {
         PhotoFeatures best = group.get(0);
         for (int index = 1; index < group.size(); index++) {
             PhotoFeatures candidate = group.get(index);
-            if (profile.score(candidate) > profile.score(best)
-                    || profile.score(candidate) == profile.score(best)
+            if (stackScore(candidate, group, profile) > stackScore(best, group, profile)
+                    || stackScore(candidate, group, profile) == stackScore(best, group, profile)
                     && candidate.id().compareTo(best.id()) < 0) best = candidate;
         }
         return best;
+    }
+
+    private static double stackScore(PhotoFeatures photo, List<PhotoFeatures> group,
+            RecommendationPreferenceProfile profile) {
+        int expectedFaces = group.stream().mapToInt(PhotoFeatures::faceCount).max().orElse(0);
+        double faceCompleteness = expectedFaces == 0 ? 0
+                : Math.min(1, photo.faceCount() / (double) expectedFaces);
+        return profile.score(photo) + .04 * faceCompleteness;
     }
 }

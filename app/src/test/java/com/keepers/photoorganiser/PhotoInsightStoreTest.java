@@ -39,4 +39,14 @@ public class PhotoInsightStoreTest {
         assertEquals(true, insight.goodAlternative());
         assertEquals("A near-identical photo ranked slightly higher", insight.reason());
     }
+
+    @Test public void persistsPortraitCameraDirection() {
+        PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
+        PhotoFeatures portrait = new PhotoFeatures("portrait", 1, 2, .7,
+                .8, .75, .6, .9, 2, .4, .95, .82);
+
+        store.save(List.of(portrait), Map.of(), Set.of());
+
+        assertEquals(.82, store.loadFeatures("portrait").cameraFacing(), .001);
+    }
 }

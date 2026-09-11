@@ -14,6 +14,9 @@ public final class GalleryMetadataOverlay {
                 new Signal("Composition", photo.composition(), 2),
                 new Signal("Motion", photo.motionStability(), 3),
                 new Signal("Detail", photo.quality(), 4)));
+        if (photo.eyesOpen() >= 0) signals.add(new Signal("Eyes open", photo.eyesOpen(), 5));
+        if (photo.cameraFacing() >= 0)
+            signals.add(new Signal("Facing camera", photo.cameraFacing(), 6));
         signals.sort(Comparator.comparingDouble(Signal::value).reversed()
                 .thenComparingInt(Signal::order));
         return signals.stream().limit(Math.max(0, limit))

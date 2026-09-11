@@ -33,7 +33,7 @@ public final class PhotoInsightStore {
                     + "|" + recommended + "|" + feature.focus() + "|" + feature.exposure()
                     + "|" + feature.composition() + "|" + feature.motionStability()
                     + "|" + alternative + "|" + feature.faceCount() + "|" + feature.smile()
-                    + "|" + feature.eyesOpen());
+                    + "|" + feature.eyesOpen() + "|" + feature.cameraFacing());
         }
         editor.apply();
     }
@@ -43,7 +43,7 @@ public final class PhotoInsightStore {
         if (encoded == null) return null;
         String[] parts = encoded.split("\\|");
         if (parts.length != 4 && parts.length != 8 && parts.length != 9
-                && parts.length != 12) return null;
+                && parts.length != 12 && parts.length != 13) return null;
         try {
             double quality = Double.parseDouble(parts[0]);
             int position = Integer.parseInt(parts[1]);
@@ -53,10 +53,11 @@ public final class PhotoInsightStore {
             PhotoFeatures features = parts.length >= 8
                     ? new PhotoFeatures(id, 0, 0, quality, Double.parseDouble(parts[4]),
                             Double.parseDouble(parts[5]), Double.parseDouble(parts[6]),
-                            Double.parseDouble(parts[7]), parts.length == 12
-                            ? Integer.parseInt(parts[9]) : 0, parts.length == 12
-                            ? Double.parseDouble(parts[10]) : -1, parts.length == 12
-                            ? Double.parseDouble(parts[11]) : -1)
+                            Double.parseDouble(parts[7]), parts.length >= 12
+                            ? Integer.parseInt(parts[9]) : 0, parts.length >= 12
+                            ? Double.parseDouble(parts[10]) : -1, parts.length >= 12
+                            ? Double.parseDouble(parts[11]) : -1, parts.length == 13
+                            ? Double.parseDouble(parts[12]) : -1)
                     : new PhotoFeatures(id, 0, 0, quality);
             PhotoStackPosition stack = size > 1 ? new PhotoStackPosition(position, size) : null;
             String reason = alternative ? "A near-identical photo ranked slightly higher"
@@ -76,14 +77,16 @@ public final class PhotoInsightStore {
         String encoded = preferences.getString(id, null);
         if (encoded == null) return null;
         String[] parts = encoded.split("\\|");
-        if (parts.length != 8 && parts.length != 9 && parts.length != 12) return null;
+        if (parts.length != 8 && parts.length != 9 && parts.length != 12
+                && parts.length != 13) return null;
         try {
             return new PhotoFeatures(id, 0, 0, Double.parseDouble(parts[0]),
                     Double.parseDouble(parts[4]), Double.parseDouble(parts[5]),
                     Double.parseDouble(parts[6]), Double.parseDouble(parts[7]),
-                    parts.length == 12 ? Integer.parseInt(parts[9]) : 0,
-                    parts.length == 12 ? Double.parseDouble(parts[10]) : -1,
-                    parts.length == 12 ? Double.parseDouble(parts[11]) : -1);
+                    parts.length >= 12 ? Integer.parseInt(parts[9]) : 0,
+                    parts.length >= 12 ? Double.parseDouble(parts[10]) : -1,
+                    parts.length >= 12 ? Double.parseDouble(parts[11]) : -1,
+                    parts.length == 13 ? Double.parseDouble(parts[12]) : -1);
         } catch (NumberFormatException invalid) {
             return null;
         }

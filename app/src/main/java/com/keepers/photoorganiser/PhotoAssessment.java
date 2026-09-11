@@ -22,6 +22,10 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
         rules.add(photo.eyesOpen() < 0 ? AssessmentRule.pending("Closed eyes", "Requires face analysis.")
                 : AssessmentRule.scored("Closed eyes", photo.eyesOpen(),
                 "Lowest eye-open probability among detected faces."));
+        rules.add(photo.cameraFacing() < 0 ? AssessmentRule.pending("Looking at camera",
+                "Requires face analysis.") : AssessmentRule.scored("Looking at camera",
+                photo.cameraFacing(), "Least forward-facing person across " + photo.faceCount()
+                        + " detected faces (estimated from head direction)."));
         rules.add(AssessmentRule.pending("Every child looks good",
                 "Requires child profiles plus face and expression analysis."));
         rules.add(AssessmentRule.pending("Action or emotional significance",
@@ -41,10 +45,10 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
                         : "No matching Keeper preference has been learned for this photo yet."));
         double total = photo.focus() + photo.exposure() + photo.composition()
                 + photo.motionStability() + photo.quality();
-        int signalCount = 5;
-        if (photo.smile() >= 0) { total += photo.smile(); signalCount++; }
-        if (photo.eyesOpen() >= 0) { total += photo.eyesOpen(); signalCount++; }
-        double core = total / signalCount;
+        double signalWeight = 5;
+        if (photo.eyesOpen() >= 0) { total += photo.eyesOpen() * 1.5; signalWeight += 1.5; }
+        if (photo.cameraFacing() >= 0) { total += photo.cameraFacing(); signalWeight++; }
+        double core = total / signalWeight;
         return new PhotoAssessment((int) Math.round(core * 100), rules);
     }
 

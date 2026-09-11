@@ -21,7 +21,7 @@ public final class RecommendationFeedbackExport {
             String appVersion) {
         Set<String> hiddenIds = new HashSet<>();
         for (PhotoFeatures hidden : hiddenPhotos) hiddenIds.add(hidden.id());
-        StringBuilder json = new StringBuilder("{\"schemaVersion\":3,\"appVersion\":\"")
+        StringBuilder json = new StringBuilder("{\"schemaVersion\":4,\"appVersion\":\"")
                 .append(escape(appVersion)).append("\",\"feedback\":[");
         boolean hasPrevious = false;
         for (RecommendationFeedback item : feedback) {
@@ -42,7 +42,9 @@ public final class RecommendationFeedbackExport {
                     || hiddenIds.contains(comparison.alternative().id())) continue;
             if (hasPrevious) json.append(',');
             hasPrevious = true;
-            json.append("{\"preferredSignals\":");
+            json.append("{\"weight\":")
+                    .append(comparison.weight())
+                    .append(",\"preferredSignals\":");
             appendSignals(json, comparison.preferred()).append(",\"alternativeSignals\":");
             appendSignals(json, comparison.alternative()).append('}');
         }
@@ -67,7 +69,8 @@ public final class RecommendationFeedbackExport {
                 .append("\"motionStability\":").append(f.motionStability()).append(',')
                 .append("\"faceCount\":").append(f.faceCount()).append(',')
                 .append("\"smile\":").append(f.smile()).append(',')
-                .append("\"eyesOpen\":").append(f.eyesOpen()).append('}');
+                .append("\"eyesOpen\":").append(f.eyesOpen()).append(',')
+                .append("\"cameraFacing\":").append(f.cameraFacing()).append('}');
     }
 
     private static String escape(String value) {

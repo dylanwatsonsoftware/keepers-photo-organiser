@@ -16,7 +16,7 @@ public class RecommendationFeedbackStoreTest {
         RecommendationFeedbackStore store = new RecommendationFeedbackStore(context);
         store.clear();
         PhotoFeatures photo = new PhotoFeatures("content://photo/1", 1, 2, .6,
-                .7, .5, .8, .4, 1, .9, .8);
+                .7, .5, .8, .4, 1, .9, .8, .72);
 
         store.save(RecommendationFeedback.from(photo, RecommendationFeedback.LOVED,
                 "Great expression | worth framing"));

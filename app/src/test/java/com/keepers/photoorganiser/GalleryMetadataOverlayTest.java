@@ -20,4 +20,12 @@ public class GalleryMetadataOverlayTest {
         assertEquals("Focus 50%\nExposure 50%\nComposition 50%\nMotion 50%\nDetail 50%",
                 GalleryMetadataOverlay.topSignals(features, 5));
     }
+
+    @Test public void includesPortraitReadinessAmongTheHighestSignals() {
+        PhotoFeatures features = new PhotoFeatures("portrait", 0, 0, .5,
+                .5, .5, .5, .5, 1, .2, .95, .9);
+
+        assertEquals("Eyes open 95%\nFacing camera 90%",
+                GalleryMetadataOverlay.topSignals(features, 2));
+    }
 }

@@ -25,18 +25,28 @@ public class BestShotEngineTest {
                 List.of(closedEyes, openEyes)));
     }
 
+    @Test public void detectingEveryPersonInABurstBreaksATechnicalTie() {
+        PhotoFeatures missedPerson = new PhotoFeatures("a-missed", 1_000, 0L, .8,
+                .8, .8, .8, .8, 1, .5, .9, .9);
+        PhotoFeatures everyoneDetected = new PhotoFeatures("z-everyone", 2_000, 1L, .8,
+                .8, .8, .8, .8, 2, .5, .9, .9);
+
+        assertEquals(Set.of("z-everyone"), BestShotEngine.recommend(
+                List.of(missedPerson, everyoneDetected)));
+    }
+
     @Test public void learnedPreferencesCanChangeTheBestPhotoWithinAStack() {
         PhotoFeatures technical = new PhotoFeatures("technical", 1_000, 0L, .80,
                 .9, .5, .2, .9, 0, -1, -1);
         PhotoFeatures composed = new PhotoFeatures("composed", 2_000, 1L, .70,
                 .4, .5, .95, .4, 0, -1, -1);
-        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of(
-                RecommendationFeedback.from(composed, RecommendationFeedback.LOVED, "Framing"),
-                RecommendationFeedback.from(technical, RecommendationFeedback.NOT_FOR_ME, "Framing"),
-                RecommendationFeedback.from(new PhotoFeatures("liked-2", 3, 3, .7,
-                        .4, .5, 1, .4, 0, -1, -1), RecommendationFeedback.LOVED, "Framing"),
-                RecommendationFeedback.from(new PhotoFeatures("no-2", 4, 4, .8,
-                        .9, .5, .1, .9, 0, -1, -1), RecommendationFeedback.NOT_FOR_ME, "Framing")));
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of(),
+                List.of(new StackPreferenceComparison(composed, technical),
+                        new StackPreferenceComparison(
+                                new PhotoFeatures("liked-2", 3, 3, .7,
+                                        .4, .5, 1, .4, 0, -1, -1),
+                                new PhotoFeatures("no-2", 4, 4, .8,
+                                        .9, .5, .1, .9, 0, -1, -1))));
 
         assertEquals(Set.of("composed"), BestShotEngine.classify(
                 List.of(technical, composed), profile).recommended());

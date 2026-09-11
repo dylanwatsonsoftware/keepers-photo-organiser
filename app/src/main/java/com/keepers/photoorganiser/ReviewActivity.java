@@ -293,7 +293,7 @@ public final class ReviewActivity extends Activity {
                             PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
                             assessment.exposure(), assessment.composition(), assessment.motionStability(),
                             faceSignals.faceCount(), faceSignals.averageSmile(),
-                            faceSignals.minimumEyeOpen()));
+                            faceSignals.minimumEyeOpen(), faceSignals.minimumCameraFacing()));
                     finishPhotoAnalysis(generation);
                 });
                 return;

@@ -23,7 +23,7 @@ public final class RecommendationFeedbackStore {
         String value = feedback.rating() + "|" + f.takenAtMillis() + "|" + f.perceptualHash()
                 + "|" + f.quality() + "|" + f.focus() + "|" + f.exposure() + "|"
                 + f.composition() + "|" + f.motionStability() + "|" + f.faceCount() + "|"
-                + f.smile() + "|" + f.eyesOpen() + "|" + comment;
+                + f.smile() + "|" + f.eyesOpen() + "|" + f.cameraFacing() + "|" + comment;
         preferences.edit().putString(f.id(), value).apply();
     }
 
@@ -45,13 +45,15 @@ public final class RecommendationFeedbackStore {
     private static RecommendationFeedback decode(String id, String encoded) {
         if (encoded == null) return null;
         String[] p = encoded.split("\\|", -1);
-        if (p.length != 12) return null;
+        if (p.length != 12 && p.length != 13) return null;
         try {
             PhotoFeatures features = new PhotoFeatures(id, Long.parseLong(p[1]), Long.parseLong(p[2]),
                     Double.parseDouble(p[3]), Double.parseDouble(p[4]), Double.parseDouble(p[5]),
                     Double.parseDouble(p[6]), Double.parseDouble(p[7]), Integer.parseInt(p[8]),
-                    Double.parseDouble(p[9]), Double.parseDouble(p[10]));
-            String comment = new String(Base64.decode(p[11], Base64.NO_WRAP | Base64.URL_SAFE),
+                    Double.parseDouble(p[9]), Double.parseDouble(p[10]),
+                    p.length == 13 ? Double.parseDouble(p[11]) : -1);
+            int commentIndex = p.length == 13 ? 12 : 11;
+            String comment = new String(Base64.decode(p[commentIndex], Base64.NO_WRAP | Base64.URL_SAFE),
                     StandardCharsets.UTF_8);
             return new RecommendationFeedback(features, Integer.parseInt(p[0]), comment);
         } catch (RuntimeException invalid) {
