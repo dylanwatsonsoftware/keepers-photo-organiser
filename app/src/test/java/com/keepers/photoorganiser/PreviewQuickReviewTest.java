@@ -2,6 +2,8 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -50,6 +52,16 @@ public class PreviewQuickReviewTest {
         activity.findViewById(R.id.preview_hide).performClick();
 
         assertTrue(new HiddenPhotoStore(activity).load().contains(photo.toString()));
+    }
+
+    @Test public void hideButtonShowsAnIconInQuickReviewOnly() {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://photo/quick-hide-icon");
+        TextView normalHide = create(context, photo, false).findViewById(R.id.preview_hide);
+        TextView quickHide = create(context, photo, true).findViewById(R.id.preview_hide);
+
+        assertNull(normalHide.getCompoundDrawablesRelative()[0]);
+        assertNotNull(quickHide.getCompoundDrawablesRelative()[0]);
     }
 
     @Test public void skipAdvancesWithoutKeepingOrHidingThePhoto() throws Exception {

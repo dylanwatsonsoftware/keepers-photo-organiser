@@ -141,7 +141,13 @@ public final class PreviewActivity extends Activity {
             updateButton();
             showStackCarousel();
         });
-        findViewById(R.id.preview_hide).setOnClickListener(view -> hideCurrentPhoto());
+        TextView hide = findViewById(R.id.preview_hide);
+        hide.setOnClickListener(view -> hideCurrentPhoto());
+        if (quickReview) {
+            hide.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_hide, 0, 0, 0);
+            hide.setCompoundDrawablePadding(dp(6));
+            hide.setCompoundDrawableTintList(hide.getTextColors());
+        }
         View skip = findViewById(R.id.preview_skip);
         skip.setVisibility(quickReview ? View.VISIBLE : View.GONE);
         skip.setOnClickListener(view -> skipCurrentPhoto());
