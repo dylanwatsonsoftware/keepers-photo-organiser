@@ -23,4 +23,20 @@ public class RecommendationFeedbackExportTest {
         assertFalse(json.contains("987654"));
         assertFalse(json.contains("12345"));
     }
+
+    @Test public void exportsAnonymousWithinStackComparisons() {
+        PhotoFeatures keeper = new PhotoFeatures("content://private/keeper", 1, 2,
+                .7, .8, .6, .9, .7, 1, .4, .95);
+        PhotoFeatures alternative = new PhotoFeatures("content://private/alternative", 3, 4,
+                .6, .7, .6, .5, .6, 1, .8, .9);
+
+        String json = RecommendationFeedbackExport.toJson(List.of(), List.of(
+                new StackPreferenceComparison(keeper, alternative)), "0.1-poc");
+
+        assertTrue(json.contains("\"schemaVersion\":2"));
+        assertTrue(json.contains("\"comparisons\":[{"));
+        assertTrue(json.contains("\"preferredSignals\""));
+        assertTrue(json.contains("\"alternativeSignals\""));
+        assertFalse(json.contains("content://"));
+    }
 }

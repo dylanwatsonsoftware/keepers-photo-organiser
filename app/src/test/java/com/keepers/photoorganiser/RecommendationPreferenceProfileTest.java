@@ -38,8 +38,24 @@ public class RecommendationPreferenceProfileTest {
         assertEquals(.8, profile.score(landscape), .0001);
     }
 
+    @Test public void withinStackComparisonsTeachWhichTraitsWon() {
+        PhotoFeatures preferred = comparisonFeature("preferred", .3, .95);
+        PhotoFeatures alternative = comparisonFeature("alternative", .95, .3);
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
+                List.of(), List.of(new StackPreferenceComparison(preferred, alternative)));
+
+        assertTrue(profile.score(comparisonFeature("similar-to-preferred", .35, .9))
+                > profile.score(comparisonFeature("similar-to-alternative", .9, .35)));
+        assertEquals(1, profile.feedbackCount());
+    }
+
     private static PhotoFeatures feature(String id, double focus, double composition) {
         return new PhotoFeatures(id, 0, id.hashCode(), (focus + composition) / 2,
                 focus, .5, composition, focus, 0, -1, -1);
+    }
+
+    private static PhotoFeatures comparisonFeature(String id, double focus, double composition) {
+        return new PhotoFeatures(id, 0, id.hashCode(), .6,
+                focus, .6, composition, .6, 0, -1, -1);
     }
 }

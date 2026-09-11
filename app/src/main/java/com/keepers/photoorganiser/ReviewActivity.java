@@ -435,8 +435,10 @@ public final class ReviewActivity extends Activity {
                         features, namedFaces);
                 Map<String, List<String>> members = BestShotEngine.stackMembers(
                         features, namedFaces);
+                List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
+                        features, members, keepers);
                 RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
-                        feedbackStore.load());
+                        feedbackStore.load(), comparisons);
                 BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
                 new PhotoStackStore(this).save(members);
                 new PhotoInsightStore(this).save(features, stacks, result.recommended(),

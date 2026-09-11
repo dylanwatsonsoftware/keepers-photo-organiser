@@ -16,5 +16,7 @@ public class PhotoStackStoreTest {
         store.save(Map.of("one", List.of("one", "two"), "two", List.of("one", "two")));
 
         assertEquals(List.of("one", "two"), store.load("two"));
+        assertEquals(Map.of("one", List.of("one", "two"),
+                "two", List.of("one", "two")), store.loadAll());
     }
 }

@@ -6,7 +6,12 @@ public final class RecommendationFeedbackExport {
     private RecommendationFeedbackExport() {}
 
     public static String toJson(List<RecommendationFeedback> feedback, String appVersion) {
-        StringBuilder json = new StringBuilder("{\"schemaVersion\":1,\"appVersion\":\"")
+        return toJson(feedback, List.of(), appVersion);
+    }
+
+    public static String toJson(List<RecommendationFeedback> feedback,
+            List<StackPreferenceComparison> comparisons, String appVersion) {
+        StringBuilder json = new StringBuilder("{\"schemaVersion\":2,\"appVersion\":\"")
                 .append(escape(appVersion)).append("\",\"feedback\":[");
         for (int index = 0; index < feedback.size(); index++) {
             if (index > 0) json.append(',');
@@ -15,17 +20,30 @@ public final class RecommendationFeedbackExport {
             json.append("{\"rating\":\"")
                     .append(item.rating() == RecommendationFeedback.LOVED ? "loved" : "not_for_me")
                     .append("\",\"comment\":\"").append(escape(item.comment()))
-                    .append("\",\"signals\":{")
-                    .append("\"detail\":").append(f.quality()).append(',')
-                    .append("\"focus\":").append(f.focus()).append(',')
-                    .append("\"exposure\":").append(f.exposure()).append(',')
-                    .append("\"composition\":").append(f.composition()).append(',')
-                    .append("\"motionStability\":").append(f.motionStability()).append(',')
-                    .append("\"faceCount\":").append(f.faceCount()).append(',')
-                    .append("\"smile\":").append(f.smile()).append(',')
-                    .append("\"eyesOpen\":").append(f.eyesOpen()).append("}}");
+                    .append("\",\"signals\":");
+            appendSignals(json, f).append('}');
+        }
+        json.append("],\"comparisons\":[");
+        for (int index = 0; index < comparisons.size(); index++) {
+            if (index > 0) json.append(',');
+            StackPreferenceComparison comparison = comparisons.get(index);
+            json.append("{\"preferredSignals\":");
+            appendSignals(json, comparison.preferred()).append(",\"alternativeSignals\":");
+            appendSignals(json, comparison.alternative()).append('}');
         }
         return json.append("]}").toString();
+    }
+
+    private static StringBuilder appendSignals(StringBuilder json, PhotoFeatures f) {
+        return json.append('{')
+                .append("\"detail\":").append(f.quality()).append(',')
+                .append("\"focus\":").append(f.focus()).append(',')
+                .append("\"exposure\":").append(f.exposure()).append(',')
+                .append("\"composition\":").append(f.composition()).append(',')
+                .append("\"motionStability\":").append(f.motionStability()).append(',')
+                .append("\"faceCount\":").append(f.faceCount()).append(',')
+                .append("\"smile\":").append(f.smile()).append(',')
+                .append("\"eyesOpen\":").append(f.eyesOpen()).append('}');
     }
 
     private static String escape(String value) {
