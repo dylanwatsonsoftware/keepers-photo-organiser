@@ -44,6 +44,12 @@ public final class PeopleActivity extends Activity {
                 openImport(ReviewActivity.ACTION_IMPORT_GOOGLE_PHOTOS));
         findViewById(R.id.settings_export_feedback).setOnClickListener(view ->
                 RecommendationFeedbackSharing.share(this));
+        findViewById(R.id.settings_feedback_sync).setOnClickListener(view -> {
+            FeedbackSyncPreferences sync = new FeedbackSyncPreferences(this);
+            sync.setEnabled(!sync.isEnabled());
+            FeedbackSyncScheduler.configure(this);
+            updateFeedbackSyncAction();
+        });
         findViewById(R.id.settings_restore_hidden).setOnClickListener(view -> {
             new HiddenPhotoStore(this).clear();
             updateHiddenPhotoAction();
@@ -74,11 +80,28 @@ public final class PeopleActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        updateFeedbackSyncAction();
         showPeople();
         showOtherAlbums();
         showDiscoveryProgress();
         showDiscoveredGroups();
         updateHiddenPhotoAction();
+    }
+
+    private void updateFeedbackSyncAction() {
+        FeedbackSyncPreferences sync = new FeedbackSyncPreferences(this);
+        TextView toggle = findViewById(R.id.settings_feedback_sync);
+        TextView status = findViewById(R.id.settings_feedback_sync_status);
+        toggle.setText(sync.isEnabled() ? "Automatic sharing: On" : "Automatic sharing: Off");
+        if (!sync.isEnabled()) {
+            status.setText("Off — ratings and comments stay only on this device.");
+        } else if (!sync.lastError().isBlank()) {
+            status.setText("Waiting to sync: " + sync.lastError());
+        } else if (sync.lastSuccessAtMillis() > 0) {
+            status.setText("Feedback synced without photo files or local photo identifiers.");
+        } else {
+            status.setText("On — feedback will sync when a network is available.");
+        }
     }
 
     private void updateHiddenPhotoAction() {

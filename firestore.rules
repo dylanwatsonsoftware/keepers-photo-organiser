@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /recommendationFeedbackSources/{sourceId} {
+      function validSnapshot() {
+        return request.resource.data.keys().hasOnly([
+              'sourceId',
+              'snapshotSequence',
+              'appVersion',
+              'evidenceCount',
+              'schemaVersion',
+              'kind',
+              'mergePolicy',
+              'missingEvidence',
+              'ownerUid',
+              'clientUpdatedAtMillis',
+              'serverUpdatedAt',
+              'payloadJson'
+            ])
+            && request.resource.data.sourceId == sourceId
+            && request.resource.data.ownerUid == request.auth.uid
+            && request.resource.data.snapshotSequence is int
+            && request.resource.data.snapshotSequence > 0
+            && request.resource.data.evidenceCount is int
+            && request.resource.data.evidenceCount > 0
+            && request.resource.data.schemaVersion == 5
+            && request.resource.data.kind == 'snapshot'
+            && request.resource.data.mergePolicy == 'latest_snapshot_per_source'
+            && request.resource.data.missingEvidence == 'unknown'
+            && request.resource.data.clientUpdatedAtMillis is int
+            && request.resource.data.serverUpdatedAt is timestamp
+            && request.resource.data.payloadJson is string
+            && request.resource.data.payloadJson.size() <= 900000;
+      }
+
+      allow get: if request.auth != null
+          && (resource == null || resource.data.ownerUid == request.auth.uid);
+      allow list: if false;
+      allow create: if request.auth != null && validSnapshot();
+      allow update: if request.auth != null
+          && resource.data.ownerUid == request.auth.uid
+          && validSnapshot()
+          && request.resource.data.snapshotSequence > resource.data.snapshotSequence;
+      allow delete: if false;
+    }
+  }
+}

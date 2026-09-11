@@ -51,6 +51,25 @@ public class PeopleActivityTest {
         assertTrue(export.getBackground() != null);
     }
 
+    @Test public void settingsOffersOptInAutomaticFeedbackSharing() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        FeedbackSyncPreferences preferences = new FeedbackSyncPreferences(context);
+        preferences.clear();
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+
+        TextView toggle = activity.findViewById(R.id.settings_feedback_sync);
+
+        assertTrue(!(toggle instanceof Button));
+        assertTrue(toggle.isClickable());
+        assertTrue(toggle.getBackground() != null);
+        assertEquals("Automatic sharing: Off", toggle.getText().toString());
+        toggle.performClick();
+        assertTrue(preferences.isEnabled());
+        assertEquals("Automatic sharing: On", toggle.getText().toString());
+        assertTrue(((TextView) activity.findViewById(R.id.settings_feedback_sync_status))
+                .getText().toString().contains("network"));
+    }
+
     @Test public void settingsFeedbackExportSharesPrivacySafeJson() {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
         new RecommendationFeedbackStore(activity).clear();

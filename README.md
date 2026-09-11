@@ -108,6 +108,15 @@ Requirements:
 
 The tests cover the safety classification, intent contracts, initial UI state and duplicate-risk labelling.
 
+## Optional Firebase feedback sync
+
+Recommendation feedback can be shared automatically when a network is available after the
+person using the app explicitly enables it in Settings. The implementation sends only the
+privacy-safe feedback export—not photos or local photo identifiers—and keeps each phone's
+versioned snapshot independent. See [Firebase feedback sync setup](docs/firebase-feedback-sync.md)
+for the remaining Firebase console steps, CI secret setup, Firestore rules, and the administrative
+export command used to retrieve feedback for recommendation development.
+
 ## Current limitations
 
 - Google Photos provides no public API for changing the Favourite state or album membership of arbitrary existing personal-library items.
@@ -116,4 +125,7 @@ The tests cover the safety classification, intent contracts, initial UI state an
 - The batch share surface may upload copies rather than target existing cloud items.
 - Google Photos UI changes may alter the observed behaviour at any time.
 
-No photos leave the device through Keepers itself. External behaviour occurs only when you deliberately launch Google Photos from one of the experiment buttons.
+No photos leave the device through Keepers itself. If automatic feedback sharing is explicitly
+enabled and Firebase has been configured, anonymous recommendation signals and optional comments
+can leave the device; photo bytes and local photo identifiers do not. Google Photos integration
+still occurs only after deliberate user actions.
