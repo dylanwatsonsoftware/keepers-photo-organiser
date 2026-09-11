@@ -16,7 +16,9 @@ public final class AlbumAutomationCoordinator {
                 .putLong(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT,
                         System.currentTimeMillis())
                 .putInt(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT, 0).apply();
-        return GooglePhotosIntentFactory.openExisting(Uri.parse(action.photoId()));
+        Uri media = Uri.parse(action.photoId());
+        return GooglePhotosIntentFactory.openExisting(media,
+                MediaType.from(media, context.getContentResolver().getType(media)));
     }
 
     public static void disarm(Context context) {

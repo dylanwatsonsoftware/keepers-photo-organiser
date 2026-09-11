@@ -47,6 +47,7 @@ public final class ReviewActivity extends Activity {
     private static final String PHOTOS_PICKER_SCOPE =
             "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
     private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED, HIDDEN }
+    private enum MediaFilter { ALL, PHOTOS, VIDEOS }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     public static final String ACTION_IMPORT_DEVICE_PHOTOS =
             "com.keepers.photoorganiser.action.IMPORT_DEVICE_PHOTOS";
@@ -70,6 +71,9 @@ public final class ReviewActivity extends Activity {
     private GalleryFilter galleryFilter = GalleryFilter.ALL;
     private PhotoOrigin originFilter;
     private Map<String, PhotoOrigin> photoOrigins = Map.of();
+    private Map<String, MediaType> mediaTypes = Map.of();
+    private Map<String, Long> mediaDurations = Map.of();
+    private MediaFilter mediaFilter = MediaFilter.ALL;
     private AuthorizationClient photosAuthorization;
     private String pickerAccessToken;
     private String pickerSessionId;
@@ -100,6 +104,12 @@ public final class ReviewActivity extends Activity {
                 toggleFilter(GalleryFilter.RECOMMENDED));
         findViewById(R.id.filter_hidden).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.HIDDEN));
+        findViewById(R.id.filter_media_all).setOnClickListener(view ->
+                setMediaFilter(MediaFilter.ALL));
+        findViewById(R.id.filter_photos).setOnClickListener(view ->
+                setMediaFilter(MediaFilter.PHOTOS));
+        findViewById(R.id.filter_videos).setOnClickListener(view ->
+                setMediaFilter(MediaFilter.VIDEOS));
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
         findViewById(R.id.filter_origin_all).setOnClickListener(view -> showAllPhotos());
@@ -152,30 +162,45 @@ public final class ReviewActivity extends Activity {
         Set<String> hidden = new HiddenPhotoStore(this).load();
         Uri firstVisible = photos.stream()
                 .filter(candidate -> !hidden.contains(candidate.toString()))
+                .filter(candidate -> mediaFilter == MediaFilter.ALL
+                        || mediaFilter == MediaFilter.PHOTOS
+                        && mediaTypes.getOrDefault(candidate.toString(), MediaType.PHOTO)
+                        == MediaType.PHOTO
+                        || mediaFilter == MediaFilter.VIDEOS
+                        && mediaTypes.getOrDefault(candidate.toString(), MediaType.PHOTO)
+                        == MediaType.VIDEO)
                 .findFirst().orElse(null);
         if (firstVisible == null) {
-            Toast.makeText(this, "No photos to review yet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No media to review yet", Toast.LENGTH_SHORT).show();
             return;
         }
-        startActivity(new Intent(this, PreviewActivity.class).setData(firstVisible)
+        Intent review = new Intent(this, PreviewActivity.class).setData(firstVisible)
                 .putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit())
-                .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, true));
+                .putExtra(PreviewActivity.EXTRA_QUICK_REVIEW, true);
+        if (mediaFilter == MediaFilter.PHOTOS)
+            review.putExtra(PreviewActivity.EXTRA_MEDIA_TYPE, MediaType.PHOTO.name());
+        if (mediaFilter == MediaFilter.VIDEOS)
+            review.putExtra(PreviewActivity.EXTRA_MEDIA_TYPE, MediaType.VIDEO.name());
+        startActivity(review);
     }
 
     private void loadOrRequestPhotos() {
         if (hasLocalPhotoAccess()) {
             loadRecentPhotos();
-            return;
-        }
-        loadImportedPhotos();
-        if (Build.VERSION.SDK_INT >= 34) {
-            requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED}, PHOTO_PERMISSION);
-        } else if (Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, PHOTO_PERMISSION);
         } else {
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PHOTO_PERMISSION);
+            loadImportedPhotos();
         }
+        boolean imagesGranted = checkSelfPermission(Build.VERSION.SDK_INT >= 33
+                ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean videosGranted = Build.VERSION.SDK_INT < 33 || checkSelfPermission(
+                Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED;
+        boolean selectedGranted = Build.VERSION.SDK_INT >= 34 && checkSelfPermission(
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                == PackageManager.PERMISSION_GRANTED;
+        List<String> missing = MediaPermissionRequest.missing(Build.VERSION.SDK_INT,
+                imagesGranted, videosGranted, selectedGranted);
+        if (!missing.isEmpty()) requestPermissions(missing.toArray(String[]::new), PHOTO_PERMISSION);
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -185,7 +210,7 @@ public final class ReviewActivity extends Activity {
             loadRecentPhotos();
         } else if (requestCode == PHOTO_PERMISSION) {
             ((TextView) findViewById(R.id.review_empty)).setText(
-                    "Photo access is needed to review recent Pixel camera images.");
+                    "Photo and video access is needed to review recent Pixel camera media.");
         }
     }
 
@@ -193,15 +218,27 @@ public final class ReviewActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 34 && checkSelfPermission(
                 Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
                 == PackageManager.PERMISSION_GRANTED) return true;
-        String permission = Build.VERSION.SDK_INT >= 33
-                ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
-        return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+        if (Build.VERSION.SDK_INT >= 33) return checkSelfPermission(
+                Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO)
+                == PackageManager.PERMISSION_GRANTED;
+        return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     void showPhotos(List<Uri> recentPhotos) {
         HashMap<String, PhotoOrigin> origins = new HashMap<>();
         for (Uri photo : recentPhotos) origins.put(photo.toString(), PhotoOrigin.LOCAL);
         showPhotos(recentPhotos, origins);
+    }
+
+    void showMedia(List<RecentPhoto> recentMedia) {
+        HashMap<String, PhotoOrigin> origins = new HashMap<>();
+        for (RecentPhoto media : recentMedia)
+            origins.put(media.uri().toString(), PhotoOrigin.LOCAL);
+        photoOrigins = Map.copyOf(origins);
+        hasMorePhotos = false;
+        showRecentPhotos(recentMedia);
     }
 
     void showPhotos(List<Uri> recentPhotos, Map<String, PhotoOrigin> origins) {
@@ -217,6 +254,14 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.review_loading).setVisibility(View.GONE);
         ArrayList<Uri> uris = new ArrayList<>();
         for (RecentPhoto photo : recentPhotos) uris.add(photo.uri());
+        HashMap<String, MediaType> types = new HashMap<>();
+        HashMap<String, Long> durations = new HashMap<>();
+        for (RecentPhoto media : recentPhotos) {
+            types.put(media.uri().toString(), media.mediaType());
+            durations.put(media.uri().toString(), media.durationMillis());
+        }
+        mediaTypes = Map.copyOf(types);
+        mediaDurations = Map.copyOf(durations);
         int previousCount = photos.size();
         boolean appending = previousCount > 0 && recentPhotos.size() > previousCount
                 && uris.subList(0, previousCount).equals(photos);
@@ -240,7 +285,7 @@ public final class ReviewActivity extends Activity {
             grid.addView(tile);
         }
         TextView empty = findViewById(R.id.review_empty);
-        empty.setText("No recent local camera photos found.");
+        empty.setText("No recent local camera photos or videos found.");
         empty.setVisibility(photos.isEmpty() ? View.VISIBLE : View.GONE);
         if (photos.isEmpty()) showSuggestions(Set.of());
         else if (!appending) restoreCachedInsights();
@@ -283,6 +328,10 @@ public final class ReviewActivity extends Activity {
         image.setBackgroundColor(Color.rgb(232, 234, 237));
         thumbnailLoader.load(image, photo, size, bitmap -> {
             if (generation != analysisGeneration) return;
+            if (recentPhoto.mediaType() == MediaType.VIDEO) {
+                finishPhotoAnalysis(generation);
+                return;
+            }
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
                 faceAnalyzer.analyze(photo.toString(), bitmap, faces -> {
@@ -405,12 +454,33 @@ public final class ReviewActivity extends Activity {
         hideCheck.setBackground(recommendationCircle());
         hideCheck.setVisibility(View.GONE);
         tile.addView(hideCheck, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
-        tile.setContentDescription("Photo. Tap to mark as keeper.");
+        tile.setContentDescription(recentPhoto.mediaType() == MediaType.VIDEO
+                ? "Video. Tap to mark as keeper." : "Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> {
             if (selectingPhotosToHide) { toggleHideSelection(photo.toString()); return; }
             startActivity(new Intent(this, PreviewActivity.class)
                     .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit()));
         });
+        TextView videoDuration = new TextView(this);
+        videoDuration.setTag("video_duration");
+        videoDuration.setText("▶  " + MediaDuration.format(recentPhoto.durationMillis()));
+        videoDuration.setTextColor(Color.WHITE);
+        videoDuration.setTextSize(12);
+        videoDuration.setTypeface(android.graphics.Typeface.DEFAULT,
+                android.graphics.Typeface.BOLD);
+        videoDuration.setGravity(Gravity.CENTER);
+        videoDuration.setPadding(dp(8), dp(4), dp(8), dp(4));
+        GradientDrawable videoBackground = new GradientDrawable();
+        videoBackground.setColor(0xCC202124);
+        videoBackground.setCornerRadius(dp(12));
+        videoDuration.setBackground(videoBackground);
+        videoDuration.setVisibility(recentPhoto.mediaType() == MediaType.VIDEO
+                ? View.VISIBLE : View.GONE);
+        FrameLayout.LayoutParams videoParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.END);
+        videoParams.setMargins(0, 0, dp(7), dp(7));
+        tile.addView(videoDuration, videoParams);
         return tile;
     }
 
@@ -475,7 +545,8 @@ public final class ReviewActivity extends Activity {
         }
         for (ImportedPhoto imported : new ImportedPhotoStore(this).load()) {
             combined.put(imported.uri().toString(),
-                    new RecentPhoto(imported.uri(), imported.takenAtMillis()));
+                    new RecentPhoto(imported.uri(), imported.takenAtMillis(),
+                            imported.mediaType(), imported.durationMillis()));
             origins.put(imported.uri().toString(), imported.origin());
         }
         ArrayList<RecentPhoto> ordered = new ArrayList<>(combined.values());
@@ -486,7 +557,7 @@ public final class ReviewActivity extends Activity {
 
     private void openPhotoPicker() {
         Intent picker = new Intent(MediaStore.ACTION_PICK_IMAGES)
-                .setType("image/*")
+                .setType("*/*")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
                         | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
@@ -680,9 +751,13 @@ public final class ReviewActivity extends Activity {
     }
 
     private ImportedPhoto resolvePickedPhoto(Uri pickerUri, long fallbackTime) {
+        PhotoMetadata metadata = PhotoMetadataReader.read(getContentResolver(), pickerUri,
+                fallbackTime);
+        MediaType type = MediaType.from(pickerUri, metadata.mimeType());
         if ("media".equals(pickerUri.getAuthority())
                 && !pickerUri.toString().contains("/picker/"))
-            return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.LOCAL);
+            return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.LOCAL,
+                    type, metadata.durationMillis());
         try (Cursor cursor = getContentResolver().query(pickerUri,
                 new String[]{android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI,
                         android.provider.CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS},
@@ -690,11 +765,15 @@ public final class ReviewActivity extends Activity {
             if (cursor != null && cursor.moveToFirst()) {
                 String local = cursor.getString(0);
                 long taken = cursor.isNull(1) ? fallbackTime : cursor.getLong(1);
-                return new ImportedPhoto(local == null ? pickerUri : Uri.parse(local), taken,
-                        local == null ? PhotoOrigin.CLOUD : PhotoOrigin.LOCAL);
+                Uri resolved = local == null ? pickerUri : Uri.parse(local);
+                return new ImportedPhoto(resolved, taken,
+                        local == null ? PhotoOrigin.CLOUD : PhotoOrigin.LOCAL,
+                        MediaType.from(resolved, getContentResolver().getType(resolved)),
+                        metadata.durationMillis());
             }
         } catch (RuntimeException ignored) {}
-        return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.CLOUD);
+        return new ImportedPhoto(pickerUri, fallbackTime, PhotoOrigin.CLOUD,
+                type, metadata.durationMillis());
     }
 
     void loadNextPage() {
@@ -707,6 +786,7 @@ public final class ReviewActivity extends Activity {
         ScrollView scroll = findViewById(R.id.review_scroll);
         GridLayout grid = findViewById(R.id.photo_grid);
         String state = photos.size() + "|" + galleryFilter + "|" + originFilter
+                + "|" + mediaFilter
                 + "|" + grid.getChildCount();
         if (viewportLoadPending || !infiniteScroll.onContentLayout(scroll.getHeight(),
                 grid.getHeight(), hasMorePhotos, state)) return;
@@ -745,9 +825,12 @@ public final class ReviewActivity extends Activity {
             star.setContentDescription(suggested ? "Recommended best shot" : alternative
                     ? "Good alternative — near-identical photo ranked higher" : null);
             star.setVisibility(suggested || alternative ? View.VISIBLE : View.GONE);
-            tile.setContentDescription(saved ? "Saved Keeper photo. Tap to remove."
-                    : keeper ? "New Keeper photo. Tap to remove."
-                    : "Photo. Tap to mark as keeper.");
+            String item = mediaTypes.getOrDefault(tile.getTag().toString(), MediaType.PHOTO)
+                    == MediaType.VIDEO ? "Video" : "Photo";
+            tile.setContentDescription(saved ? "Saved Keeper " + item.toLowerCase()
+                    + ". Tap to remove."
+                    : keeper ? "New Keeper " + item.toLowerCase() + ". Tap to remove."
+                    : item + ". Tap to mark as keeper.");
         }
         int count = 0;
         for (String keeper : visibleSelected) if (!completions.hasAny(keeper)) count++;
@@ -859,7 +942,11 @@ public final class ReviewActivity extends Activity {
             if (photo == null) photo = features.stream()
                     .filter(item -> item.id().equals(tile.getTag().toString()))
                     .findFirst().orElse(null);
-            overlay.setText(photo == null ? "Analysing…"
+            if (mediaTypes.getOrDefault(tile.getTag().toString(), MediaType.PHOTO)
+                    == MediaType.VIDEO) {
+                overlay.setText("Video  " + MediaDuration.format(
+                        mediaDurations.getOrDefault(tile.getTag().toString(), 0L)));
+            } else overlay.setText(photo == null ? "Analysing…"
                     : GalleryMetadataOverlay.topSignals(photo, 3));
             overlay.setVisibility(metadataVisible ? View.VISIBLE : View.GONE);
         }
@@ -871,6 +958,11 @@ public final class ReviewActivity extends Activity {
 
     private void setOriginFilter(PhotoOrigin requested) {
         originFilter = requested;
+        applyFilter();
+    }
+
+    private void setMediaFilter(MediaFilter requested) {
+        mediaFilter = requested;
         applyFilter();
     }
 
@@ -908,7 +1000,13 @@ public final class ReviewActivity extends Activity {
             typeFiltered = orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
                     ? keepers.contains(id) : suggestions.contains(id)).toList();
         }
-        List<String> visibleIds = PhotoOriginFilter.apply(typeFiltered, photoOrigins, originFilter);
+        List<String> originFiltered = PhotoOriginFilter.apply(
+                typeFiltered, photoOrigins, originFilter);
+        List<String> visibleIds = originFiltered.stream().filter(id -> mediaFilter == MediaFilter.ALL
+                || mediaFilter == MediaFilter.PHOTOS
+                && mediaTypes.getOrDefault(id, MediaType.PHOTO) == MediaType.PHOTO
+                || mediaFilter == MediaFilter.VIDEOS
+                && mediaTypes.getOrDefault(id, MediaType.PHOTO) == MediaType.VIDEO).toList();
         for (String id : visibleIds) {
             FrameLayout tile = tilesById.get(id);
             if (tile != null) grid.addView(tile);
@@ -922,13 +1020,18 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_origin_all).setSelected(originFilter == null);
         findViewById(R.id.filter_origin_local).setSelected(originFilter == PhotoOrigin.LOCAL);
         findViewById(R.id.filter_origin_cloud).setSelected(originFilter == PhotoOrigin.CLOUD);
+        findViewById(R.id.filter_media_all).setSelected(mediaFilter == MediaFilter.ALL);
+        findViewById(R.id.filter_photos).setSelected(mediaFilter == MediaFilter.PHOTOS);
+        findViewById(R.id.filter_videos).setSelected(mediaFilter == MediaFilter.VIDEOS);
         updateMetadataOverlays();
         TextView empty = findViewById(R.id.review_empty);
         if (!photos.isEmpty() && visible == 0) {
             empty.setText(showingHidden ? "No hidden photos."
                     : originFilter == PhotoOrigin.CLOUD ? "No cloud photos imported yet."
                     : originFilter == PhotoOrigin.LOCAL ? "No local photos in this view."
-                    : galleryFilter == GalleryFilter.ALL ? "No photos left to review."
+                    : mediaFilter == MediaFilter.VIDEOS ? "No videos in this view."
+                    : mediaFilter == MediaFilter.PHOTOS ? "No photos in this view."
+                    : galleryFilter == GalleryFilter.ALL ? "No media left to review."
                     : galleryFilter == GalleryFilter.KEEPERS
                     ? "No Keepers in the loaded photos yet."
                     : "No recommended photos in the loaded photos yet.");

@@ -17,6 +17,13 @@ public class RecentCameraQueryTest {
     }
 
     @Test
+    public void mapsVideoIdToAnItemSpecificVideoUri() {
+        assertEquals(
+                Uri.parse("content://media/external/video/media/42"),
+                RecentCameraQuery.videoItemUri(42));
+    }
+
+    @Test
     public void loadsAUsefulRecentReviewWindow() {
         assertEquals(60, RecentCameraQuery.LIMIT);
         assertEquals("DCIM/Camera/%", RecentCameraQuery.PATH_PATTERN);

@@ -27,11 +27,15 @@ public final class ImportedPhotoStore {
     public List<ImportedPhoto> load() {
         ArrayList<ImportedPhoto> photos = new ArrayList<>();
         for (String item : preferences.getStringSet(ITEMS, Set.of())) {
-            String[] parts = item.split("\t", 3);
-            if (parts.length != 3) continue;
+            String[] parts = item.split("\t", 5);
+            if (parts.length != 3 && parts.length != 5) continue;
             try {
-                photos.add(new ImportedPhoto(Uri.parse(Uri.decode(parts[2])),
-                        Long.parseLong(parts[0]), PhotoOrigin.valueOf(parts[1])));
+                MediaType type = parts.length == 5
+                        ? MediaType.valueOf(parts[2]) : MediaType.PHOTO;
+                long duration = parts.length == 5 ? Long.parseLong(parts[3]) : 0;
+                String encodedUri = parts.length == 5 ? parts[4] : parts[2];
+                photos.add(new ImportedPhoto(Uri.parse(Uri.decode(encodedUri)),
+                        Long.parseLong(parts[0]), PhotoOrigin.valueOf(parts[1]), type, duration));
             } catch (IllegalArgumentException ignored) {}
         }
         photos.sort(Comparator.comparingLong(ImportedPhoto::takenAtMillis).reversed());
@@ -48,7 +52,8 @@ public final class ImportedPhotoStore {
     private void save(java.util.Collection<ImportedPhoto> photos) {
         java.util.HashSet<String> items = new java.util.HashSet<>();
         for (ImportedPhoto photo : photos) items.add(photo.takenAtMillis() + "\t"
-                + photo.origin().name() + "\t" + Uri.encode(photo.uri().toString()));
+                + photo.origin().name() + "\t" + photo.mediaType().name() + "\t"
+                + photo.durationMillis() + "\t" + Uri.encode(photo.uri().toString()));
         preferences.edit().putStringSet(ITEMS, items).apply();
     }
 

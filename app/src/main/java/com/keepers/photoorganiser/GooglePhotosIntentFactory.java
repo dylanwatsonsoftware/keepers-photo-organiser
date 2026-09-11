@@ -11,8 +11,12 @@ public final class GooglePhotosIntentFactory {
     private GooglePhotosIntentFactory() {}
 
     public static Intent openExisting(Uri photo) {
+        return openExisting(photo, MediaType.PHOTO);
+    }
+
+    public static Intent openExisting(Uri media, MediaType mediaType) {
         return new Intent(Intent.ACTION_VIEW)
-                .setDataAndType(photo, "image/*")
+                .setDataAndType(media, mediaType.mimePattern())
                 .setPackage(GOOGLE_PHOTOS_PACKAGE)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     }

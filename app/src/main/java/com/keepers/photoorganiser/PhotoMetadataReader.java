@@ -18,10 +18,11 @@ public final class PhotoMetadataReader {
         int height = 0;
         String mimeType = resolver.getType(uri);
         long size = 0;
+        long duration = 0;
         String[] projection = {MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.DESCRIPTION, MediaStore.Images.Media.WIDTH,
                 MediaStore.Images.Media.HEIGHT, MediaStore.Images.Media.MIME_TYPE,
-                MediaStore.Images.Media.SIZE};
+                MediaStore.Images.Media.SIZE, MediaStore.Video.Media.DURATION};
         try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 takenAt = longValue(cursor, MediaStore.Images.Media.DATE_TAKEN, takenAt);
@@ -30,6 +31,7 @@ public final class PhotoMetadataReader {
                 height = (int) longValue(cursor, MediaStore.Images.Media.HEIGHT, height);
                 mimeType = stringValue(cursor, MediaStore.Images.Media.MIME_TYPE, mimeType);
                 size = longValue(cursor, MediaStore.Images.Media.SIZE, size);
+                duration = longValue(cursor, MediaStore.Video.Media.DURATION, duration);
             }
         } catch (RuntimeException ignored) {}
 
@@ -45,7 +47,7 @@ public final class PhotoMetadataReader {
             }
         } catch (IOException | RuntimeException ignored) {}
         return new PhotoMetadata(takenAt, value(caption), location, width, height,
-                value(mimeType), size);
+                value(mimeType), size, duration);
     }
 
     private static long longValue(Cursor cursor, String column, long fallback) {

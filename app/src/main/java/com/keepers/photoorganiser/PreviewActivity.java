@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.GridLayout;
+import android.widget.VideoView;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
 import android.view.Gravity;
@@ -34,6 +35,7 @@ import java.util.Locale;
 
 public final class PreviewActivity extends Activity {
     public static final String EXTRA_QUICK_REVIEW = "quick_review";
+    public static final String EXTRA_MEDIA_TYPE = "media_type";
     private static final int QUICK_REVIEW_THRESHOLD_DP = 96;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
@@ -64,6 +66,8 @@ public final class PreviewActivity extends Activity {
     private float lastPanRawX;
     private float lastPanRawY;
     private boolean quickReview;
+    private View previewQuickReview;
+    private Map<String, RecentPhoto> mediaDetails = Map.of();
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -78,12 +82,24 @@ public final class PreviewActivity extends Activity {
         ArrayList<RecentPhoto> galleryPhotos = new ArrayList<>(
                 RecentCameraQuery.loadRecent(getContentResolver(), limit));
         for (ImportedPhoto imported : new ImportedPhotoStore(this).load())
-            galleryPhotos.add(new RecentPhoto(imported.uri(), imported.takenAtMillis()));
+            galleryPhotos.add(new RecentPhoto(imported.uri(), imported.takenAtMillis(),
+                    imported.mediaType(), imported.durationMillis()));
+        String requestedType = getIntent().getStringExtra(EXTRA_MEDIA_TYPE);
+        if (requestedType != null) {
+            try {
+                MediaType type = MediaType.valueOf(requestedType);
+                galleryPhotos.removeIf(item -> item.mediaType() != type);
+            } catch (IllegalArgumentException ignored) {}
+        }
         galleryPhotos.sort(Comparator.comparingLong(RecentPhoto::takenAtMillis).reversed());
         ArrayList<Uri> photos = new ArrayList<>();
         HashSet<String> seenPhotos = new HashSet<>();
-        for (RecentPhoto recent : galleryPhotos) if (seenPhotos.add(recent.uri().toString()))
+        HashMap<String, RecentPhoto> details = new HashMap<>();
+        for (RecentPhoto recent : galleryPhotos) if (seenPhotos.add(recent.uri().toString())) {
             photos.add(recent.uri());
+            details.put(recent.uri().toString(), recent);
+        }
+        mediaDetails = Map.copyOf(details);
         Set<String> hiddenPhotos = new HiddenPhotoStore(this).load();
         photos.removeIf(candidate -> hiddenPhotos.contains(candidate.toString())
                 && (quickReview || !candidate.equals(photo)));
@@ -129,9 +145,9 @@ public final class PreviewActivity extends Activity {
                 });
         previewStage.setOnTouchListener((view, event) -> handleSwipe(event));
         findViewById(R.id.preview_close).setOnClickListener(view -> finish());
-        View quickReviewEntry = findViewById(R.id.preview_start_quick_review);
-        quickReviewEntry.setVisibility(quickReview ? View.GONE : View.VISIBLE);
-        quickReviewEntry.setOnClickListener(view -> startActivity(
+        previewQuickReview = findViewById(R.id.preview_start_quick_review);
+        previewQuickReview.setVisibility(quickReview ? View.GONE : View.VISIBLE);
+        previewQuickReview.setOnClickListener(view -> startActivity(
                 PreviewPageRequest.forPhoto(getIntent(), photo)
                         .putExtra(EXTRA_QUICK_REVIEW, true)));
         loadCurrent();
@@ -291,6 +307,10 @@ public final class PreviewActivity extends Activity {
             if (analysisSwiping || AnalysisGestureRouting.isHorizontalPageSwipe(
                     deltaX, pull, dp(8))) {
                 analysisSwiping = true;
+                analysisSheet.animate().cancel();
+                analysisSheet.setTranslationX(deltaX);
+                analysisSheet.setAlpha(Math.max(.72f, 1f - Math.abs(deltaX)
+                        / Math.max(1f, analysisSheet.getWidth()) * .28f));
                 return true;
             }
             if (analysisSheet.getScrollY() > 0 || pull <= dp(4)) return false;
@@ -305,8 +325,12 @@ public final class PreviewActivity extends Activity {
             if (event.getAction() == MotionEvent.ACTION_UP
                     && AnalysisGestureRouting.isHorizontalPageSwipe(deltaX, pull, dp(64))) {
                 Uri target = deltaX < 0 ? navigator.peekNext() : navigator.peekPrevious();
-                if (!target.equals(photo)) selectStackPhoto(target);
-            }
+                if (!target.equals(photo)) animateAnalysisPageChange(target, deltaX);
+                else resetAnalysisHorizontalPosition();
+            } else if (event.getAction() == MotionEvent.ACTION_UP)
+                resetAnalysisHorizontalPosition();
+            if (event.getAction() == MotionEvent.ACTION_CANCEL)
+                resetAnalysisHorizontalPosition();
             if (event.getAction() == MotionEvent.ACTION_UP
                     || event.getAction() == MotionEvent.ACTION_CANCEL) analysisSwiping = false;
             return true;
@@ -568,16 +592,55 @@ public final class PreviewActivity extends Activity {
         frontImage = pages.currentImage();
         adjacentSurface = pages.adjacentSurface();
         adjacentImage = pages.adjacentImage();
+        VideoView previousVideo = adjacentSurface.findViewWithTag("video_surface");
+        previousVideo.stopPlayback();
         resetZoom();
         dragPreviewPhoto = null;
-        updateRecommendation();
+        loadCurrent();
         updateButton();
-        showStackCarousel();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
     }
 
     private void loadCurrent() {
         resetZoom();
+        VideoView video = currentSurface.findViewWithTag("video_surface");
+        View play = currentSurface.findViewWithTag("video_play");
+        findViewById(R.id.preview_hide).setContentDescription(
+                mediaTypeOf(photo) == MediaType.VIDEO ? "Hide video" : "Hide photo");
+        if (mediaTypeOf(photo) == MediaType.VIDEO) {
+            frontImage.setVisibility(View.GONE);
+            video.setVideoURI(photo);
+            video.setVisibility(View.VISIBLE);
+            if (play != null) {
+                play.setVisibility(View.VISIBLE);
+                play.setOnClickListener(view -> {
+                    if (video.isPlaying()) {
+                        video.pause();
+                        ((TextView) play).setText("▶");
+                        play.setContentDescription("Play video");
+                    } else {
+                        video.start();
+                        ((TextView) play).setText("❚❚");
+                        play.setContentDescription("Pause video");
+                    }
+                });
+            }
+            video.setOnPreparedListener(player -> player.setLooping(false));
+            video.setOnCompletionListener(player -> {
+                if (play != null) {
+                    ((TextView) play).setText("▶");
+                    play.setContentDescription("Play video");
+                    play.setVisibility(View.VISIBLE);
+                }
+            });
+            updateRecommendation();
+            showStackCarousel();
+            return;
+        }
+        video.stopPlayback();
+        video.setVisibility(View.GONE);
+        if (play != null) play.setVisibility(View.GONE);
+        frontImage.setVisibility(View.VISIBLE);
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
         PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
@@ -590,8 +653,10 @@ public final class PreviewActivity extends Activity {
 
     private void updateRecommendation() {
         TextView recommendation = findViewById(R.id.preview_recommendation);
-        boolean recommended = suggestionStore.load().contains(photo.toString());
-        boolean alternative = suggestionStore.loadAlternatives().contains(photo.toString());
+        boolean photoMedia = mediaTypeOf(photo) == MediaType.PHOTO;
+        boolean recommended = photoMedia && suggestionStore.load().contains(photo.toString());
+        boolean alternative = photoMedia
+                && suggestionStore.loadAlternatives().contains(photo.toString());
         recommendation.setText(recommended ? "★  Best shot"
                 : alternative ? "☆  Good alternative" : "");
         recommendation.setVisibility(recommended || alternative ? View.VISIBLE : View.INVISIBLE);
@@ -673,13 +738,18 @@ public final class PreviewActivity extends Activity {
 
     private void showAnalysis() {
         boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
+        previewQuickReview.setVisibility(View.GONE);
         showAnalysisFaces();
         showMetadata();
         showSavedAlbums();
         PhotoInsight insight = new PhotoInsightStore(this).load(photo.toString());
         TextView title = findViewById(R.id.preview_analysis_title);
         TextView body = findViewById(R.id.preview_analysis_body);
-        if (insight == null) {
+        if (mediaTypeOf(photo) == MediaType.VIDEO) {
+            title.setText("Video details");
+            applyAssessmentIcon(title, 0);
+            body.setText("Video ranking will be added in the next analysis stage.");
+        } else if (insight == null) {
             title.setText("Analysis pending");
             applyAssessmentIcon(title, 0);
             body.setText("This photo has not finished being analysed yet.");
@@ -695,8 +765,8 @@ public final class PreviewActivity extends Activity {
                     + "\n" + insight.reason() + "\n\n" + insight.assessment().explanation());
         }
         View feedback = findViewById(R.id.preview_feedback);
-        feedback.setEnabled(insight != null);
-        feedback.setAlpha(insight == null ? .45f : 1f);
+        feedback.setEnabled(insight != null && mediaTypeOf(photo) == MediaType.PHOTO);
+        feedback.setAlpha(feedback.isEnabled() ? 1f : .45f);
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);
     }
@@ -1057,6 +1127,9 @@ public final class PreviewActivity extends Activity {
                 .withEndAction(() -> {
                     analysisSheet.setVisibility(View.GONE);
                     analysisSheet.setTranslationY(0);
+                    analysisSheet.setTranslationX(0);
+                    analysisSheet.setAlpha(1);
+                    previewQuickReview.setVisibility(quickReview ? View.GONE : View.VISIBLE);
                 }).start();
     }
 
@@ -1078,6 +1151,11 @@ public final class PreviewActivity extends Activity {
         }
         if (target.equals(dragPreviewPhoto)) return;
         dragPreviewPhoto = target;
+        VideoView adjacentVideo = adjacentSurface.findViewWithTag("video_surface");
+        adjacentVideo.stopPlayback();
+        adjacentVideo.setVisibility(View.GONE);
+        View adjacentPlay = adjacentSurface.findViewWithTag("video_play");
+        if (adjacentPlay != null) adjacentPlay.setVisibility(View.GONE);
         adjacentSurface.setVisibility(View.INVISIBLE);
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
                 getResources().getDisplayMetrics().heightPixels);
@@ -1105,6 +1183,27 @@ public final class PreviewActivity extends Activity {
                 .withEndAction(() -> adjacentSurface.setVisibility(View.INVISIBLE)).start();
     }
 
+    private void animateAnalysisPageChange(Uri target, float deltaX) {
+        float distance = Math.max(1, analysisSheet.getWidth());
+        float exit = deltaX < 0 ? -distance : distance;
+        analysisSheet.animate().translationX(exit).alpha(.72f).setDuration(120)
+                .withEndAction(() -> {
+                    selectStackPhoto(target);
+                    analysisSheet.setTranslationX(-exit);
+                    analysisSheet.animate().translationX(0).alpha(1).setDuration(140).start();
+                }).start();
+    }
+
+    private void resetAnalysisHorizontalPosition() {
+        analysisSheet.animate().translationX(0).alpha(1).setDuration(140).start();
+    }
+
+    private MediaType mediaTypeOf(Uri media) {
+        RecentPhoto details = mediaDetails.get(media.toString());
+        if (details != null) return details.mediaType();
+        return MediaType.from(media, getContentResolver().getType(media));
+    }
+
     private void applyZoom() {
         frontImage.setScaleX(zoomState.scale());
         frontImage.setScaleY(zoomState.scale());
@@ -1123,7 +1222,27 @@ public final class PreviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        VideoView currentVideo = currentSurface == null ? null
+                : currentSurface.findViewWithTag("video_surface");
+        VideoView adjacentVideo = adjacentSurface == null ? null
+                : adjacentSurface.findViewWithTag("video_surface");
+        if (currentVideo != null) currentVideo.stopPlayback();
+        if (adjacentVideo != null) adjacentVideo.stopPlayback();
         loader.close();
         super.onDestroy();
+    }
+
+    @Override protected void onPause() {
+        super.onPause();
+        VideoView video = currentSurface == null ? null
+                : currentSurface.findViewWithTag("video_surface");
+        if (video != null && video.isPlaying()) {
+            video.pause();
+            TextView play = currentSurface.findViewWithTag("video_play");
+            if (play != null) {
+                play.setText("▶");
+                play.setContentDescription("Play video");
+            }
+        }
     }
 }

@@ -41,4 +41,16 @@ public class ImportedPhotoStoreTest {
                 store.originOf("content://keepers/cloud/google-item-1"));
         assertNull(store.originOf("content://media/local/not-imported"));
     }
+
+    @Test public void importedVideosPersistTheirTypeAndDuration() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore store = new ImportedPhotoStore(context);
+        store.clear();
+        ImportedPhoto video = new ImportedPhoto(Uri.parse("content://media/video/9"), 50,
+                PhotoOrigin.LOCAL, MediaType.VIDEO, 12_500);
+
+        store.add(video);
+
+        assertEquals(List.of(video), store.load());
+    }
 }

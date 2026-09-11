@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.Manifest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,8 +101,57 @@ public class ReviewActivityTest {
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivityForResult().intent;
         assertEquals(android.provider.MediaStore.ACTION_PICK_IMAGES, started.getAction());
-        assertEquals("image/*", started.getType());
+        assertEquals("*/*", started.getType());
         assertTrue(started.getIntExtra(android.provider.MediaStore.EXTRA_PICK_IMAGES_MAX, 0) > 1);
+    }
+
+    @Test public void manifestRequestsVideoLibraryAccess() throws Exception {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String[] permissions = activity.getPackageManager().getPackageInfo(
+                activity.getPackageName(), android.content.pm.PackageManager.GET_PERMISSIONS)
+                .requestedPermissions;
+
+        assertTrue(java.util.Arrays.asList(permissions).contains(Manifest.permission.READ_MEDIA_VIDEO));
+    }
+
+    @Test public void galleryShowsVideoDurationAndCanFilterToVideos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        RecentPhoto photo = new RecentPhoto(Uri.parse("content://media/images/media/1"), 20);
+        RecentPhoto video = new RecentPhoto(Uri.parse("content://media/video/media/2"), 10,
+                MediaType.VIDEO, 65_000);
+
+        activity.showMedia(List.of(photo, video));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        TextView duration = ((ViewGroup) grid.getChildAt(1)).findViewWithTag("video_duration");
+
+        assertEquals("▶  1:05", duration.getText().toString());
+        assertEquals(View.VISIBLE, duration.getVisibility());
+        assertTrue(grid.getChildAt(1).getContentDescription().toString().startsWith("Video"));
+        for (int id : new int[]{R.id.filter_media_all, R.id.filter_photos, R.id.filter_videos}) {
+            View filter = activity.findViewById(id);
+            assertTrue(filter instanceof TextView);
+            assertTrue(!(filter instanceof android.widget.Button));
+            assertNotNull(filter.getBackground());
+        }
+        activity.findViewById(R.id.filter_videos).performClick();
+        assertEquals(1, grid.getChildCount());
+        assertEquals(video.uri(), grid.getChildAt(0).getTag());
+    }
+
+    @Test public void quickReviewHonoursTheVideoFilter() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        RecentPhoto photo = new RecentPhoto(Uri.parse("content://media/images/media/11"), 20);
+        RecentPhoto video = new RecentPhoto(Uri.parse("content://media/video/media/12"), 10,
+                MediaType.VIDEO, 3_000);
+        activity.showMedia(List.of(photo, video));
+
+        activity.findViewById(R.id.filter_videos).performClick();
+        activity.findViewById(R.id.open_quick_review).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(video.uri(), started.getData());
+        assertEquals(MediaType.VIDEO.name(), started.getStringExtra(
+                PreviewActivity.EXTRA_MEDIA_TYPE));
     }
 
     @Test public void completedGoogleSelectionStartsImportWithoutASecondTap() {

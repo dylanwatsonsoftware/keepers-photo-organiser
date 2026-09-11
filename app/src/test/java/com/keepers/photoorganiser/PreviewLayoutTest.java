@@ -15,6 +15,7 @@ import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.VideoView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -111,6 +112,8 @@ public class PreviewLayoutTest {
         assertEquals(2, stage.getChildCount());
         assertNotNull(layout.findViewById(R.id.preview_image));
         assertNotNull(layout.findViewById(R.id.preview_adjacent_image));
+        assertTrue(layout.findViewById(R.id.preview_video) instanceof VideoView);
+        assertTrue(layout.findViewById(R.id.preview_adjacent_video) instanceof VideoView);
     }
 
     @Test public void controlsFloatOverAFullHeightPhoto() {

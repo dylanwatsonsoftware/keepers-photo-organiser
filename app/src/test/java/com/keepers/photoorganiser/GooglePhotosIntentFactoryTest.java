@@ -28,6 +28,14 @@ public class GooglePhotosIntentFactoryTest {
     }
 
     @Test
+    public void openExistingUsesVideoMimeTypeForAVideo() {
+        Intent intent = GooglePhotosIntentFactory.openExisting(
+                Uri.parse("content://media/video/7"), MediaType.VIDEO);
+
+        assertEquals("video/*", intent.getType());
+    }
+
+    @Test
     public void shareExperimentTargetsGooglePhotosWithEverySelectedUri() {
         List<Uri> photos = Arrays.asList(
                 Uri.parse("content://media/photo/7"),

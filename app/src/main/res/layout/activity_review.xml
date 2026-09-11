@@ -36,7 +36,7 @@
         <ImageButton android:id="@+id/select_photos_to_hide" android:layout_width="44dp"
             android:layout_height="44dp" android:layout_marginStart="4dp"
             android:background="@drawable/gallery_icon_button"
-            android:contentDescription="Select photos to hide" android:padding="11dp"
+            android:contentDescription="Select media to hide" android:padding="11dp"
             android:src="@drawable/ic_hide" android:tint="#5F6368" />
     </LinearLayout>
 
@@ -127,7 +127,7 @@
             android:focusable="true"
             android:gravity="center"
             android:paddingHorizontal="16dp"
-            android:text="All photos"
+            android:text="All sources"
             android:textColor="@color/gallery_filter_text"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -203,6 +203,51 @@
             android:gravity="center"
             android:paddingHorizontal="16dp"
             android:text="Cloud"
+            android:textColor="@color/gallery_filter_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/filter_media_all"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="All media"
+            android:textColor="@color/gallery_filter_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/filter_photos"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="Photos"
+            android:textColor="@color/gallery_filter_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/filter_videos"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="Videos"
             android:textColor="@color/gallery_filter_text"
             android:textSize="13sp"
             android:textStyle="bold" />

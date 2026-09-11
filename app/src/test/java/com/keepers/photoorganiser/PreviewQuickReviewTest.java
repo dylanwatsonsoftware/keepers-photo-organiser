@@ -215,6 +215,58 @@ public class PreviewQuickReviewTest {
         assertTrue(started.getBooleanExtra(PreviewActivity.EXTRA_QUICK_REVIEW, false));
     }
 
+    @Test public void reviewActionIsHiddenWhileMetadataIsOpen() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/no-review-over-metadata"), false);
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+
+        showAnalysis.invoke(activity);
+
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+    }
+
+    @Test public void metadataSheetTracksHorizontalDragBeforeChangingPhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri first = Uri.parse("content://photo/metadata-drag-first");
+        Uri second = Uri.parse("content://photo/metadata-drag-second");
+        imports.add(new ImportedPhoto(first, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(second, 10, PhotoOrigin.LOCAL));
+        PreviewActivity activity = create(context, first, false);
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        Method scroll = PreviewActivity.class.getDeclaredMethod(
+                "handleAnalysisScroll", MotionEvent.class);
+        scroll.setAccessible(true);
+
+        scroll.invoke(activity, event(MotionEvent.ACTION_DOWN, 200, 200));
+        scroll.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 204));
+
+        assertTrue(activity.findViewById(R.id.preview_analysis_sheet).getTranslationX() < 0);
+        imports.clear();
+    }
+
+    @Test public void localVideoUsesPlaybackSurfaceInFullscreen() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/preview-video");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+
+        PreviewActivity activity = create(context, video, false);
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_video).getVisibility());
+        assertEquals(View.GONE, activity.findViewById(R.id.preview_image).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_video_play).getVisibility());
+        imports.clear();
+    }
+
     @Test public void quickReviewLaunchedFromHiddenFullscreenSkipsTheHiddenPhoto()
             throws Exception {
         Context context = RuntimeEnvironment.getApplication();

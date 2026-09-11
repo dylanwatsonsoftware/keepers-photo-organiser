@@ -21,6 +21,30 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter" />
+
+            <VideoView
+                android:id="@+id/preview_adjacent_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:tag="video_surface"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/preview_adjacent_video_play"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/photo_icon_button"
+                android:clickable="true"
+                android:contentDescription="Play video"
+                android:elevation="3dp"
+                android:focusable="true"
+                android:gravity="center"
+                android:tag="video_play"
+                android:text="▶"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:visibility="gone" />
         </FrameLayout>
 
         <FrameLayout
@@ -34,6 +58,30 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter" />
+
+            <VideoView
+                android:id="@+id/preview_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:tag="video_surface"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/preview_video_play"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/photo_icon_button"
+                android:clickable="true"
+                android:contentDescription="Play video"
+                android:elevation="3dp"
+                android:focusable="true"
+                android:gravity="center"
+                android:tag="video_play"
+                android:text="▶"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:visibility="gone" />
         </FrameLayout>
     </FrameLayout>
 
@@ -261,7 +309,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="14dp"
                 android:gravity="center"
-                android:text="Swipe left or right for the next photo’s details"
+                android:text="Swipe left or right for the next item’s details"
                 android:textColor="#5F6368"
                 android:textSize="13sp" />
 

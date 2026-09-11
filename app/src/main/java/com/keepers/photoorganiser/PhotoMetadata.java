@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Locale;
 
 public record PhotoMetadata(long takenAtMillis, String caption, String location,
-        int width, int height, String mimeType, long sizeBytes) {
+        int width, int height, String mimeType, long sizeBytes, long durationMillis) {
+    public PhotoMetadata(long takenAtMillis, String caption, String location,
+            int width, int height, String mimeType, long sizeBytes) {
+        this(takenAtMillis, caption, location, width, height, mimeType, sizeBytes, 0);
+    }
     public String formattedDate(ZoneId zone, Locale locale) {
         if (takenAtMillis <= 0) return "";
         return DateTimeFormatter.ofPattern("EEE, MMM d, yyyy • h:mm a", locale)
@@ -21,6 +25,7 @@ public record PhotoMetadata(long takenAtMillis, String caption, String location,
         String type = displayType(mimeType);
         if (!type.isBlank()) parts.add(type);
         if (sizeBytes > 0) parts.add(String.format(locale, "%.1f MB", sizeBytes / 1_000_000d));
+        if (durationMillis > 0) parts.add(MediaDuration.format(durationMillis));
         return String.join("  •  ", parts);
     }
 
