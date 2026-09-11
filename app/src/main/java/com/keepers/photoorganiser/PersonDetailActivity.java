@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -17,15 +18,20 @@ import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class PersonDetailActivity extends Activity {
     public static final String EXTRA_PERSON_ID = "person_id";
+    private static final int FACE_PAGE_SIZE = 40;
     private AsyncThumbnailLoader thumbnailLoader;
     private TrackedPerson person;
+    private boolean selectingFaces;
+    private final Set<String> selectedFaceKeys = new HashSet<>();
+    private int visibleFaceLimit = FACE_PAGE_SIZE;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -42,6 +48,23 @@ public final class PersonDetailActivity extends Activity {
         album.setText(person.albumName());
         name.addTextChangedListener(watcher(() -> save(name, album)));
         album.addTextChangedListener(watcher(() -> save(name, album)));
+        findViewById(R.id.person_detail_select_faces).setOnClickListener(view -> {
+            selectingFaces = true;
+            selectedFaceKeys.clear();
+            renderFaces();
+        });
+        findViewById(R.id.person_detail_cancel_selection).setOnClickListener(view -> {
+            selectingFaces = false;
+            selectedFaceKeys.clear();
+            renderFaces();
+        });
+        findViewById(R.id.person_detail_remove_selected).setOnClickListener(view -> {
+            if (!selectedFaceKeys.isEmpty()) confirmBulkRemoval();
+        });
+        findViewById(R.id.person_detail_show_more_faces).setOnClickListener(view -> {
+            visibleFaceLimit += FACE_PAGE_SIZE;
+            renderFaces();
+        });
         renderFaces();
     }
 
@@ -66,18 +89,34 @@ public final class PersonDetailActivity extends Activity {
     }
 
     private void renderFaces() {
-        List<FaceObservation> faces = associatedFaces();
+        List<FaceObservation> allFaces = associatedFaces();
+        FaceDisplayWindow.Result window = FaceDisplayWindow.limit(allFaces, visibleFaceLimit);
+        List<FaceObservation> faces = window.faces();
         GridLayout container = findViewById(R.id.person_detail_faces);
         container.removeAllViews();
+        TextView select = findViewById(R.id.person_detail_select_faces);
+        select.setVisibility(faces.isEmpty() || selectingFaces ? View.GONE : View.VISIBLE);
+        findViewById(R.id.person_detail_bulk_actions).setVisibility(
+                selectingFaces ? View.VISIBLE : View.GONE);
+        TextView bulkStatus = findViewById(R.id.person_detail_bulk_status);
+        int selected = selectedFaceKeys.size();
+        bulkStatus.setText(selected + (selected == 1 ? " face selected" : " faces selected"));
+        TextView removeSelected = findViewById(R.id.person_detail_remove_selected);
+        removeSelected.setEnabled(selected > 0);
+        removeSelected.setAlpha(selected > 0 ? 1f : .45f);
         String name = displayName();
-        ((TextView) findViewById(R.id.person_detail_faces_summary)).setText(faces.isEmpty()
-                ? "No confirmed or suggested faces yet. Assign a discovered group first."
-                : faces.size() + (faces.size() == 1 ? " associated face" : " associated faces")
+        ((TextView) findViewById(R.id.person_detail_faces_summary)).setText(allFaces.isEmpty()
+                ? "No confirmed faces yet. Confirm a suggestion in Faces to review first."
+                : allFaces.size() + (allFaces.size() == 1 ? " confirmed face" : " confirmed faces")
+                + (window.hasMore() ? " · showing " + faces.size() : "")
                 + " · choose a feature or remove incorrect matches");
-        String featureKey = effectiveFeatureKey(faces);
+        TextView showMore = findViewById(R.id.person_detail_show_more_faces);
+        showMore.setVisibility(window.hasMore() ? View.VISIBLE : View.GONE);
+        showMore.setText("Show " + Math.min(FACE_PAGE_SIZE, window.remaining()) + " more");
+        String featureKey = effectiveFeatureKey(allFaces);
         for (FaceObservation face : faces) container.addView(faceTile(face, name,
                 FaceCorrectionStore.key(face).equals(featureKey)));
-        showFeatureFace(faces, featureKey);
+        showFeatureFace(allFaces, featureKey);
     }
 
     private LinearLayout faceTile(FaceObservation face, String name, boolean featureFace) {
@@ -86,6 +125,12 @@ public final class PersonDetailActivity extends Activity {
         tile.setGravity(Gravity.CENTER_HORIZONTAL);
         tile.setPadding(dp(8), dp(8), dp(8), dp(8));
         tile.setBackgroundResource(R.drawable.person_setup_card);
+        String key = FaceCorrectionStore.key(face);
+        tile.setSelected(selectedFaceKeys.contains(key));
+        if (selectingFaces) tile.setOnClickListener(view -> {
+            if (!selectedFaceKeys.add(key)) selectedFaceKeys.remove(key);
+            renderFaces();
+        });
         GridLayout.LayoutParams tileParams = new GridLayout.LayoutParams();
         tileParams.width = 0;
         tileParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -109,12 +154,24 @@ public final class PersonDetailActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         thumbnailLoader.load(crop, Uri.parse(face.photoId()), 520,
                 bitmap -> showLooseCrop(crop, bitmap, face));
-        String key = FaceCorrectionStore.key(face);
         Runnable selectFeature = () -> {
             new PersonFeatureFaceStore(this).save(person.id(), key);
             renderFaces();
         };
-        if (!featureFace) crop.setOnClickListener(view -> selectFeature.run());
+        if (!selectingFaces && !featureFace) crop.setOnClickListener(view -> selectFeature.run());
+
+        if (selectingFaces) {
+            TextView check = new TextView(this);
+            check.setText(selectedFaceKeys.contains(key) ? "✓" : "");
+            check.setTextColor(0xFFFFFFFF);
+            check.setTextSize(18);
+            check.setGravity(Gravity.CENTER);
+            check.setBackgroundResource(R.drawable.gallery_primary_action);
+            FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+                    Gravity.TOP | Gravity.END);
+            checkParams.setMargins(0, dp(8), dp(8), 0);
+            frame.addView(check, checkParams);
+        }
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -143,9 +200,31 @@ public final class PersonDetailActivity extends Activity {
         LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(dp(40), dp(40));
         removeParams.setMargins(0, dp(8), 0, 0);
         actions.addView(remove, removeParams);
-        tile.addView(actions, new LinearLayout.LayoutParams(
+        if (!selectingFaces) tile.addView(actions, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return tile;
+    }
+
+    private void confirmBulkRemoval() {
+        int count = selectedFaceKeys.size();
+        new AlertDialog.Builder(this)
+                .setTitle("Remove selected faces?")
+                .setMessage("Keepers will stop treating " + count
+                        + (count == 1 ? " face" : " faces") + " as " + displayName() + ".")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Remove", (dialog, which) -> removeSelectedFaces())
+                .show();
+    }
+
+    private void removeSelectedFaces() {
+        FaceCorrectionStore store = new FaceCorrectionStore(this);
+        store.save(BulkFaceRemoval.apply(person.id(), selectedFaceKeys, store.load()));
+        PersonFeatureFaceStore features = new PersonFeatureFaceStore(this);
+        if (selectedFaceKeys.contains(features.load(person.id()))) features.clear(person.id());
+        AlbumApprovalInvalidator.invalidate(this);
+        selectingFaces = false;
+        selectedFaceKeys.clear();
+        renderFaces();
     }
 
     private void confirmRemoval(FaceObservation face, String name) {
@@ -182,32 +261,9 @@ public final class PersonDetailActivity extends Activity {
     }
 
     private List<FaceObservation> associatedFaces() {
-        FaceObservationStore observations = new FaceObservationStore(this);
-        List<FaceObservation> all = observations.loadAll();
-        List<FaceIdentityGroup> groups = FaceClusterer.cluster(all, .30);
-        Map<String, String> assignments = new FaceGroupAssignmentStore(this).load();
-        Map<String, String> corrections = new FaceCorrectionStore(this).load();
-        Map<String, String> learned = FaceIdentityLearner.predict(all, groups, assignments,
-                corrections, .15);
-        return all.stream().filter(face -> belongsToPerson(face, groups, assignments,
-                        corrections, learned))
-                .sorted(Comparator.comparing(FaceObservation::photoId)
-                        .thenComparingInt(FaceObservation::faceIndex)).toList();
-    }
-
-    private boolean belongsToPerson(FaceObservation face, List<FaceIdentityGroup> groups,
-            Map<String, String> assignments, Map<String, String> corrections,
-            Map<String, String> learned) {
-        String key = FaceCorrectionStore.key(face);
-        String correction = corrections.get(key);
-        if (correction != null) return person.id().equals(correction);
-        for (FaceIdentityGroup group : groups) if (group.members().stream()
-                .anyMatch(member -> FaceCorrectionStore.key(member).equals(key))) {
-            String assigned = FaceGroupAssignmentResolver.personFor(group, assignments);
-            if (!assigned.isBlank()) return person.id().equals(assigned);
-            break;
-        }
-        return person.id().equals(learned.get(key));
+        return ConfirmedPersonFaces.forPerson(person.id(),
+                new FaceObservationStore(this).loadAll(),
+                new FaceCorrectionStore(this).load());
     }
 
     private String effectiveFeatureKey(List<FaceObservation> faces) {

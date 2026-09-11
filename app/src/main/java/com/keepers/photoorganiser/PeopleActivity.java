@@ -25,6 +25,7 @@ public final class PeopleActivity extends Activity {
     private LinearLayout otherAlbumProfiles;
     private int nextPersonNumber = 1;
     private boolean showConfirmedFaces;
+    private boolean faceGroupsLoaded;
     private final Map<String, ImageView> profilePortraitViews = new HashMap<>();
 
     @Override protected void onCreate(Bundle state) {
@@ -70,6 +71,11 @@ public final class PeopleActivity extends Activity {
             showConfirmedFaces = !showConfirmedFaces;
             showDiscoveredGroups();
         });
+        findViewById(R.id.load_face_groups).setOnClickListener(view -> {
+            faceGroupsLoaded = true;
+            showDiscoveredGroups();
+            ((TextView) view).setText("Refresh face suggestions");
+        });
     }
 
     private void openImport(String action) {
@@ -84,7 +90,13 @@ public final class PeopleActivity extends Activity {
         showPeople();
         showOtherAlbums();
         showDiscoveryProgress();
-        showDiscoveredGroups();
+        if (faceGroupsLoaded) showDiscoveredGroups();
+        else {
+            findViewById(R.id.toggle_confirmed_faces).setVisibility(View.GONE);
+            ((LinearLayout) findViewById(R.id.discovered_face_groups)).removeAllViews();
+            ((TextView) findViewById(R.id.discovered_faces_summary)).setText(
+                    "Load face suggestions when you are ready to review them.");
+        }
         updateHiddenPhotoAction();
     }
 

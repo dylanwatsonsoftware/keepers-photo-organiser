@@ -26,17 +26,13 @@ public final class AlbumProposalEngine {
 
         ArrayList<AlbumAssignment> result = new ArrayList<>();
         HashSet<String> seen = new HashSet<>();
-        List<FaceObservation> allFaces = groups.stream().flatMap(group -> group.members().stream())
-                .toList();
-        Map<String, String> learned = FaceIdentityLearner.predict(allFaces, groups,
-                groupAssignments, faceCorrections, .15);
         for (FaceIdentityGroup group : groups) {
             String groupPerson = FaceGroupAssignmentResolver.personFor(group, groupAssignments);
             for (FaceObservation face : group.members()) {
                 String faceKey = FaceCorrectionStore.key(face);
                 String personId = faceCorrections.containsKey(faceKey)
                         ? faceCorrections.get(faceKey)
-                        : !groupPerson.isBlank() ? groupPerson : learned.get(faceKey);
+                        : groupPerson;
                 if (FaceCorrectionStore.IGNORE.equals(personId)) continue;
                 TrackedPerson person = eligiblePeople.get(personId);
                 if (person == null) continue;

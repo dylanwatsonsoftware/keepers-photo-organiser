@@ -70,7 +70,7 @@ public class AlbumProposalEngineTest {
                 List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true))));
     }
 
-    @Test public void aCorrectionCanTeachAnUnmappedSimilarFace() {
+    @Test public void aCorrectionDoesNotAutoApproveAnUnmappedSimilarFace() {
         FaceIdentityGroup taught = group("old-group", "old");
         FaceIdentityGroup newFace = new FaceIdentityGroup("new-group", List.of(
                 new FaceObservation("keeper-a", 0, 0, 0, 1, 1,
@@ -79,11 +79,10 @@ public class AlbumProposalEngineTest {
                 List.of(taught, newFace), Map.of(), Map.of("old#0", "ada"),
                 List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true)));
 
-        assertEquals(List.of(new AlbumAssignment("keeper-a", "ada", "Ada",
-                "Ada Photos", true)), result);
+        assertEquals(List.of(), result);
     }
 
-    @Test public void aConfirmedGroupTeachesFutureAlbumSuggestions() {
+    @Test public void aConfirmedGroupDoesNotAutoApproveFutureAlbumSuggestions() {
         FaceIdentityGroup confirmed = group("confirmed-ada", "older-photo");
         FaceIdentityGroup newFace = new FaceIdentityGroup("unconfirmed-new", List.of(
                 new FaceObservation("keeper-a", 0, 0, 0, 1, 1,
@@ -93,8 +92,7 @@ public class AlbumProposalEngineTest {
                 List.of(confirmed, newFace), Map.of("confirmed-ada", "ada"), Map.of(),
                 List.of(new TrackedPerson("ada", "Ada", "Ada Photos", true)));
 
-        assertEquals(List.of(new AlbumAssignment("keeper-a", "ada", "Ada",
-                "Ada Photos", true)), result);
+        assertEquals(List.of(), result);
     }
 
     private static FaceIdentityGroup group(String id, String... photos) {

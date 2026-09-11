@@ -208,6 +208,8 @@ public class PeopleActivityTest {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
+        assertEquals(0, groups.getChildCount());
+        activity.findViewById(R.id.load_face_groups).performClick();
         assertEquals(1, groups.getChildCount());
         assertEquals("Seen in 2 photos", groups.getChildAt(0).getContentDescription());
     }
@@ -227,6 +229,7 @@ public class PeopleActivityTest {
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
 
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
+        activity.findViewById(R.id.load_face_groups).performClick();
         assertEquals("Seen in 3 photos", groups.getChildAt(0).getContentDescription());
         assertEquals("Seen in 1 photo", groups.getChildAt(1).getContentDescription());
     }
@@ -245,6 +248,7 @@ public class PeopleActivityTest {
         new FaceGroupAssignmentStore(context).save(Map.of(confirmed, "ada"));
 
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
         TextView toggle = activity.findViewById(R.id.toggle_confirmed_faces);
 
@@ -267,6 +271,7 @@ public class PeopleActivityTest {
         new FaceGroupAssignmentStore(context).save(Map.of(group.id(), "ada"));
 
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
         activity.findViewById(R.id.toggle_confirmed_faces).performClick();
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
         Spinner chooser = findFirst(groups.getChildAt(0), Spinner.class);
@@ -291,6 +296,7 @@ public class PeopleActivityTest {
                 .findFirst().orElseThrow().id();
         new FaceGroupAssignmentStore(context).save(Map.of(confirmedGroup, "ada"));
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
         LinearLayout groups = activity.findViewById(R.id.discovered_face_groups);
         Spinner unassigned = null;
         for (int index = 0; index < groups.getChildCount(); index++) {
@@ -311,6 +317,7 @@ public class PeopleActivityTest {
                 org.robolectric.RuntimeEnvironment.getApplication());
         observations.save("content://photos/a", List.of(face("content://photos/a", "1,0,0")));
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
 
         activity.<LinearLayout>findViewById(R.id.discovered_face_groups).getChildAt(0).performClick();
 
@@ -340,6 +347,7 @@ public class PeopleActivityTest {
         new FaceGroupAssignmentStore(context).save(Map.of(known.id(), "ada"));
 
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
         View suggestion = findViewWithText(activity.findViewById(android.R.id.content),
                 "Likely Ada");
 
@@ -369,6 +377,7 @@ public class PeopleActivityTest {
                 .findFirst().orElseThrow();
         new FaceGroupAssignmentStore(context).save(Map.of(known.id(), "ada"));
         PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        activity.findViewById(R.id.load_face_groups).performClick();
 
         View decline = findViewWithText(activity.findViewById(android.R.id.content), "Not Ada");
         assertEquals(true, decline != null);

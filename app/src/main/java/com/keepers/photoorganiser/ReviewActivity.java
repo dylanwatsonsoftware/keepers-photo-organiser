@@ -527,7 +527,6 @@ public final class ReviewActivity extends Activity {
     private void loadRecentPhotos() {
         List<RecentPhoto> local = RecentCameraQuery.loadRecent(
                 getContentResolver(), reviewWindow.limit());
-        hasMorePhotos = local.size() == reviewWindow.limit();
         showLocalAndImportedPhotos(local);
     }
 
@@ -537,20 +536,15 @@ public final class ReviewActivity extends Activity {
     }
 
     private void showLocalAndImportedPhotos(List<RecentPhoto> local) {
-        LinkedHashMap<String, RecentPhoto> combined = new LinkedHashMap<>();
+        RecentMediaWindow.Result window = RecentMediaWindow.combine(local,
+                new ImportedPhotoStore(this).load(), reviewWindow.limit());
         HashMap<String, PhotoOrigin> origins = new HashMap<>();
-        for (RecentPhoto photo : local) {
-            combined.put(photo.uri().toString(), photo);
-            origins.put(photo.uri().toString(), PhotoOrigin.LOCAL);
+        ArrayList<RecentPhoto> ordered = new ArrayList<>();
+        for (RecentMediaWindow.Item item : window.items()) {
+            ordered.add(item.media());
+            origins.put(item.media().uri().toString(), item.origin());
         }
-        for (ImportedPhoto imported : new ImportedPhotoStore(this).load()) {
-            combined.put(imported.uri().toString(),
-                    new RecentPhoto(imported.uri(), imported.takenAtMillis(),
-                            imported.mediaType(), imported.durationMillis()));
-            origins.put(imported.uri().toString(), imported.origin());
-        }
-        ArrayList<RecentPhoto> ordered = new ArrayList<>(combined.values());
-        ordered.sort(Comparator.comparingLong(RecentPhoto::takenAtMillis).reversed());
+        hasMorePhotos = window.hasMore() || local.size() == reviewWindow.limit();
         photoOrigins = Map.copyOf(origins);
         showRecentPhotos(ordered);
     }

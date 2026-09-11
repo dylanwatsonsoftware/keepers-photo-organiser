@@ -66,6 +66,8 @@ public class PersonDetailActivityTest {
         FaceIdentityGroup group = FaceClusterer.cluster(
                 observations.loadAll(), .30).get(0);
         new FaceGroupAssignmentStore(context).save(Map.of(group.id(), "ada"));
+        new FaceCorrectionStore(context).save(Map.of(
+                firstPhoto + "#0", "ada", secondPhoto + "#0", "ada"));
         Activity activity = launch(context, "ada");
         GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
 
@@ -92,7 +94,7 @@ public class PersonDetailActivityTest {
         assertNotNull(remove);
         assertEquals("Remove face from Ada", remove.getContentDescription().toString());
         remove.performClick();
-        assertNull(new FaceCorrectionStore(context).load().get(secondPhoto + "#0"));
+        assertEquals("ada", new FaceCorrectionStore(context).load().get(secondPhoto + "#0"));
         AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
         assertEquals("Remove", dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
@@ -102,7 +104,7 @@ public class PersonDetailActivityTest {
         assertEquals(1, faces.getChildCount());
     }
 
-    @Test public void showsFacesLearnedFromConfirmedExamplesForCorrection() throws Exception {
+    @Test public void doesNotPresentLearnedGuessesAsAssociatedFaces() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         new TrackedPersonStore(context).save(List.of(
                 new TrackedPerson("ada", "Ada", "Ada Photos", true)));
@@ -115,7 +117,40 @@ public class PersonDetailActivityTest {
         Activity activity = launch(context, "ada");
         GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
 
-        assertEquals(2, faces.getChildCount());
+        assertEquals(1, faces.getChildCount());
+    }
+
+    @Test public void canSelectAndRemoveSeveralIncorrectFacesTogether() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String first = "content://photos/bulk-a";
+        String second = "content://photos/bulk-b";
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        FaceObservationStore observations = new FaceObservationStore(context);
+        observations.save(first, List.of(face(first, 0, "1,0,0")));
+        observations.save(second, List.of(face(second, 0, ".99,.01,0")));
+        new FaceCorrectionStore(context).save(Map.of(
+                first + "#0", "ada", second + "#0", "ada"));
+        Activity activity = launch(context, "ada");
+        GridLayout faces = activity.findViewById(id(activity, "person_detail_faces"));
+
+        activity.findViewById(id(activity, "person_detail_select_faces")).performClick();
+        assertEquals(View.VISIBLE, activity.findViewById(
+                id(activity, "person_detail_bulk_actions")).getVisibility());
+        faces.getChildAt(0).performClick();
+        faces.getChildAt(1).performClick();
+        assertEquals("2 faces selected", ((TextView) activity.findViewById(
+                id(activity, "person_detail_bulk_status"))).getText().toString());
+        activity.findViewById(id(activity, "person_detail_remove_selected")).performClick();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(FaceCorrectionStore.IGNORE,
+                new FaceCorrectionStore(context).load().get(first + "#0"));
+        assertEquals(FaceCorrectionStore.IGNORE,
+                new FaceCorrectionStore(context).load().get(second + "#0"));
+        assertEquals(0, faces.getChildCount());
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
