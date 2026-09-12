@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -237,6 +238,36 @@ public class PreviewQuickReviewTest {
         assertEquals(View.GONE, activity.findViewById(R.id.preview_stack_carousel).getVisibility());
         imports.clear();
         new HiddenPhotoStore(context).clear();
+    }
+
+    @Test public void swipingStackCarouselSelectsTheAdjacentStackPhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri first = Uri.parse("content://photo/carousel-first");
+        Uri middle = Uri.parse("content://photo/carousel-middle");
+        Uri last = Uri.parse("content://photo/carousel-last");
+        imports.add(new ImportedPhoto(first, 30, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(middle, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(last, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(first.toString(), middle.toString(), last.toString());
+        new PhotoStackStore(context).save(Map.of(first.toString(), stack,
+                middle.toString(), stack, last.toString(), stack));
+        new SuggestionStore(context).save(Set.of(middle.toString()));
+        PreviewActivity activity = create(context, first, false);
+        HorizontalScrollView carousel = activity.findViewById(R.id.preview_stack_carousel);
+        assertEquals(middle, currentPhoto(activity));
+
+        Method carouselTouch = PreviewActivity.class.getDeclaredMethod(
+                "handleStackCarouselTouch", MotionEvent.class);
+        carouselTouch.setAccessible(true);
+        carouselTouch.invoke(activity, event(MotionEvent.ACTION_DOWN, 220, 40));
+        carouselTouch.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 40));
+        carouselTouch.invoke(activity, event(MotionEvent.ACTION_UP, 100, 40));
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+
+        assertEquals(last, currentPhoto(activity));
+        imports.clear();
     }
 
     @Test public void fullscreenPhotoCanLaunchQuickReviewFromItsCurrentItem() {

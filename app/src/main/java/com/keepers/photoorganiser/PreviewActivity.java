@@ -69,6 +69,8 @@ public final class PreviewActivity extends Activity {
     private View previewQuickReview;
     private Map<String, RecentPhoto> mediaDetails = Map.of();
     private boolean photoChromeVisible = true;
+    private GestureCoordinates stackCarouselGesture;
+    private List<Uri> stackCarouselMembers = List.of();
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -126,6 +128,8 @@ public final class PreviewActivity extends Activity {
         previewStage = findViewById(R.id.preview_stage);
         previewControls = findViewById(R.id.preview_controls);
         previewClose = findViewById(R.id.preview_close);
+        findViewById(R.id.preview_stack_carousel).setOnTouchListener(
+                (view, event) -> handleStackCarouselTouch(event));
         scaleGestureDetector = new ScaleGestureDetector(this,
                 new ScaleGestureDetector.SimpleOnScaleGestureListener() {
                     @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
@@ -674,6 +678,7 @@ public final class PreviewActivity extends Activity {
         HorizontalScrollView carousel = findViewById(R.id.preview_stack_carousel);
         LinearLayout thumbnails = findViewById(R.id.preview_stack_thumbnails);
         thumbnails.removeAllViews();
+        stackCarouselMembers = members.stream().map(Uri::parse).toList();
         if (members.size() < 2) {
             carousel.setVisibility(View.GONE);
             return;
@@ -703,6 +708,30 @@ public final class PreviewActivity extends Activity {
         int targetIndex = selectedIndex;
         carousel.post(() -> carousel.smoothScrollTo(CarouselScrollTarget.centered(targetIndex,
                 dp(72), carousel.getWidth(), thumbnails.getWidth()), 0));
+    }
+
+    private boolean handleStackCarouselTouch(MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            stackCarouselGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
+            return false;
+        }
+        if (action == MotionEvent.ACTION_CANCEL) {
+            stackCarouselGesture = null;
+            return false;
+        }
+        if (action != MotionEvent.ACTION_UP || stackCarouselGesture == null) return false;
+        float deltaX = stackCarouselGesture.deltaX(event.getRawX());
+        stackCarouselGesture = null;
+        int currentIndex = stackCarouselMembers.indexOf(photo);
+        if (currentIndex < 0) return false;
+        int targetIndex = StackCarouselSwipe.targetIndex(currentIndex,
+                stackCarouselMembers.size(), deltaX, dp(24), dp(72));
+        if (targetIndex != currentIndex) {
+            Uri target = stackCarouselMembers.get(targetIndex);
+            findViewById(R.id.preview_stack_carousel).post(() -> selectStackPhoto(target));
+        }
+        return false;
     }
 
     private void selectStackPhoto(Uri selected) {
