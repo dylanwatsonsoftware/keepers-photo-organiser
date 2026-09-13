@@ -10,7 +10,10 @@ import java.util.Set;
 public final class BestShotEngine {
     static final long SCENE_WINDOW_MILLIS = 120_000;
     static final long NAMED_FACE_WINDOW_MILLIS = 60_000;
+    static final long COMPARISON_WINDOW_MILLIS = 180_000;
     static final int MAX_WITHIN_STACK_HASH_DISTANCE = 24;
+    static final int MAX_WITHIN_COMPARISON_HASH_DISTANCE = 30;
+    static final int MAX_RECOMMENDATIONS_PER_COMPARISON = 2;
     static final double MIN_USABLE_STACK_QUALITY = 0.03;
     static final int NEAR_IDENTICAL_HASH_DISTANCE = 6;
 
@@ -36,7 +39,8 @@ public final class BestShotEngine {
 
     public static BestShotResult classify(List<PhotoFeatures> photos,
             RecommendationPreferenceProfile profile, Map<String, Set<String>> namedFaces) {
-        Set<String> initial = recommendInitial(photos, profile, namedFaces);
+        Set<String> initial = limitSimilarMomentRecommendations(
+                recommendInitial(photos, profile, namedFaces), photos, profile, namedFaces);
         List<PhotoFeatures> ranked = new ArrayList<>(photos);
         ranked.sort(java.util.Comparator.comparingDouble(profile::score).reversed()
                 .thenComparing(PhotoFeatures::id));
@@ -58,6 +62,24 @@ public final class BestShotEngine {
             }
         }
         return new BestShotResult(recommended, alternatives);
+    }
+
+    private static Set<String> limitSimilarMomentRecommendations(Set<String> recommendations,
+            List<PhotoFeatures> photos, RecommendationPreferenceProfile profile,
+            Map<String, Set<String>> namedFaces) {
+        Set<String> limited = new HashSet<>(recommendations);
+        for (List<PhotoFeatures> group : comparisonGroups(photos, namedFaces)) {
+            List<PhotoFeatures> selected = group.stream()
+                    .filter(photo -> recommendations.contains(photo.id()))
+                    .sorted(java.util.Comparator
+                            .comparingDouble((PhotoFeatures photo) ->
+                                    stackScore(photo, group, profile))
+                            .reversed().thenComparing(PhotoFeatures::id))
+                    .toList();
+            for (int index = MAX_RECOMMENDATIONS_PER_COMPARISON;
+                    index < selected.size(); index++) limited.remove(selected.get(index).id());
+        }
+        return limited;
     }
 
     private static boolean nearIdentical(PhotoFeatures first, PhotoFeatures second) {
@@ -143,6 +165,27 @@ public final class BestShotEngine {
         return groups;
     }
 
+    private static List<List<PhotoFeatures>> comparisonGroups(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
+        List<List<PhotoFeatures>> groups = new ArrayList<>();
+        for (PhotoFeatures photo : ordered(photos)) {
+            List<PhotoFeatures> latest = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+            PhotoFeatures previous = latest == null ? null : latest.get(latest.size() - 1);
+            boolean timeBreak = previous != null && photo.takenAtMillis()
+                    - previous.takenAtMillis() > COMPARISON_WINDOW_MILLIS;
+            boolean peopleBreak = previous != null && knownPeopleAreDisjoint(
+                    previous.id(), photo.id(), namedFaces);
+            boolean visualBreak = previous != null && Long.bitCount(previous.perceptualHash()
+                    ^ photo.perceptualHash()) > MAX_WITHIN_COMPARISON_HASH_DISTANCE;
+            if (previous == null || timeBreak || peopleBreak || visualBreak) {
+                latest = new ArrayList<>();
+                groups.add(latest);
+            }
+            latest.add(photo);
+        }
+        return groups;
+    }
+
     private static boolean knownPeopleDiffer(String first, String second,
             Map<String, Set<String>> namedFaces) {
         Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
@@ -155,6 +198,14 @@ public final class BestShotEngine {
         Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
         Set<String> secondFaces = namedFaces.getOrDefault(second, Set.of());
         return !firstFaces.isEmpty() && firstFaces.equals(secondFaces);
+    }
+
+    private static boolean knownPeopleAreDisjoint(String first, String second,
+            Map<String, Set<String>> namedFaces) {
+        Set<String> firstFaces = namedFaces.getOrDefault(first, Set.of());
+        Set<String> secondFaces = namedFaces.getOrDefault(second, Set.of());
+        return !firstFaces.isEmpty() && !secondFaces.isEmpty()
+                && java.util.Collections.disjoint(firstFaces, secondFaces);
     }
 
     private static List<PhotoFeatures> ordered(List<PhotoFeatures> photos) {

@@ -183,6 +183,28 @@ public class BestShotEngineTest {
                         feature("third", 600_000, 0x5555555555555555L, 0.7))));
     }
 
+    @Test public void looselyRelatedNeighbouringStacksRecommendAtMostTwoPhotos() {
+        long firstScene = 0L;
+        long secondScene = (1L << 26) - 1;
+        long secondBest = secondScene ^ (1L << 40);
+        long thirdScene = secondBest ^ (((1L << 25) - 1) << 20);
+        List<PhotoFeatures> photos = List.of(
+                feature("first-soft", 1_000, firstScene, .4),
+                feature("first-best", 2_000, firstScene ^ 1L, .9),
+                feature("second-soft", 3_000, secondScene, .3),
+                feature("second-best", 4_000, secondBest, .8),
+                feature("third-soft", 5_000, thirdScene, .2),
+                feature("third-best", 6_000, thirdScene ^ (1L << 60), .7));
+
+        Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(photos);
+        assertEquals(6, stacks.size());
+        assertEquals(new PhotoStackPosition(1, 2), stacks.get("first-soft"));
+        assertEquals(new PhotoStackPosition(1, 2), stacks.get("second-soft"));
+        assertEquals(new PhotoStackPosition(1, 2), stacks.get("third-soft"));
+        assertEquals(Set.of("first-best", "second-best"),
+                BestShotEngine.recommend(photos));
+    }
+
     @Test public void unusableStackDoesNotEarnARecommendationFromAttemptsAlone() {
         assertEquals(Set.of("overall-best", "runner-up"), BestShotEngine.recommend(List.of(
                 feature("stack-blurrier", 1_000, 0L, 0.01),
