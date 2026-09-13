@@ -21,15 +21,17 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String ALBUM_PHASE_STARTED_AT = "album_phase_started_at";
     public static final String ALBUM_ADD_TO_RETRY_COUNT = "album_add_to_retry_count";
     static final int PHASE_ADD_TO = 0;
-    private static final int PHASE_ALBUM_PICKER = 1;
-    private static final int PHASE_FIND_OR_SEARCH = 2;
-    private static final int PHASE_TYPE_SEARCH = 3;
-    private static final int PHASE_SELECT_RESULT = 4;
-    private static final int PHASE_CONFIRM_ALBUM = 5;
+    static final int PHASE_ALBUM_PICKER = 1;
+    static final int PHASE_FIND_OR_SEARCH = 2;
+    static final int PHASE_TYPE_SEARCH = 3;
+    static final int PHASE_SELECT_RESULT = 4;
+    static final int PHASE_CONFIRM_ALBUM = 5;
     private AlbumStepRetryScheduler albumRetry;
+    private AlbumAutomationOverlay albumOverlay;
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
+        albumOverlay = new AlbumAutomationOverlay(this);
         albumRetry = new AlbumStepRetryScheduler(new Handler(Looper.getMainLooper()),
                 this::retryAlbumStep);
         keepAlbumRetryAlive();
@@ -57,7 +59,10 @@ public final class KeepersAccessibilityService extends AccessibilityService {
 
     private void keepAlbumRetryAlive() {
         boolean armed = albumActionIsArmed();
-        if (!armed) AlbumAutomationWakeLock.release();
+        if (!armed) {
+            AlbumAutomationWakeLock.release();
+            if (albumOverlay != null) albumOverlay.hide();
+        }
         if (albumRetry != null) albumRetry.ensureScheduled(armed);
     }
 
@@ -71,6 +76,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         if (System.currentTimeMillis() > prefs.getLong(ALBUM_ARMED_UNTIL, 0)) return false;
         String album = prefs.getString(ALBUM_NAME, "");
         int phase = prefs.getInt(ALBUM_PHASE, 0);
+        showAlbumProgress(album, phase);
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return false;
 
@@ -180,6 +186,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         AlbumAction next = queue.completeCurrent();
         if (next == null) {
             AlbumAutomationWakeLock.release();
+            if (albumOverlay != null) albumOverlay.hide();
             toast("All approved album changes are complete");
             startActivity(new Intent(this, AlbumReviewActivity.class)
                     .putExtra(AlbumReviewActivity.EXTRA_COMPLETED_COUNT, totalCount)
@@ -189,6 +196,13 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         Intent intent = AlbumAutomationCoordinator.arm(this, next)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
+    }
+
+    private void showAlbumProgress(String album, int phase) {
+        if (albumOverlay == null) albumOverlay = new AlbumAutomationOverlay(this);
+        AlbumActionQueueStore queue = new AlbumActionQueueStore(this);
+        albumOverlay.show(AlbumAutomationProgress.from(queue.completedCount(),
+                queue.totalCount(), album, phase));
     }
 
     private void dismissKeyboardIfVisible() {
@@ -306,6 +320,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
 
     @Override public void onDestroy() {
         if (albumRetry != null) albumRetry.cancel();
+        if (albumOverlay != null) albumOverlay.hide();
         AlbumAutomationWakeLock.release();
         super.onDestroy();
     }
