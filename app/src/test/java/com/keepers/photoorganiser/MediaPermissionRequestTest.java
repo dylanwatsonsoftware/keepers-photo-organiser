@@ -15,4 +15,14 @@ public class MediaPermissionRequestTest {
     @Test public void selectedMediaAccessDoesNotRepeatedlyRequestFullLibraryAccess() {
         assertEquals(List.of(), MediaPermissionRequest.missing(35, false, false, true));
     }
+
+    @Test public void selectedMediaGrantDoesNotMaskVideoPermissionMissingFromFullPhotoAccess() {
+        assertEquals(List.of(Manifest.permission.READ_MEDIA_VIDEO),
+                MediaPermissionRequest.missing(35, true, false, true));
+    }
+
+    @Test public void selectedMediaGrantDoesNotMaskPhotoPermissionMissingFromFullVideoAccess() {
+        assertEquals(List.of(Manifest.permission.READ_MEDIA_IMAGES),
+                MediaPermissionRequest.missing(35, false, true, true));
+    }
 }

@@ -9,7 +9,8 @@ public final class MediaPermissionRequest {
 
     public static List<String> missing(int apiLevel, boolean imagesGranted,
             boolean videosGranted, boolean selectedMediaGranted) {
-        if (apiLevel >= 34 && selectedMediaGranted) return List.of();
+        if (apiLevel >= 34 && selectedMediaGranted && !imagesGranted && !videosGranted)
+            return List.of();
         ArrayList<String> permissions = new ArrayList<>();
         if (apiLevel >= 33) {
             if (!imagesGranted) permissions.add(Manifest.permission.READ_MEDIA_IMAGES);
