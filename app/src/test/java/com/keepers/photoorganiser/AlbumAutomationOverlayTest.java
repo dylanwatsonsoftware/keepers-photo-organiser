@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
+import android.widget.ImageView;
 import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +36,19 @@ public class AlbumAutomationOverlayTest {
         ProgressBar bar = view.findViewWithTag("album_overlay_progress");
         assertEquals(10, bar.getMax());
         assertEquals(3, bar.getProgress());
+    }
+
+    @Test public void graphicIncludesACompactDecorativeKeepersLogo() {
+        View view = AlbumAutomationOverlay.createView(RuntimeEnvironment.getApplication(),
+                new AlbumAutomationProgress("Keepers · 1 of 2",
+                        "Opening Add to · Ada Photos", 1, 2));
+
+        ImageView logo = view.findViewWithTag("album_overlay_logo");
+        int expectedSize = Math.round(24 * view.getResources().getDisplayMetrics().density);
+        assertTrue(logo.getDrawable() != null);
+        assertEquals(expectedSize, logo.getLayoutParams().width);
+        assertEquals(expectedSize, logo.getLayoutParams().height);
+        assertEquals(null, logo.getContentDescription());
     }
 
     @Test public void overlayRenderingFailureIsContained() {

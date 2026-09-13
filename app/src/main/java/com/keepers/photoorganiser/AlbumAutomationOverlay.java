@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 final class AlbumAutomationOverlay {
@@ -69,14 +70,30 @@ final class AlbumAutomationOverlay {
         background.setStroke(dp(context, 1), 0xCCFFD38A);
         card.setBackground(background);
 
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        card.addView(header, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        ImageView logo = new ImageView(context);
+        logo.setTag("album_overlay_logo");
+        logo.setImageResource(R.mipmap.ic_launcher_foreground);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(
+                dp(context, 24), dp(context, 24));
+        logoParams.setMarginEnd(dp(context, 8));
+        header.addView(logo, logoParams);
+
         TextView title = new TextView(context);
         title.setTag("album_overlay_title");
         title.setTextColor(0xFFFFFFFF);
         title.setTextSize(14);
         title.setTypeface(android.graphics.Typeface.DEFAULT,
                 android.graphics.Typeface.BOLD);
-        card.addView(title, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        header.addView(title, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
         TextView detail = new TextView(context);
         detail.setTag("album_overlay_detail");
