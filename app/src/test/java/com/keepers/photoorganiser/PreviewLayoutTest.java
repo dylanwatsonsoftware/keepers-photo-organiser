@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -232,5 +233,28 @@ public class PreviewLayoutTest {
         TextView hint = layout.findViewById(R.id.preview_hint);
 
         assertTrue(hint.getText().toString().contains("Pinch to zoom"));
+    }
+
+    @Test public void fullscreenVideoHasAStyledScrubbingTimeline() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        String packageName = RuntimeEnvironment.getApplication().getPackageName();
+        int timelineId = layout.getResources().getIdentifier(
+                "preview_video_timeline", "id", packageName);
+        int seekId = layout.getResources().getIdentifier(
+                "preview_video_seek", "id", packageName);
+        int elapsedId = layout.getResources().getIdentifier(
+                "preview_video_elapsed", "id", packageName);
+        int durationId = layout.getResources().getIdentifier(
+                "preview_video_duration", "id", packageName);
+
+        assertTrue(timelineId != 0);
+        assertTrue(seekId != 0);
+        assertTrue(elapsedId != 0);
+        assertTrue(durationId != 0);
+        assertTrue(layout.findViewById(seekId) instanceof SeekBar);
+        assertTrue(layout.findViewById(elapsedId) instanceof TextView);
+        assertTrue(layout.findViewById(durationId) instanceof TextView);
+        assertNotNull(layout.findViewById(timelineId).getBackground());
     }
 }

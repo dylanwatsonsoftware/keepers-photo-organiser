@@ -17,6 +17,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.GridLayout;
@@ -43,6 +44,7 @@ public final class PreviewActivity extends Activity {
     public static final String EXTRA_AUTOPLAY_VIDEO = "autoplay_video";
     private static final int QUICK_REVIEW_THRESHOLD_DP = 96;
     private static final long VIDEO_AUTOPLAY_DELAY_MS = 300;
+    private static final long VIDEO_PROGRESS_UPDATE_MS = 250;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
     private KeeperSelectionStore store;
@@ -79,6 +81,7 @@ public final class PreviewActivity extends Activity {
     private List<Uri> stackCarouselMembers = List.of();
     private final Handler playbackHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingVideoAutoplay;
+    private Runnable videoProgressUpdate;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -620,6 +623,7 @@ public final class PreviewActivity extends Activity {
     private void loadCurrent() {
         resetZoom();
         cancelPendingVideoAutoplay();
+        cancelVideoProgressUpdates();
         boolean autoplayVideo = getIntent().getBooleanExtra(EXTRA_AUTOPLAY_VIDEO, false);
         getIntent().removeExtra(EXTRA_AUTOPLAY_VIDEO);
         VideoView video = currentSurface.findViewWithTag("video_surface");
@@ -635,6 +639,9 @@ public final class PreviewActivity extends Activity {
             loader.load(videoThumbnail, photo, screen);
             video.setVideoURI(photo);
             video.setVisibility(View.VISIBLE);
+            RecentPhoto videoDetails = mediaDetails.get(photo.toString());
+            configureVideoTimeline(video, videoDetails == null
+                    ? 0 : videoDetails.durationMillis());
             video.setOnInfoListener((player, what, extra) -> {
                 if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START)
                     videoThumbnail.setVisibility(View.GONE);
@@ -646,6 +653,7 @@ public final class PreviewActivity extends Activity {
                 play.setOnClickListener(view -> {
                     if (video.isPlaying()) {
                         video.pause();
+                        cancelVideoProgressUpdates();
                         setVideoControlState(play, false);
                     } else {
                         cancelPendingVideoAutoplay();
@@ -653,8 +661,14 @@ public final class PreviewActivity extends Activity {
                     }
                 });
             }
-            video.setOnPreparedListener(player -> player.setLooping(false));
+            video.setOnPreparedListener(player -> {
+                player.setLooping(false);
+                if (player.getDuration() > 0) setVideoTimelineDuration(player.getDuration());
+            });
             video.setOnCompletionListener(player -> {
+                cancelVideoProgressUpdates();
+                setVideoTimelinePosition(((SeekBar) findViewById(
+                        R.id.preview_video_seek)).getMax());
                 videoThumbnail.setVisibility(View.VISIBLE);
                 if (play != null) {
                     setVideoControlState(play, false);
@@ -678,6 +692,7 @@ public final class PreviewActivity extends Activity {
         video.stopPlayback();
         video.setVisibility(View.GONE);
         if (play != null) play.setVisibility(View.GONE);
+        findViewById(R.id.preview_video_timeline).setVisibility(View.GONE);
         frontImage.setVisibility(View.VISIBLE);
         PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
         loader.loadProgressive(frontImage, photo, sizes.previewPixels(), sizes.fullPixels(), bitmap -> {
@@ -690,7 +705,65 @@ public final class PreviewActivity extends Activity {
     private void startVideoPlayback(VideoView video, ImageView thumbnail, View play) {
         thumbnail.setVisibility(View.GONE);
         video.start();
+        startVideoProgressUpdates(video);
         if (play != null) setVideoControlState(play, true);
+    }
+
+    private void configureVideoTimeline(VideoView video, long durationMillis) {
+        View timeline = findViewById(R.id.preview_video_timeline);
+        SeekBar seek = findViewById(R.id.preview_video_seek);
+        timeline.setVisibility(View.VISIBLE);
+        setVideoTimelineDuration(durationMillis);
+        setVideoTimelinePosition(0);
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress,
+                    boolean fromUser) {
+                if (!fromUser) return;
+                video.seekTo(progress);
+                setVideoTimelinePosition(progress);
+            }
+
+            @Override public void onStartTrackingTouch(SeekBar bar) {
+                cancelVideoProgressUpdates();
+            }
+
+            @Override public void onStopTrackingTouch(SeekBar bar) {
+                if (video.isPlaying()) startVideoProgressUpdates(video);
+            }
+        });
+    }
+
+    private void setVideoTimelineDuration(long durationMillis) {
+        int duration = (int) Math.min(Integer.MAX_VALUE, Math.max(1, durationMillis));
+        ((SeekBar) findViewById(R.id.preview_video_seek)).setMax(duration);
+        ((TextView) findViewById(R.id.preview_video_duration)).setText(
+                MediaDuration.format(durationMillis));
+    }
+
+    private void setVideoTimelinePosition(int positionMillis) {
+        ((SeekBar) findViewById(R.id.preview_video_seek)).setProgress(positionMillis);
+        ((TextView) findViewById(R.id.preview_video_elapsed)).setText(
+                MediaDuration.format(positionMillis));
+    }
+
+    private void startVideoProgressUpdates(VideoView video) {
+        cancelVideoProgressUpdates();
+        videoProgressUpdate = new Runnable() {
+            @Override public void run() {
+                if (currentSurface.findViewWithTag("video_surface") != video) return;
+                setVideoTimelinePosition(video.getCurrentPosition());
+                if (video.isPlaying()) playbackHandler.postDelayed(
+                        this, VIDEO_PROGRESS_UPDATE_MS);
+                else videoProgressUpdate = null;
+            }
+        };
+        playbackHandler.post(videoProgressUpdate);
+    }
+
+    private void cancelVideoProgressUpdates() {
+        if (videoProgressUpdate == null) return;
+        playbackHandler.removeCallbacks(videoProgressUpdate);
+        videoProgressUpdate = null;
     }
 
     private void cancelPendingVideoAutoplay() {
@@ -1323,6 +1396,7 @@ public final class PreviewActivity extends Activity {
 
     @Override protected void onDestroy() {
         cancelPendingVideoAutoplay();
+        cancelVideoProgressUpdates();
         VideoView currentVideo = currentSurface == null ? null
                 : currentSurface.findViewWithTag("video_surface");
         VideoView adjacentVideo = adjacentSurface == null ? null
@@ -1336,6 +1410,7 @@ public final class PreviewActivity extends Activity {
     @Override protected void onPause() {
         super.onPause();
         cancelPendingVideoAutoplay();
+        cancelVideoProgressUpdates();
         VideoView video = currentSurface == null ? null
                 : currentSurface.findViewWithTag("video_surface");
         if (video != null && video.isPlaying()) {

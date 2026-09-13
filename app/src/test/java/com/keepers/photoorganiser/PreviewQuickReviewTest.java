@@ -14,6 +14,7 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
 import java.lang.reflect.Field;
@@ -28,6 +29,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
+import org.robolectric.shadows.ShadowSeekBar;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewQuickReviewTest {
@@ -436,6 +438,33 @@ public class PreviewQuickReviewTest {
         play.performClick();
 
         assertEquals(View.GONE, thumbnail.getVisibility());
+        imports.clear();
+    }
+
+    @Test public void videoTimelineShowsDurationAndSeeksFromUserProgress() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/scrubbable-video");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+        PreviewActivity activity = create(context, video, false);
+        View timeline = activity.findViewById(R.id.preview_video_timeline);
+        SeekBar seek = activity.findViewById(R.id.preview_video_seek);
+        TextView elapsed = activity.findViewById(R.id.preview_video_elapsed);
+        TextView duration = activity.findViewById(R.id.preview_video_duration);
+        VideoView playback = activity.findViewById(R.id.preview_video);
+
+        assertEquals(View.VISIBLE, timeline.getVisibility());
+        assertEquals(8_000, seek.getMax());
+        assertEquals("0:00", elapsed.getText());
+        assertEquals("0:08", duration.getText());
+
+        ShadowSeekBar shadowSeek = Shadows.shadowOf(seek);
+        shadowSeek.getOnSeekBarChangeListener().onProgressChanged(seek, 3_250, true);
+
+        assertEquals("0:03", elapsed.getText());
+        assertEquals(3_250, playback.getCurrentPosition());
         imports.clear();
     }
 

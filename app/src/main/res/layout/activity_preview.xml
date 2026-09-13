@@ -224,6 +224,50 @@
                 android:visibility="invisible" />
         </FrameLayout>
 
+        <LinearLayout
+            android:id="@+id/preview_video_timeline"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/preview_video_timeline"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/preview_video_elapsed"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:gravity="start|center_vertical"
+                android:text="0:00"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/preview_video_seek"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:contentDescription="Video position"
+                android:max="1"
+                android:paddingHorizontal="4dp"
+                android:progressDrawable="@drawable/preview_video_seek_track"
+                android:splitTrack="false"
+                android:thumb="@drawable/preview_video_seek_thumb" />
+
+            <TextView
+                android:id="@+id/preview_video_duration"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:gravity="end|center_vertical"
+                android:text="0:00"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/preview_hint"
             android:layout_width="wrap_content"
