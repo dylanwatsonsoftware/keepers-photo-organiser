@@ -26,7 +26,12 @@ Tap **Review recent photos** to load the first 60 recent images that still exist
   handing Keepers' private review copy back to Photos could create a duplicate upload.
 - No image is moved, hidden, deleted, uploaded, or modified by the review screen.
 
-The current ranking is entirely on-device and technical: capture time, perceptual similarity, and image detail. It does not yet identify people, assess expressions, learn personal taste, or navigate Google Photos to the corresponding photo automatically. Those are subsequent milestones built on the now-proven one-shot actions.
+Ranking runs on-device. For still photos it combines detail, focus, exposure, composition,
+motion stability, open-eye and camera-facing signals when faces are present, learned choices between
+similar photos, and cached ML Kit image labels. Labels currently infer portrait, group, pet,
+landscape, food, action, document and low-light contexts; those contexts adjust the relative signal
+weights. Video analysis currently uses sampled technical frames and does not yet infer a subject
+type. The gallery overlay and fullscreen metadata show the categorisation and ranking inputs used.
 
 ## Earlier integration experiments
 

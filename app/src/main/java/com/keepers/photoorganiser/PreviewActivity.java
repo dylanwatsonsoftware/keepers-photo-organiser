@@ -950,6 +950,13 @@ public final class PreviewActivity extends Activity {
                 metadata.location().isBlank() ? "" : "Location  ·  " + metadata.location());
         showMetadataValue(R.id.preview_metadata_technical,
                 metadata.technicalSummary(Locale.getDefault()));
+        if (mediaTypeOf(photo) == MediaType.PHOTO) {
+            PhotoFeatures features = new PhotoInsightStore(this).loadFeatures(photo.toString());
+            PhotoContext context = new PhotoContextStore(this).load(photo.toString());
+            showMetadataValue(R.id.preview_metadata_ranking, features == null ? ""
+                    : GalleryMetadataOverlay.rankingDetails(features,
+                            context == null ? PhotoContext.general() : context));
+        } else showMetadataValue(R.id.preview_metadata_ranking, "");
     }
 
     private void showMetadataValue(int viewId, String value) {

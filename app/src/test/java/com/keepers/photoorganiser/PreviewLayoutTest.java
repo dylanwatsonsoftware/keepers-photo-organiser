@@ -104,6 +104,9 @@ public class PreviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.preview_metadata_caption));
         assertNotNull(layout.findViewById(R.id.preview_metadata_location));
         assertNotNull(layout.findViewById(R.id.preview_metadata_technical));
+        int rankingId = layout.getResources().getIdentifier(
+                "preview_metadata_ranking", "id", layout.getContext().getPackageName());
+        assertTrue(rankingId != 0);
     }
     @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())

@@ -344,6 +344,31 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
+    @Test public void metadataSheetShowsEveryInputUsedToRankAPhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String photo = "content://photo/ranking-inputs.jpg";
+        PhotoFeatures features = new PhotoFeatures(photo, 0, 0, .70,
+                .80, .75, .60, .90, 1, .40, .95, .82);
+        new PhotoInsightStore(context).save(List.of(features), Map.of(), Set.of());
+        new PhotoContextStore(context).save(photo, new PhotoContext(Map.of(
+                PhotoContextType.PORTRAIT, .85,
+                PhotoContextType.PET, .92,
+                PhotoContextType.LOW_LIGHT, .40)));
+        PreviewActivity activity = create(context, Uri.parse(photo), false);
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+
+        showAnalysis.invoke(activity);
+
+        int rankingId = activity.getResources().getIdentifier(
+                "preview_metadata_ranking", "id", activity.getPackageName());
+        assertTrue(rankingId != 0);
+        assertEquals("Types · Pet 92% · Portrait 85% · Low light 40%\n"
+                        + "Ranking inputs · Detail 70% · Focus 80% · Exposure 75% · "
+                        + "Composition 60% · Motion 90% · Eyes open 95% · Facing camera 82%",
+                ((TextView) activity.findViewById(rankingId)).getText().toString());
+    }
+
     @Test public void localVideoUsesPlaybackSurfaceInFullscreen() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);

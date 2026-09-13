@@ -1043,6 +1043,7 @@ public final class ReviewActivity extends Activity {
 
     private void updateMetadataOverlays() {
         PhotoInsightStore insights = new PhotoInsightStore(this);
+        PhotoContextStore contexts = new PhotoContextStore(this);
         for (FrameLayout tile : tiles) {
             TextView overlay = tile.findViewWithTag("metadata_overlay");
             PhotoFeatures photo = insights.loadFeatures(tile.getTag().toString());
@@ -1056,8 +1057,12 @@ public final class ReviewActivity extends Activity {
                 overlay.setText(video == null ? "Video  " + MediaDuration.format(
                         mediaDurations.getOrDefault(tile.getTag().toString(), 0L))
                         : GalleryMetadataOverlay.topSignals(video, 3));
-            } else overlay.setText(photo == null ? "Analysing…"
-                    : GalleryMetadataOverlay.topSignals(photo, 3));
+            } else {
+                PhotoContext context = contexts.load(tile.getTag().toString());
+                overlay.setText(photo == null ? "Analysing…"
+                        : GalleryMetadataOverlay.topSignals(photo,
+                                context == null ? PhotoContext.general() : context, 3));
+            }
             overlay.setVisibility(metadataVisible ? View.VISIBLE : View.GONE);
         }
         View toggle = findViewById(R.id.toggle_metadata);

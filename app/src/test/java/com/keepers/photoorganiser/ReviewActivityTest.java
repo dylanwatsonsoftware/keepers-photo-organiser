@@ -61,6 +61,8 @@ public class ReviewActivityTest {
         String photo = "content://media/photo/metadata";
         new PhotoInsightStore(activity).save(List.of(new PhotoFeatures(photo, 0, 0, .81,
                 .92, .63, .88, .47, 0, -1, -1)), Map.of(), Set.of());
+        new PhotoContextStore(activity).save(photo,
+                PhotoContext.of(PhotoContextType.PORTRAIT, .85));
         activity.showPhotos(List.of(Uri.parse(photo)));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         ViewGroup tile = (ViewGroup) grid.getChildAt(0);
@@ -70,7 +72,8 @@ public class ReviewActivityTest {
         activity.findViewById(R.id.toggle_metadata).performClick();
 
         assertEquals(View.VISIBLE, overlay.getVisibility());
-        assertEquals("Focus 92%\nComposition 88%\nDetail 81%", overlay.getText().toString());
+        assertEquals("Type · Portrait 85%\nFocus 92%\nComposition 88%\nDetail 81%",
+                overlay.getText().toString());
         assertTrue(activity.findViewById(R.id.toggle_metadata).isSelected());
     }
     @Test public void appLauncherOpensPhotoGallery() {
