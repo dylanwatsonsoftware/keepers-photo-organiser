@@ -266,12 +266,9 @@ public class PreviewQuickReviewTest {
         HorizontalScrollView carousel = activity.findViewById(R.id.preview_stack_carousel);
         assertEquals(middle, currentPhoto(activity));
 
-        Method carouselTouch = PreviewActivity.class.getDeclaredMethod(
-                "handleStackCarouselTouch", MotionEvent.class);
-        carouselTouch.setAccessible(true);
-        carouselTouch.invoke(activity, event(MotionEvent.ACTION_DOWN, 220, 40));
-        carouselTouch.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 40));
-        carouselTouch.invoke(activity, event(MotionEvent.ACTION_UP, 100, 40));
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_DOWN, 220, 40));
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 100, 40));
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_UP, 100, 40));
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
 
         assertEquals(last, currentPhoto(activity));

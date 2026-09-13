@@ -141,8 +141,8 @@ public final class PreviewActivity extends Activity {
         previewStage = findViewById(R.id.preview_stage);
         previewControls = findViewById(R.id.preview_controls);
         previewClose = findViewById(R.id.preview_close);
-        findViewById(R.id.preview_stack_carousel).setOnTouchListener(
-                (view, event) -> handleStackCarouselTouch(event));
+        ((StackCarouselView) findViewById(R.id.preview_stack_carousel))
+                .setGestureListener(this::handleStackCarouselTouch);
         scaleGestureDetector = new ScaleGestureDetector(this,
                 new ScaleGestureDetector.SimpleOnScaleGestureListener() {
                     @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
