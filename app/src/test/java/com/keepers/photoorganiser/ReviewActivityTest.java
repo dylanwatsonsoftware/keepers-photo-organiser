@@ -369,12 +369,13 @@ public class ReviewActivityTest {
         assertTrue(!activity.findViewById(R.id.filter_keepers).isSelected());
 
         activity.findViewById(R.id.filter_recommended).performClick();
-        assertEquals(2, grid.getChildCount());
-        assertEquals("content://media/photo/2", grid.getChildAt(0).getTag().toString());
-        assertEquals("content://media/photo/3", grid.getChildAt(1).getTag().toString());
+        assertEquals(3, grid.getChildCount());
+        assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
+        assertEquals("content://media/photo/2", grid.getChildAt(1).getTag().toString());
+        assertEquals("content://media/photo/3", grid.getChildAt(2).getTag().toString());
     }
 
-    @Test public void defaultGalleryExcludesKeepersAndCanIncludeThemOnDemand() {
+    @Test public void defaultGalleryExcludesOnlyKeepersAlreadyAddedToAnAlbum() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String keeper = "content://media/photo/keeper";
         String unreviewed = "content://media/photo/still-to-review";
@@ -384,6 +385,13 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
         ((ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
+
+        assertEquals(2, grid.getChildCount());
+        assertEquals(keeper, grid.getChildAt(0).getTag().toString());
+
+        new AlbumCompletionStore(activity).mark(keeper, "Family");
+        activity.onResume();
+
         assertEquals(1, grid.getChildCount());
         assertEquals(unreviewed, grid.getChildAt(0).getTag().toString());
 
@@ -551,7 +559,7 @@ public class ReviewActivityTest {
         assertEquals("2", badge.getText().toString());
     }
 
-    @Test public void savingOneKeeperHidesItsStackUntilTheKeepersFilterIsSelected() {
+    @Test public void aStackStaysVisibleUntilItsKeeperIsAddedToAnAlbum() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/1";
         String recommended = "content://media/photo/2";
@@ -567,6 +575,12 @@ public class ReviewActivityTest {
         activity.onResume();
 
         GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(first, grid.getChildAt(0).getTag().toString());
+
+        new AlbumCompletionStore(activity).mark(first, "Family");
+        activity.onResume();
+
         assertEquals(0, grid.getChildCount());
 
         activity.findViewById(R.id.filter_include_keepers).performClick();

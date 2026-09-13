@@ -1078,6 +1078,9 @@ public final class ReviewActivity extends Activity {
 
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
+        AlbumCompletionStore completions = new AlbumCompletionStore(this);
+        Set<String> kept = new HashSet<>();
+        for (String keeper : keepers) if (completions.hasAny(keeper)) kept.add(keeper);
         Set<String> hidden = new HiddenPhotoStore(this).load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
@@ -1102,8 +1105,8 @@ public final class ReviewActivity extends Activity {
         } else if (galleryFilter == GalleryFilter.ALL) {
             typeFiltered = stackCovers.stream().filter(id -> {
                 List<String> stack = stackMembers.get(id);
-                return stack == null ? !keepers.contains(id)
-                        : stack.stream().noneMatch(keepers::contains);
+                return stack == null ? !kept.contains(id)
+                        : stack.stream().noneMatch(kept::contains);
             }).toList();
         } else {
             typeFiltered = orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
