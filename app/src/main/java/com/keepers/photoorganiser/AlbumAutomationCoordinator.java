@@ -8,18 +8,21 @@ public final class AlbumAutomationCoordinator {
     private AlbumAutomationCoordinator() {}
     public static Intent arm(Context context, AlbumAction action) {
         AlbumAutomationWakeLock.acquire(context);
+        Uri media = Uri.parse(action.photoId());
+        MediaType mediaType = MediaType.from(media,
+                context.getContentResolver().getType(media));
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL,
                         System.currentTimeMillis() + 120_000)
                 .putString(KeepersAccessibilityService.ALBUM_NAME, action.albumName())
                 .putInt(KeepersAccessibilityService.ALBUM_PHASE,
-                        KeepersAccessibilityService.PHASE_ADD_TO)
+                        mediaType == MediaType.VIDEO
+                                ? KeepersAccessibilityService.PHASE_REVEAL_VIDEO_CONTROLS
+                                : KeepersAccessibilityService.PHASE_ADD_TO)
                 .putLong(KeepersAccessibilityService.ALBUM_PHASE_STARTED_AT,
                         System.currentTimeMillis())
                 .putInt(KeepersAccessibilityService.ALBUM_ADD_TO_RETRY_COUNT, 0).apply();
-        Uri media = Uri.parse(action.photoId());
-        return GooglePhotosIntentFactory.openExisting(media,
-                MediaType.from(media, context.getContentResolver().getType(media)));
+        return GooglePhotosIntentFactory.openExisting(media, mediaType);
     }
 
     public static void disarm(Context context) {

@@ -14,4 +14,12 @@ public class AlbumAutomationProgressTest {
         assertEquals(3, progress.position());
         assertEquals(10, progress.total());
     }
+
+    @Test public void describesTheVideoControlRevealStep() {
+        AlbumAutomationProgress progress = AlbumAutomationProgress.from(
+                0, 2, "Ada Photos",
+                KeepersAccessibilityService.PHASE_REVEAL_VIDEO_CONTROLS);
+
+        assertEquals("Showing video controls · Ada Photos", progress.detail());
+    }
 }

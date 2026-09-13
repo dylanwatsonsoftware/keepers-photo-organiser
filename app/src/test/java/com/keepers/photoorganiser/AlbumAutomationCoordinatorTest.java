@@ -24,6 +24,18 @@ public class AlbumAutomationCoordinatorTest {
                                 KeepersAccessibilityService.ALBUM_PHASE, -1));
     }
 
+    @Test public void approvedVideoActionStartsByRevealingPlaybackControls() {
+        Context context = RuntimeEnvironment.getApplication();
+
+        AlbumAutomationCoordinator.arm(context,
+                new AlbumAction("content://media/video/7", "Ada", "Ada Photos"));
+
+        assertEquals(KeepersAccessibilityService.PHASE_REVEAL_VIDEO_CONTROLS,
+                context.getSharedPreferences(KeepersAccessibilityService.PREFS,
+                        Context.MODE_PRIVATE).getInt(
+                        KeepersAccessibilityService.ALBUM_PHASE, -1));
+    }
+
     @Test public void approvedQueueKeepsScreenAwakeUntilItIsDisarmed() {
         Context context = RuntimeEnvironment.getApplication();
         AlbumAutomationWakeLock.release();

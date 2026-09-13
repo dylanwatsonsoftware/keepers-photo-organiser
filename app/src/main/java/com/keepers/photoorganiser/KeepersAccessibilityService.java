@@ -1,7 +1,9 @@
 package com.keepers.photoorganiser;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
 import android.content.SharedPreferences;
+import android.graphics.Path;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -26,6 +28,8 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     static final int PHASE_TYPE_SEARCH = 3;
     static final int PHASE_SELECT_RESULT = 4;
     static final int PHASE_CONFIRM_ALBUM = 5;
+    static final int PHASE_REVEAL_VIDEO_CONTROLS = 6;
+    private static final long VIDEO_VIEWER_SETTLE_MS = 600;
     private AlbumStepRetryScheduler albumRetry;
     private AlbumAutomationOverlay albumOverlay;
 
@@ -80,6 +84,12 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return false;
 
+        if (phase == PHASE_REVEAL_VIDEO_CONTROLS) {
+            long elapsed = Math.max(0, System.currentTimeMillis()
+                    - prefs.getLong(ALBUM_PHASE_STARTED_AT, 0));
+            if (elapsed < VIDEO_VIEWER_SETTLE_MS) return false;
+            return revealVideoControls(prefs);
+        }
         if (phase == PHASE_ADD_TO) return runAddStep(root, prefs);
         if (phase == PHASE_ALBUM_PICKER) {
             AccessibilityNodeInfo visibleAlbum = findAlbum(root, album);
@@ -157,6 +167,20 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         if (!click(add)) return actionFailed("Add to control was not clickable");
         advance(prefs, PHASE_ALBUM_PICKER);
         toast("Keepers opened Add to");
+        return true;
+    }
+
+    private boolean revealVideoControls(SharedPreferences prefs) {
+        float centerX = getResources().getDisplayMetrics().widthPixels / 2f;
+        float centerY = getResources().getDisplayMetrics().heightPixels / 2f;
+        Path tapPath = new Path();
+        tapPath.moveTo(centerX, centerY);
+        GestureDescription tap = new GestureDescription.Builder()
+                .addStroke(new GestureDescription.StrokeDescription(tapPath, 0, 50))
+                .build();
+        if (!dispatchGesture(tap, null, null)) return false;
+        advance(prefs, PHASE_ADD_TO);
+        toast("Keepers showed video controls");
         return true;
     }
 

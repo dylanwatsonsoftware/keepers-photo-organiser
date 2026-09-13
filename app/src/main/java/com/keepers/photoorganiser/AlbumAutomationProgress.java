@@ -11,6 +11,8 @@ public record AlbumAutomationProgress(
 
     private static String phaseLabel(int phase) {
         return switch (phase) {
+            case KeepersAccessibilityService.PHASE_REVEAL_VIDEO_CONTROLS ->
+                    "Showing video controls";
             case KeepersAccessibilityService.PHASE_ALBUM_PICKER -> "Opening album picker";
             case KeepersAccessibilityService.PHASE_FIND_OR_SEARCH -> "Finding album";
             case KeepersAccessibilityService.PHASE_TYPE_SEARCH -> "Entering album name";
