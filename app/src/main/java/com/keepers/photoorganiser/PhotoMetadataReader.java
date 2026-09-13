@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -19,10 +20,12 @@ public final class PhotoMetadataReader {
         String mimeType = resolver.getType(uri);
         long size = 0;
         long duration = 0;
+        String filename = "";
         String[] projection = {MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.DESCRIPTION, MediaStore.Images.Media.WIDTH,
                 MediaStore.Images.Media.HEIGHT, MediaStore.Images.Media.MIME_TYPE,
-                MediaStore.Images.Media.SIZE, MediaStore.Video.Media.DURATION};
+                MediaStore.Images.Media.SIZE, MediaStore.Video.Media.DURATION,
+                OpenableColumns.DISPLAY_NAME};
         try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 takenAt = longValue(cursor, MediaStore.Images.Media.DATE_TAKEN, takenAt);
@@ -32,8 +35,15 @@ public final class PhotoMetadataReader {
                 mimeType = stringValue(cursor, MediaStore.Images.Media.MIME_TYPE, mimeType);
                 size = longValue(cursor, MediaStore.Images.Media.SIZE, size);
                 duration = longValue(cursor, MediaStore.Video.Media.DURATION, duration);
+                filename = stringValue(cursor, OpenableColumns.DISPLAY_NAME, filename);
             }
         } catch (RuntimeException ignored) {}
+
+        filename = value(filename);
+        if (filename.isBlank()) {
+            String candidate = value(uri.getLastPathSegment());
+            if (candidate.contains(".")) filename = candidate;
+        }
 
         String location = "";
         try (InputStream stream = resolver.openInputStream(uri)) {
@@ -46,7 +56,7 @@ public final class PhotoMetadataReader {
                         PhotoMetadata.locationFromCoordinates(coordinates[0], coordinates[1]);
             }
         } catch (IOException | RuntimeException ignored) {}
-        return new PhotoMetadata(takenAt, value(caption), location, width, height,
+        return new PhotoMetadata(takenAt, value(caption), location, filename, width, height,
                 value(mimeType), size, duration);
     }
 

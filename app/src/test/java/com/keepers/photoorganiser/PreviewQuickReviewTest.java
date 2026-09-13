@@ -322,6 +322,26 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
+    @Test public void metadataSheetShowsTheMediaFilename() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri photo = Uri.parse("content://photo/Favourite%20shot.jpg");
+        imports.add(new ImportedPhoto(photo, 20, PhotoOrigin.LOCAL));
+        PreviewActivity activity = create(context, photo, false);
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+
+        showAnalysis.invoke(activity);
+
+        int filenameId = activity.getResources().getIdentifier(
+                "preview_metadata_filename", "id", activity.getPackageName());
+        assertTrue(filenameId != 0);
+        assertEquals("File  ·  Favourite shot.jpg",
+                ((TextView) activity.findViewById(filenameId)).getText().toString());
+        imports.clear();
+    }
+
     @Test public void localVideoUsesPlaybackSurfaceInFullscreen() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);

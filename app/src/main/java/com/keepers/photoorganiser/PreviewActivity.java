@@ -825,6 +825,8 @@ public final class PreviewActivity extends Activity {
             if (imported.uri().equals(photo)) fallbackTakenAt = imported.takenAtMillis();
         PhotoMetadata metadata = PhotoMetadataReader.read(
                 getContentResolver(), photo, fallbackTakenAt);
+        showMetadataValue(R.id.preview_metadata_filename,
+                metadata.filename().isBlank() ? "" : "File  ·  " + metadata.filename());
         showMetadataValue(R.id.preview_metadata_date,
                 metadata.formattedDate(ZoneId.systemDefault(), Locale.getDefault()));
         showMetadataValue(R.id.preview_metadata_caption, metadata.caption());

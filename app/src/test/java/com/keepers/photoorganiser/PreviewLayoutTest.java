@@ -97,6 +97,7 @@ public class PreviewLayoutTest {
                 .inflate(R.layout.activity_preview, null);
 
         assertNotNull(layout.findViewById(R.id.preview_metadata_section));
+        assertNotNull(layout.findViewById(R.id.preview_metadata_filename));
         assertNotNull(layout.findViewById(R.id.preview_metadata_date));
         assertNotNull(layout.findViewById(R.id.preview_metadata_caption));
         assertNotNull(layout.findViewById(R.id.preview_metadata_location));

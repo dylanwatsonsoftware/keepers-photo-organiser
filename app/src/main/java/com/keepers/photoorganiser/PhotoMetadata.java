@@ -7,11 +7,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public record PhotoMetadata(long takenAtMillis, String caption, String location,
+public record PhotoMetadata(long takenAtMillis, String caption, String location, String filename,
         int width, int height, String mimeType, long sizeBytes, long durationMillis) {
     public PhotoMetadata(long takenAtMillis, String caption, String location,
+            int width, int height, String mimeType, long sizeBytes, long durationMillis) {
+        this(takenAtMillis, caption, location, "", width, height, mimeType, sizeBytes,
+                durationMillis);
+    }
+
+    public PhotoMetadata(long takenAtMillis, String caption, String location,
             int width, int height, String mimeType, long sizeBytes) {
-        this(takenAtMillis, caption, location, width, height, mimeType, sizeBytes, 0);
+        this(takenAtMillis, caption, location, "", width, height, mimeType, sizeBytes, 0);
     }
     public String formattedDate(ZoneId zone, Locale locale) {
         if (takenAtMillis <= 0) return "";
