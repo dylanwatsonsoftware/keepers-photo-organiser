@@ -49,7 +49,7 @@ public final class ReviewActivity extends Activity {
     private static final int AUTHORIZE_GOOGLE_PHOTOS = 202;
     private static final String PHOTOS_PICKER_SCOPE =
             "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
-    private enum GalleryFilter { ALL, KEEPERS, RECOMMENDED, HIDDEN }
+    private enum GalleryFilter { ALL, INCLUDE_KEEPERS, KEEPERS, RECOMMENDED, HIDDEN }
     private enum MediaFilter { ALL, PHOTOS, VIDEOS }
     public static final String EXTRA_REVIEW_LIMIT = "review_limit";
     public static final String ACTION_IMPORT_DEVICE_PHOTOS =
@@ -117,6 +117,8 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.confirm_hide_photos).setOnClickListener(view -> hideSelectedPhotos());
         findViewById(R.id.filter_keepers).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.KEEPERS));
+        findViewById(R.id.filter_include_keepers).setOnClickListener(view ->
+                toggleFilter(GalleryFilter.INCLUDE_KEEPERS));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.RECOMMENDED));
         findViewById(R.id.filter_hidden).setOnClickListener(view ->
@@ -129,7 +131,7 @@ public final class ReviewActivity extends Activity {
                 setMediaFilter(MediaFilter.VIDEOS));
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
         findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
-        findViewById(R.id.filter_origin_all).setOnClickListener(view -> showAllPhotos());
+        findViewById(R.id.filter_origin_all).setOnClickListener(view -> clearOriginFilter());
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.LOCAL));
         findViewById(R.id.filter_origin_cloud).setOnClickListener(view ->
@@ -161,8 +163,7 @@ public final class ReviewActivity extends Activity {
         else if (ACTION_IMPORT_GOOGLE_PHOTOS.equals(action)) openGooglePhotosPicker();
     }
 
-    private void showAllPhotos() {
-        galleryFilter = GalleryFilter.ALL;
+    private void clearOriginFilter() {
         originFilter = null;
         applyFilter();
     }
@@ -1077,9 +1078,6 @@ public final class ReviewActivity extends Activity {
 
     private void applyFilter() {
         Set<String> keepers = selectionStore.load();
-        AlbumCompletionStore completions = new AlbumCompletionStore(this);
-        Set<String> savedKeepers = keepers.stream().filter(completions::hasAny)
-                .collect(java.util.stream.Collectors.toSet());
         Set<String> hidden = new HiddenPhotoStore(this).load();
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.removeAllViews();
@@ -1099,11 +1097,13 @@ public final class ReviewActivity extends Activity {
         List<String> typeFiltered;
         if (showingHidden) {
             typeFiltered = stackCovers;
+        } else if (galleryFilter == GalleryFilter.INCLUDE_KEEPERS) {
+            typeFiltered = stackCovers;
         } else if (galleryFilter == GalleryFilter.ALL) {
             typeFiltered = stackCovers.stream().filter(id -> {
                 List<String> stack = stackMembers.get(id);
-                return stack == null ? !savedKeepers.contains(id)
-                        : stack.stream().noneMatch(savedKeepers::contains);
+                return stack == null ? !keepers.contains(id)
+                        : stack.stream().noneMatch(keepers::contains);
             }).toList();
         } else {
             typeFiltered = orderedIds.stream().filter(id -> galleryFilter == GalleryFilter.KEEPERS
@@ -1123,6 +1123,8 @@ public final class ReviewActivity extends Activity {
         }
         View keeperFilter = findViewById(R.id.filter_keepers);
         View recommendedFilter = findViewById(R.id.filter_recommended);
+        findViewById(R.id.filter_include_keepers).setSelected(
+                galleryFilter == GalleryFilter.INCLUDE_KEEPERS);
         keeperFilter.setSelected(galleryFilter == GalleryFilter.KEEPERS);
         recommendedFilter.setSelected(galleryFilter == GalleryFilter.RECOMMENDED);
         findViewById(R.id.filter_hidden).setSelected(showingHidden);
@@ -1141,6 +1143,8 @@ public final class ReviewActivity extends Activity {
                     : mediaFilter == MediaFilter.VIDEOS ? "No videos in this view."
                     : mediaFilter == MediaFilter.PHOTOS ? "No photos in this view."
                     : galleryFilter == GalleryFilter.ALL ? "No media left to review."
+                    : galleryFilter == GalleryFilter.INCLUDE_KEEPERS
+                    ? "No visible media."
                     : galleryFilter == GalleryFilter.KEEPERS
                     ? "No Keepers in the loaded photos yet."
                     : "No recommended photos in the loaded photos yet.");

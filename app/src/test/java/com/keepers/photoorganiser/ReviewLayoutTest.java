@@ -48,6 +48,12 @@ public class ReviewLayoutTest {
         assertNotNull(filters);
         assertTrue(filters.getParent() instanceof HorizontalScrollView);
         assertTrue(layout.findViewById(R.id.filter_keepers).getParent() == filters);
+        View include = layout.findViewById(R.id.filter_include_keepers);
+        assertTrue(include instanceof TextView);
+        assertTrue(!(include instanceof Button));
+        assertTrue(include.isClickable());
+        assertNotNull(include.getBackground());
+        assertTrue(include.getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_recommended).getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_hidden).getParent() == filters);
         assertTrue(layout.findViewById(R.id.filter_origin_local).getParent() == filters);

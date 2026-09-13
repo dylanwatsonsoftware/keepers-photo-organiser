@@ -211,6 +211,7 @@ public class ReviewActivityTest {
                 Uri.parse("content://media/photo/1"),
                 Uri.parse("content://media/photo/2")));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
+        activity.findViewById(R.id.filter_include_keepers).performClick();
 
         ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
 
@@ -324,6 +325,7 @@ public class ReviewActivityTest {
         assertEquals(View.VISIBLE,
                 ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(2).getVisibility());
 
+        activity.findViewById(R.id.filter_include_keepers).performClick();
         ((android.view.ViewGroup) grid.getChildAt(1)).getChildAt(1).performClick();
 
         assertEquals(View.VISIBLE,
@@ -367,38 +369,65 @@ public class ReviewActivityTest {
         assertTrue(!activity.findViewById(R.id.filter_keepers).isSelected());
 
         activity.findViewById(R.id.filter_recommended).performClick();
-        assertEquals(3, grid.getChildCount());
-        assertEquals("content://media/photo/1", grid.getChildAt(0).getTag().toString());
-        assertEquals("content://media/photo/2", grid.getChildAt(1).getTag().toString());
-        assertEquals("content://media/photo/3", grid.getChildAt(2).getTag().toString());
+        assertEquals(2, grid.getChildCount());
+        assertEquals("content://media/photo/2", grid.getChildAt(0).getTag().toString());
+        assertEquals("content://media/photo/3", grid.getChildAt(1).getTag().toString());
     }
 
-    @Test public void defaultGalleryHidesSavedKeepersButKeepsNewKeepersVisible() {
+    @Test public void defaultGalleryExcludesKeepersAndCanIncludeThemOnDemand() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
-        String keeper = "content://media/photo/keep-then-return";
+        String keeper = "content://media/photo/keeper";
+        String unreviewed = "content://media/photo/still-to-review";
         activity.showPhotos(List.of(
                 Uri.parse(keeper),
-                Uri.parse("content://media/photo/still-to-review")));
+                Uri.parse(unreviewed)));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
         ((ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
-        assertEquals(2, grid.getChildCount());
-
-        new AlbumCompletionStore(activity).mark(keeper, "Family");
-        activity.onResume();
         assertEquals(1, grid.getChildCount());
-        assertEquals("content://media/photo/still-to-review",
-                grid.getChildAt(0).getTag().toString());
+        assertEquals(unreviewed, grid.getChildAt(0).getTag().toString());
 
-        activity.findViewById(R.id.filter_keepers).performClick();
-        assertEquals(1, grid.getChildCount());
-        ((ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
-        assertEquals(0, grid.getChildCount());
+        activity.findViewById(R.id.filter_include_keepers).performClick();
 
-        activity.findViewById(R.id.filter_keepers).performClick();
         assertEquals(2, grid.getChildCount());
-        assertEquals("content://media/photo/keep-then-return",
-                grid.getChildAt(0).getTag().toString());
+        assertEquals(keeper, grid.getChildAt(0).getTag().toString());
+        assertEquals(unreviewed, grid.getChildAt(1).getTag().toString());
+        assertTrue(activity.findViewById(R.id.filter_include_keepers).isSelected());
+    }
+
+    @Test public void includeKeepersStillExcludesHiddenPhotos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String keeper = "content://media/photo/keeper";
+        String hidden = "content://media/photo/hidden";
+        new KeeperSelectionStore(activity).toggle(Uri.parse(keeper));
+        new HiddenPhotoStore(activity).hide(Set.of(hidden));
+        activity.showPhotos(List.of(Uri.parse(keeper), Uri.parse(hidden)));
+
+        activity.findViewById(R.id.filter_include_keepers).performClick();
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(1, grid.getChildCount());
+        assertEquals(keeper, grid.getChildAt(0).getTag().toString());
+    }
+
+    @Test public void allSourcesPreservesTheIncludeKeepersChoice() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String keeper = "content://media/local/keeper";
+        String cloud = "content://media/picker/cloud/unreviewed";
+        new KeeperSelectionStore(activity).toggle(Uri.parse(keeper));
+        activity.showPhotos(List.of(Uri.parse(keeper), Uri.parse(cloud)), Map.of(
+                keeper, PhotoOrigin.LOCAL,
+                cloud, PhotoOrigin.CLOUD));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.filter_include_keepers).performClick();
+        activity.findViewById(R.id.filter_origin_cloud).performClick();
+        assertEquals(1, grid.getChildCount());
+
+        activity.findViewById(R.id.filter_origin_all).performClick();
+
+        assertEquals(2, grid.getChildCount());
+        assertTrue(activity.findViewById(R.id.filter_include_keepers).isSelected());
     }
 
     @Test public void originFiltersSeparateLocalAndCloudPhotos() {
@@ -538,12 +567,13 @@ public class ReviewActivityTest {
         activity.onResume();
 
         GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(0, grid.getChildCount());
+
+        activity.findViewById(R.id.filter_include_keepers).performClick();
         assertEquals(1, grid.getChildCount());
         assertEquals(first, grid.getChildAt(0).getTag().toString());
-
-        new AlbumCompletionStore(activity).mark(first, "Family");
-        activity.onResume();
-        assertEquals(0, grid.getChildCount());
+        assertEquals("2", ((TextView) ((android.view.ViewGroup)
+                grid.getChildAt(0)).getChildAt(3)).getText());
 
         activity.findViewById(R.id.filter_keepers).performClick();
         assertEquals(1, grid.getChildCount());
