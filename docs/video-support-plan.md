@@ -27,15 +27,21 @@ Cloud-picker video import is deliberately deferred. The present Google Photos Pi
 stores a private bitmap review copy, which is suitable for photos but would discard a video's
 audio and frames.
 
-## Stage 2 — video recommendations and feedback
+## Stage 2 — video analysis, recommendations, and feedback
 
-Status: planned.
+Status: initial bounded analysis implemented; recommendations and feedback remain planned.
 
-1. Add a versioned video feature schema that is separate from `PhotoFeatures`:
-   duration, sampled-frame sharpness and exposure, motion smoothness, face persistence,
-   camera-facing attention, audio level/clipping, rotation, frozen frames, and black frames.
-2. Sample frames at bounded intervals off the UI thread. Store only derived anonymous signals;
-   do not sync frames, filenames, URIs, audio, timestamps, or perceptual identifiers.
+The initial pass samples three frames at 15%, 50%, and 85% of each local clip, with each
+sample capped at a 384-pixel longest edge. It derives focus, detail, exposure, composition,
+frame-stability, black-frame, and frozen-frame signals. Results use a separate versioned local
+schema, are cached, and are shown in gallery overlays and fullscreen metadata. Still photos are
+completed first; videos then run one at a time on a low-priority background thread so gallery
+interaction and photo recommendations are not held behind video decoding.
+
+1. Extend the current versioned video feature schema with face persistence, camera-facing
+   attention, audio level/clipping, and rotation-aware motion smoothness.
+2. Keep storing only derived anonymous signals; do not sync frames, filenames, URIs, audio,
+   timestamps, or perceptual identifiers.
 3. Add video-specific feedback records and exports. Keeper, rejection, hide, comment, and
    within-burst choices should identify `mediaType: "video"` and a video schema version.
 4. Learn photo and video preference profiles independently, then calibrate their displayed

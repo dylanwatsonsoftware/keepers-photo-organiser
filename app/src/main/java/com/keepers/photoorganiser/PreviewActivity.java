@@ -801,9 +801,16 @@ public final class PreviewActivity extends Activity {
         TextView title = findViewById(R.id.preview_analysis_title);
         TextView body = findViewById(R.id.preview_analysis_body);
         if (mediaTypeOf(photo) == MediaType.VIDEO) {
-            title.setText("Video details");
+            VideoFeatures video = new VideoInsightStore(this).load(photo.toString());
+            if (video == null) {
+                title.setText("Video analysis pending");
+                body.setText("Videos are analysed after photos to keep the gallery responsive.");
+            } else {
+                VideoAssessment assessment = VideoAssessment.from(video);
+                title.setText("Video assessment · " + assessment.score() + "/100");
+                body.setText(assessment.explanation());
+            }
             applyAssessmentIcon(title, 0);
-            body.setText("Video ranking will be added in the next analysis stage.");
         } else if (insight == null) {
             title.setText("Analysis pending");
             applyAssessmentIcon(title, 0);

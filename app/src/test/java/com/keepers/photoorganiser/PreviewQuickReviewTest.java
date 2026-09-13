@@ -358,6 +358,30 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
+    @Test public void metadataSheetExplainsTheSampledVideoAssessment() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/assessed-video");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+        new VideoInsightStore(context).save(new VideoFeatures(VideoFeatures.SCHEMA_VERSION,
+                video.toString(), 8_000, 3, .7, .8, .9, .6, .75, 0, 0));
+        PreviewActivity activity = create(context, video, false);
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+
+        showAnalysis.invoke(activity);
+
+        assertEquals("Video assessment · 75/100",
+                ((TextView) activity.findViewById(R.id.preview_analysis_title)).getText());
+        String body = ((TextView) activity.findViewById(R.id.preview_analysis_body))
+                .getText().toString();
+        assertTrue(body.contains("3 sampled frames"));
+        assertTrue(body.contains("Exposure quality — 90%"));
+        imports.clear();
+    }
+
     @Test public void localVideoShowsThumbnailAbovePlaybackSurfaceBeforePlaying() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);

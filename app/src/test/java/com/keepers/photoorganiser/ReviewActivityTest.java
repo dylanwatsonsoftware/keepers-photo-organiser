@@ -166,6 +166,20 @@ public class ReviewActivityTest {
         assertTrue(started.getBooleanExtra("autoplay_video", false));
     }
 
+    @Test public void galleryMetadataShowsRankedVideoSignalsAfterAnalysis() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri uri = Uri.parse("content://media/video/media/rated");
+        new VideoInsightStore(activity).save(new VideoFeatures(VideoFeatures.SCHEMA_VERSION,
+                uri.toString(), 3_000, 3, .7, .8, .9, .6, .75, 0, 0));
+        activity.showMedia(List.of(new RecentPhoto(uri, 10, MediaType.VIDEO, 3_000)));
+
+        activity.findViewById(R.id.toggle_metadata).performClick();
+
+        TextView overlay = activity.<GridLayout>findViewById(R.id.photo_grid)
+                .getChildAt(0).findViewWithTag("metadata_overlay");
+        assertEquals("Exposure 90%\nFocus 80%\nStability 75%", overlay.getText().toString());
+    }
+
     @Test public void quickReviewHonoursTheVideoFilter() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         RecentPhoto photo = new RecentPhoto(Uri.parse("content://media/images/media/11"), 20);

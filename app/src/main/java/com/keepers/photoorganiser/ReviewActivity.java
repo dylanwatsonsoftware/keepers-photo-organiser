@@ -17,6 +17,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
@@ -40,6 +41,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class ReviewActivity extends Activity {
     private static final int IMPORT_PHOTOS = 201;
@@ -81,6 +84,11 @@ public final class ReviewActivity extends Activity {
     private boolean selectingPhotosToHide;
     private boolean viewportLoadPending;
     private final Set<String> hideSelections = new HashSet<>();
+    private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private ExecutorService videoAnalysisExecutor;
+    private VideoFrameAnalyzer videoFrameAnalyzer;
+    private boolean videoAnalysisRunning;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,6 +97,12 @@ public final class ReviewActivity extends Activity {
         KeeperSelectionRecovery.runOnce(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         faceAnalyzer = createFaceAnalyzer();
+        videoFrameAnalyzer = new VideoFrameAnalyzer(this);
+        videoAnalysisExecutor = Executors.newSingleThreadExecutor(runnable ->
+                new Thread(() -> {
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                    runnable.run();
+                }, "keepers-video-analysis"));
         metadataVisible = getSharedPreferences("gallery_display", MODE_PRIVATE)
                 .getBoolean("metadata_visible", false);
         findViewById(R.id.open_settings).setOnClickListener(view ->
@@ -274,10 +288,12 @@ public final class ReviewActivity extends Activity {
             goodAlternatives = Set.of();
             stackMembers = Map.of();
             analyzedCount = 0;
+            mediaAnalysisQueue.clear();
             grid.removeAllViews();
             tiles.clear();
             previousCount = 0;
         }
+        mediaAnalysisQueue.add(recentPhotos.subList(previousCount, recentPhotos.size()));
         int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
         for (int index = previousCount; index < recentPhotos.size(); index++) {
             FrameLayout tile = createTile(recentPhotos.get(index), tileSize, generation);
@@ -292,6 +308,7 @@ public final class ReviewActivity extends Activity {
         if (!photos.isEmpty() && analyzedCount < photos.size())
             showAnalysisProgress(analyzedCount, photos.size());
         updateSelectionDisplay();
+        startNextVideoAnalysis(generation);
     }
 
     private void restoreCachedInsights() {
@@ -330,10 +347,7 @@ public final class ReviewActivity extends Activity {
         image.setBackgroundColor(Color.rgb(232, 234, 237));
         thumbnailLoader.load(image, photo, size, bitmap -> {
             if (generation != analysisGeneration) return;
-            if (recentPhoto.mediaType() == MediaType.VIDEO) {
-                finishPhotoAnalysis(generation);
-                return;
-            }
+            if (recentPhoto.mediaType() == MediaType.VIDEO) return;
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
                 faceAnalyzer.analyze(photo.toString(), bitmap, faces -> {
@@ -345,11 +359,11 @@ public final class ReviewActivity extends Activity {
                             assessment.exposure(), assessment.composition(), assessment.motionStability(),
                             faceSignals.faceCount(), faceSignals.averageSmile(),
                             faceSignals.minimumEyeOpen(), faceSignals.minimumCameraFacing()));
-                    finishPhotoAnalysis(generation);
+                    finishStillPhotoAnalysis(generation);
                 });
                 return;
             }
-            finishPhotoAnalysis(generation);
+            finishStillPhotoAnalysis(generation);
         });
         tile.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -489,45 +503,83 @@ public final class ReviewActivity extends Activity {
         return tile;
     }
 
-    private void finishPhotoAnalysis(int generation) {
+    private void finishStillPhotoAnalysis(int generation) {
         if (generation != analysisGeneration) return;
         analyzedCount++;
         showAnalysisProgress(analyzedCount, photos.size());
-        if (analyzedCount == photos.size()) {
-                RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
-                Set<String> keepers = selectionStore.load();
-                for (PhotoFeatures feature : features) if (keepers.contains(feature.id())) {
-                    RecommendationFeedback previous = feedbackStore.load(feature.id());
-                    feedbackStore.save(RecommendationFeedback.from(feature,
-                            RecommendationFeedback.LOVED,
-                            previous == null ? "" : previous.comment()));
-                }
-                List<FaceIdentityGroup> faceGroups = FaceClusterer.cluster(
-                        new FaceObservationStore(this).loadAll(), .30);
-                Map<String, Set<String>> namedFaces = NamedFaceResolver.resolve(faceGroups,
-                        new FaceGroupAssignmentStore(this).load(),
-                        new FaceCorrectionStore(this).load());
-                Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(
-                        features, namedFaces);
-                Map<String, List<String>> members = BestShotEngine.stackMembers(
-                        features, namedFaces);
-                Set<String> hiddenIds = new HiddenPhotoStore(this).load();
-                List<PhotoFeatures> visibleFeatures = features.stream()
-                        .filter(feature -> !hiddenIds.contains(feature.id())).toList();
-                List<PhotoFeatures> hiddenFeatures = features.stream()
-                        .filter(feature -> hiddenIds.contains(feature.id())).toList();
-                List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
-                        visibleFeatures, members, keepers);
-                RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
-                        feedbackStore.load(), comparisons, hiddenFeatures);
-                BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
-                new PhotoStackStore(this).save(members);
-                new PhotoInsightStore(this).save(features, stacks, result.recommended(),
-                        result.goodAlternatives());
-                updateMetadataOverlays();
-                showStacks(stacks, members);
-                showSuggestions(result.recommended(), result.goodAlternatives());
+        if (mediaAnalysisQueue.photoCompleted()) {
+            finalizePhotoInsights();
+            startNextVideoAnalysis(generation);
         }
+    }
+
+    private void finalizePhotoInsights() {
+        RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
+        Set<String> keepers = selectionStore.load();
+        for (PhotoFeatures feature : features) if (keepers.contains(feature.id())) {
+            RecommendationFeedback previous = feedbackStore.load(feature.id());
+            feedbackStore.save(RecommendationFeedback.from(feature,
+                    RecommendationFeedback.LOVED,
+                    previous == null ? "" : previous.comment()));
+        }
+        List<FaceIdentityGroup> faceGroups = FaceClusterer.cluster(
+                new FaceObservationStore(this).loadAll(), .30);
+        Map<String, Set<String>> namedFaces = NamedFaceResolver.resolve(faceGroups,
+                new FaceGroupAssignmentStore(this).load(),
+                new FaceCorrectionStore(this).load());
+        Map<String, PhotoStackPosition> stacks = BestShotEngine.stacks(features, namedFaces);
+        Map<String, List<String>> members = BestShotEngine.stackMembers(features, namedFaces);
+        Set<String> hiddenIds = new HiddenPhotoStore(this).load();
+        List<PhotoFeatures> visibleFeatures = features.stream()
+                .filter(feature -> !hiddenIds.contains(feature.id())).toList();
+        List<PhotoFeatures> hiddenFeatures = features.stream()
+                .filter(feature -> hiddenIds.contains(feature.id())).toList();
+        List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
+                visibleFeatures, members, keepers);
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
+                feedbackStore.load(), comparisons, hiddenFeatures);
+        BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
+        new PhotoStackStore(this).save(members);
+        new PhotoInsightStore(this).save(features, stacks, result.recommended(),
+                result.goodAlternatives());
+        updateMetadataOverlays();
+        showStacks(stacks, members);
+        showSuggestions(result.recommended(), result.goodAlternatives());
+        if (analyzedCount < photos.size()) showAnalysisProgress(analyzedCount, photos.size());
+    }
+
+    private void startNextVideoAnalysis(int generation) {
+        if (videoAnalysisRunning || !mediaAnalysisQueue.photosComplete()) return;
+        RecentPhoto video = mediaAnalysisQueue.pollVideo();
+        if (video == null) {
+            if (!photos.isEmpty() && analyzedCount >= photos.size())
+                showSuggestions(suggestions, goodAlternatives);
+            return;
+        }
+        VideoFeatures cached = new VideoInsightStore(this).load(video.uri().toString());
+        if (cached != null) {
+            finishVideoAnalysis(generation, cached);
+            return;
+        }
+        videoAnalysisRunning = true;
+        videoAnalysisExecutor.execute(() -> {
+            VideoFeatures result = videoFrameAnalyzer.analyze(video);
+            mainHandler.post(() -> {
+                videoAnalysisRunning = false;
+                if (generation == analysisGeneration) finishVideoAnalysis(generation, result);
+                else startNextVideoAnalysis(analysisGeneration);
+            });
+        });
+    }
+
+    private void finishVideoAnalysis(int generation, VideoFeatures video) {
+        if (generation != analysisGeneration) return;
+        if (video != null) new VideoInsightStore(this).save(video);
+        analyzedCount++;
+        updateMetadataOverlays();
+        if (analyzedCount < photos.size()) showAnalysisProgress(analyzedCount, photos.size());
+        else showSuggestions(suggestions, goodAlternatives);
+        startNextVideoAnalysis(generation);
     }
 
     private void loadRecentPhotos() {
@@ -951,8 +1003,11 @@ public final class ReviewActivity extends Activity {
                     .findFirst().orElse(null);
             if (mediaTypes.getOrDefault(tile.getTag().toString(), MediaType.PHOTO)
                     == MediaType.VIDEO) {
-                overlay.setText("Video  " + MediaDuration.format(
-                        mediaDurations.getOrDefault(tile.getTag().toString(), 0L)));
+                VideoFeatures video = new VideoInsightStore(this)
+                        .load(tile.getTag().toString());
+                overlay.setText(video == null ? "Video  " + MediaDuration.format(
+                        mediaDurations.getOrDefault(tile.getTag().toString(), 0L))
+                        : GalleryMetadataOverlay.topSignals(video, 3));
             } else overlay.setText(photo == null ? "Analysing…"
                     : GalleryMetadataOverlay.topSignals(photo, 3));
             overlay.setVisibility(metadataVisible ? View.VISIBLE : View.GONE);
@@ -1058,6 +1113,9 @@ public final class ReviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        analysisGeneration++;
+        mediaAnalysisQueue.clear();
+        if (videoAnalysisExecutor != null) videoAnalysisExecutor.shutdownNow();
         faceAnalyzer.close();
         thumbnailLoader.close();
         super.onDestroy();
