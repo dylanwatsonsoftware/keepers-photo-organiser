@@ -20,6 +20,7 @@
                 android:id="@+id/preview_adjacent_video"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_gravity="center"
                 android:tag="video_surface"
                 android:visibility="gone" />
 
@@ -57,6 +58,7 @@
                 android:id="@+id/preview_video"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_gravity="center"
                 android:tag="video_surface"
                 android:visibility="gone" />
 

@@ -116,6 +116,17 @@ public class PreviewLayoutTest {
         assertTrue(layout.findViewById(R.id.preview_adjacent_video) instanceof VideoView);
     }
 
+    @Test public void landscapeVideoSurfacesAreCentredInsideFullscreenPages() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+
+        for (int id : new int[]{R.id.preview_video, R.id.preview_adjacent_video}) {
+            FrameLayout.LayoutParams params =
+                    (FrameLayout.LayoutParams) layout.findViewById(id).getLayoutParams();
+            assertEquals(Gravity.CENTER, params.gravity);
+        }
+    }
+
     @Test public void controlsFloatOverAFullHeightPhoto() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
