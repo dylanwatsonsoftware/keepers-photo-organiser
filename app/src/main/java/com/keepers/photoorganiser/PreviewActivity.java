@@ -9,6 +9,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.FrameLayout;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -40,6 +42,7 @@ public final class PreviewActivity extends Activity {
     public static final String EXTRA_MEDIA_TYPE = "media_type";
     public static final String EXTRA_AUTOPLAY_VIDEO = "autoplay_video";
     private static final int QUICK_REVIEW_THRESHOLD_DP = 96;
+    private static final long VIDEO_AUTOPLAY_DELAY_MS = 300;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
     private KeeperSelectionStore store;
@@ -74,6 +77,8 @@ public final class PreviewActivity extends Activity {
     private boolean photoChromeVisible = true;
     private GestureCoordinates stackCarouselGesture;
     private List<Uri> stackCarouselMembers = List.of();
+    private final Handler playbackHandler = new Handler(Looper.getMainLooper());
+    private Runnable pendingVideoAutoplay;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -614,6 +619,7 @@ public final class PreviewActivity extends Activity {
 
     private void loadCurrent() {
         resetZoom();
+        cancelPendingVideoAutoplay();
         boolean autoplayVideo = getIntent().getBooleanExtra(EXTRA_AUTOPLAY_VIDEO, false);
         getIntent().removeExtra(EXTRA_AUTOPLAY_VIDEO);
         VideoView video = currentSurface.findViewWithTag("video_surface");
@@ -642,8 +648,8 @@ public final class PreviewActivity extends Activity {
                         video.pause();
                         setVideoControlState(play, false);
                     } else {
-                        video.start();
-                        setVideoControlState(play, true);
+                        cancelPendingVideoAutoplay();
+                        startVideoPlayback(video, videoThumbnail, play);
                     }
                 });
             }
@@ -656,8 +662,14 @@ public final class PreviewActivity extends Activity {
                 }
             });
             if (autoplayVideo) {
-                video.start();
-                if (play != null) setVideoControlState(play, true);
+                Uri autoplayTarget = photo;
+                pendingVideoAutoplay = () -> {
+                    pendingVideoAutoplay = null;
+                    if (autoplayTarget.equals(photo) && currentSurface
+                            .findViewWithTag("video_surface") == video)
+                        startVideoPlayback(video, videoThumbnail, play);
+                };
+                playbackHandler.postDelayed(pendingVideoAutoplay, VIDEO_AUTOPLAY_DELAY_MS);
             }
             updateRecommendation();
             showStackCarousel();
@@ -673,6 +685,18 @@ public final class PreviewActivity extends Activity {
         });
         updateRecommendation();
         showStackCarousel();
+    }
+
+    private void startVideoPlayback(VideoView video, ImageView thumbnail, View play) {
+        thumbnail.setVisibility(View.GONE);
+        video.start();
+        if (play != null) setVideoControlState(play, true);
+    }
+
+    private void cancelPendingVideoAutoplay() {
+        if (pendingVideoAutoplay == null) return;
+        playbackHandler.removeCallbacks(pendingVideoAutoplay);
+        pendingVideoAutoplay = null;
     }
 
     private static void setVideoControlState(View control, boolean playing) {
@@ -1298,6 +1322,7 @@ public final class PreviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        cancelPendingVideoAutoplay();
         VideoView currentVideo = currentSurface == null ? null
                 : currentSurface.findViewWithTag("video_surface");
         VideoView adjacentVideo = adjacentSurface == null ? null
@@ -1310,6 +1335,7 @@ public final class PreviewActivity extends Activity {
 
     @Override protected void onPause() {
         super.onPause();
+        cancelPendingVideoAutoplay();
         VideoView video = currentSurface == null ? null
                 : currentSurface.findViewWithTag("video_surface");
         if (video != null && video.isPlaying()) {

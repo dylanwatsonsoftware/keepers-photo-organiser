@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -20,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -419,7 +421,25 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
-    @Test public void galleryAutoplayRequestStartsTheInitialVideoOnly() {
+    @Test public void replayHidesTheRestoredThumbnailImmediately() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/replay-thumbnail");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+        PreviewActivity activity = create(context, video, false);
+        ImageView thumbnail = activity.findViewById(R.id.preview_image);
+        View play = activity.findViewById(R.id.preview_video_play);
+        thumbnail.setVisibility(View.VISIBLE);
+
+        play.performClick();
+
+        assertEquals(View.GONE, thumbnail.getVisibility());
+        imports.clear();
+    }
+
+    @Test public void galleryAutoplayWaitsForTheFullscreenTransition() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);
         imports.clear();
@@ -432,6 +452,9 @@ public class PreviewQuickReviewTest {
         PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class, request)
                 .setup().get();
 
+        assertEquals("Play video", activity.findViewById(R.id.preview_video_play)
+                .getContentDescription());
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(300, TimeUnit.MILLISECONDS);
         assertEquals("Pause video", activity.findViewById(R.id.preview_video_play)
                 .getContentDescription());
         assertFalse(activity.getIntent().getBooleanExtra("autoplay_video", false));
