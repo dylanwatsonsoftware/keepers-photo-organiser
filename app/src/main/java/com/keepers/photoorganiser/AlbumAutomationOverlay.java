@@ -79,7 +79,12 @@ final class AlbumAutomationOverlay {
         ImageView logo = new ImageView(context);
         logo.setTag("album_overlay_logo");
         logo.setImageResource(R.mipmap.ic_launcher_foreground);
-        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        GradientDrawable logoMask = new GradientDrawable();
+        logoMask.setShape(GradientDrawable.OVAL);
+        logoMask.setColor(0x00FFFFFF);
+        logo.setBackground(logoMask);
+        logo.setClipToOutline(true);
+        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
         logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(
                 dp(context, 24), dp(context, 24));

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
@@ -49,6 +50,11 @@ public class AlbumAutomationOverlayTest {
         assertEquals(expectedSize, logo.getLayoutParams().width);
         assertEquals(expectedSize, logo.getLayoutParams().height);
         assertEquals(null, logo.getContentDescription());
+        assertTrue(logo.getClipToOutline());
+        assertTrue(logo.getBackground() instanceof GradientDrawable);
+        assertEquals(GradientDrawable.OVAL,
+                ((GradientDrawable) logo.getBackground()).getShape());
+        assertEquals(ImageView.ScaleType.CENTER_CROP, logo.getScaleType());
     }
 
     @Test public void overlayRenderingFailureIsContained() {
