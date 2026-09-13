@@ -154,6 +154,18 @@ public class ReviewActivityTest {
         assertEquals(video.uri(), grid.getChildAt(0).getTag());
     }
 
+    @Test public void tappingGalleryVideoRequestsFullscreenAutoplay() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        RecentPhoto video = new RecentPhoto(Uri.parse("content://media/video/media/autoplay"), 10,
+                MediaType.VIDEO, 3_000);
+        activity.showMedia(List.of(video));
+
+        activity.<GridLayout>findViewById(R.id.photo_grid).getChildAt(0).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertTrue(started.getBooleanExtra("autoplay_video", false));
+    }
+
     @Test public void quickReviewHonoursTheVideoFilter() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         RecentPhoto photo = new RecentPhoto(Uri.parse("content://media/images/media/11"), 20);

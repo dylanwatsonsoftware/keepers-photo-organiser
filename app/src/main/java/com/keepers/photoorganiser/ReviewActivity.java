@@ -460,8 +460,11 @@ public final class ReviewActivity extends Activity {
                 ? "Video. Tap to mark as keeper." : "Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> {
             if (selectingPhotosToHide) { toggleHideSelection(photo.toString()); return; }
-            startActivity(new Intent(this, PreviewActivity.class)
-                    .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit()));
+            Intent preview = new Intent(this, PreviewActivity.class)
+                    .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit());
+            if (recentPhoto.mediaType() == MediaType.VIDEO)
+                preview.putExtra(PreviewActivity.EXTRA_AUTOPLAY_VIDEO, true);
+            startActivity(preview);
         });
         TextView videoDuration = new TextView(this);
         videoDuration.setTag("video_duration");

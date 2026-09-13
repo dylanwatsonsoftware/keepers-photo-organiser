@@ -395,6 +395,25 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
+    @Test public void galleryAutoplayRequestStartsTheInitialVideoOnly() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/gallery-autoplay");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+        Intent request = new Intent(context, PreviewActivity.class).setData(video)
+                .putExtra("autoplay_video", true);
+
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class, request)
+                .setup().get();
+
+        assertEquals("Pause video", activity.findViewById(R.id.preview_video_play)
+                .getContentDescription());
+        assertFalse(activity.getIntent().getBooleanExtra("autoplay_video", false));
+        imports.clear();
+    }
+
     @Test public void quickReviewLaunchedFromHiddenFullscreenSkipsTheHiddenPhoto()
             throws Exception {
         Context context = RuntimeEnvironment.getApplication();

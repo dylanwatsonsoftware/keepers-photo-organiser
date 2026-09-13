@@ -38,6 +38,7 @@ import java.util.Locale;
 public final class PreviewActivity extends Activity {
     public static final String EXTRA_QUICK_REVIEW = "quick_review";
     public static final String EXTRA_MEDIA_TYPE = "media_type";
+    public static final String EXTRA_AUTOPLAY_VIDEO = "autoplay_video";
     private static final int QUICK_REVIEW_THRESHOLD_DP = 96;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
@@ -613,6 +614,8 @@ public final class PreviewActivity extends Activity {
 
     private void loadCurrent() {
         resetZoom();
+        boolean autoplayVideo = getIntent().getBooleanExtra(EXTRA_AUTOPLAY_VIDEO, false);
+        getIntent().removeExtra(EXTRA_AUTOPLAY_VIDEO);
         VideoView video = currentSurface.findViewWithTag("video_surface");
         View play = currentSurface.findViewWithTag("video_play");
         int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
@@ -652,6 +655,10 @@ public final class PreviewActivity extends Activity {
                     play.setVisibility(photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
                 }
             });
+            if (autoplayVideo) {
+                video.start();
+                if (play != null) setVideoControlState(play, true);
+            }
             updateRecommendation();
             showStackCarousel();
             return;
