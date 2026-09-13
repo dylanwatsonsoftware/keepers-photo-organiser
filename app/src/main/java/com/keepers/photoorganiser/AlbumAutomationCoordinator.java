@@ -7,6 +7,7 @@ import android.net.Uri;
 public final class AlbumAutomationCoordinator {
     private AlbumAutomationCoordinator() {}
     public static Intent arm(Context context, AlbumAction action) {
+        AlbumAutomationWakeLock.acquire(context);
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(KeepersAccessibilityService.ALBUM_ARMED_UNTIL,
                         System.currentTimeMillis() + 120_000)
@@ -22,6 +23,7 @@ public final class AlbumAutomationCoordinator {
     }
 
     public static void disarm(Context context) {
+        AlbumAutomationWakeLock.release();
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE).edit()
                 .remove(KeepersAccessibilityService.ALBUM_ARMED_UNTIL)
                 .remove(KeepersAccessibilityService.ALBUM_NAME)

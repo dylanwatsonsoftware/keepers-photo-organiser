@@ -95,6 +95,8 @@ public final class AlbumReviewActivity extends Activity {
                 .filter(album -> !album.albumName().isBlank()).toList();
         LinearLayout container = findViewById(R.id.album_review_items);
         container.removeAllViews();
+        findViewById(R.id.album_review_apply_all).setVisibility(android.view.View.GONE);
+        ((LinearLayout) findViewById(R.id.album_review_apply_all_choices)).removeAllViews();
         TextView summary = findViewById(R.id.album_review_summary);
         android.view.View setup = findViewById(R.id.album_review_setup_people);
         setup.setVisibility(android.view.View.GONE);
@@ -133,14 +135,17 @@ public final class AlbumReviewActivity extends Activity {
         photos.sort(String::compareTo);
         int reviewedCount = 0;
         int visibleCount = 0;
+        ArrayList<String> visiblePhotos = new ArrayList<>();
         for (String photo : photos) {
             boolean wasReviewed = reviewed.contains(photo) || completions.hasAny(photo);
             if (wasReviewed) reviewedCount++;
             if (!showReviewed && wasReviewed) continue;
             container.addView(photoCard(photo, people, otherAlbums, selected, proposed,
                     portraits, completions));
+            visiblePhotos.add(photo);
             visibleCount++;
         }
+        showApplyToAll(people, otherAlbums, visiblePhotos, completions);
         TextView reviewedToggle = findViewById(R.id.toggle_reviewed_albums);
         reviewedToggle.setVisibility(reviewedCount > 0
                 ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -150,6 +155,49 @@ public final class AlbumReviewActivity extends Activity {
         summary.setText(visibleCount + (visibleCount == 1 ? " Keeper" : " Keepers")
                 + " · choose every album this photo belongs in");
         updateConfirmAction(selected);
+    }
+
+    private void showApplyToAll(List<TrackedPerson> people,
+            List<RegisteredAlbum> otherAlbums, List<String> visiblePhotos,
+            AlbumCompletionStore completions) {
+        LinearLayout panel = findViewById(R.id.album_review_apply_all);
+        LinearLayout choices = findViewById(R.id.album_review_apply_all_choices);
+        if (visiblePhotos.isEmpty()) return;
+        panel.setVisibility(android.view.View.VISIBLE);
+        for (TrackedPerson person : people) choices.addView(applyToAllChoice(
+                displayName(person), person.id(), person.albumName(), visiblePhotos, completions));
+        for (RegisteredAlbum album : otherAlbums) choices.addView(applyToAllChoice(
+                album.albumName(), albumKey(album), album.albumName(), visiblePhotos, completions));
+    }
+
+    private TextView applyToAllChoice(String label, String destinationId, String albumName,
+            List<String> visiblePhotos, AlbumCompletionStore completions) {
+        TextView choice = new TextView(this);
+        choice.setText("+ " + label);
+        choice.setTextColor(0xFF3C4043);
+        choice.setTextSize(13);
+        choice.setTypeface(android.graphics.Typeface.DEFAULT,
+                android.graphics.Typeface.BOLD);
+        choice.setGravity(android.view.Gravity.CENTER);
+        choice.setPadding(dp(13), 0, dp(13), 0);
+        choice.setBackgroundResource(R.drawable.gallery_filter_chip);
+        choice.setClickable(true);
+        choice.setFocusable(true);
+        choice.setContentDescription("Add " + label + " to all shown photos");
+        choice.setOnClickListener(view -> {
+            HashSet<String> changed = new HashSet<>(reviewStore.load());
+            for (String photo : visiblePhotos)
+                if (!completions.contains(photo, albumName))
+                    changed.add(AlbumReviewSelectionStore.key(photo, destinationId));
+            AlbumApprovalInvalidator.invalidate(this);
+            reviewStore.save(changed);
+            render();
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+        params.setMarginEnd(dp(7));
+        choice.setLayoutParams(params);
+        return choice;
     }
 
     private LinearLayout photoCard(String photo, List<TrackedPerson> people,

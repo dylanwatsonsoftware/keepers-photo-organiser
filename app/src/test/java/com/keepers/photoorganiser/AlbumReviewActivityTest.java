@@ -32,6 +32,25 @@ import android.net.Uri;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
+    @Test public void oneDestinationCanBeAddedToEveryShownPhotoWithoutClearingSelections() {
+        seed();
+        AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
+                .setup().get();
+        LinearLayout choices = activity.findViewById(R.id.album_review_apply_all_choices);
+
+        assertEquals(3, choices.getChildCount());
+        View addBenToAll = choices.getChildAt(1);
+        assertTrue(!(addBenToAll instanceof Button));
+        assertEquals("Add Ben to all shown photos", addBenToAll.getContentDescription());
+        addBenToAll.performClick();
+
+        assertEquals(Set.of(
+                AlbumReviewSelectionStore.key("content://photos/a", "ada"),
+                AlbumReviewSelectionStore.key("content://photos/a", "ben"),
+                AlbumReviewSelectionStore.key("content://photos/b", "ben")),
+                new AlbumReviewSelectionStore(activity).load());
+    }
+
     @Test public void completedAutomationReturnsToAClearResultBanner() {
         seed();
         android.content.Context context = RuntimeEnvironment.getApplication();

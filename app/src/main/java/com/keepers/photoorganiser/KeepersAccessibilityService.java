@@ -7,8 +7,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.Toast;
 import android.content.Intent;
+import java.util.ArrayList;
 
 public final class KeepersAccessibilityService extends AccessibilityService {
     public static final String PREFS = "automation";
@@ -54,7 +56,9 @@ public final class KeepersAccessibilityService extends AccessibilityService {
     }
 
     private void keepAlbumRetryAlive() {
-        if (albumRetry != null) albumRetry.ensureScheduled(albumActionIsArmed());
+        boolean armed = albumActionIsArmed();
+        if (!armed) AlbumAutomationWakeLock.release();
+        if (albumRetry != null) albumRetry.ensureScheduled(armed);
     }
 
     private boolean albumActionIsArmed() {
@@ -118,6 +122,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
                 return actionFailed("Album search field could not be filled");
             }
             advance(prefs, PHASE_SELECT_RESULT);
+            dismissKeyboardIfVisible();
             toast("Keepers searched for " + album);
             return true;
         }
@@ -174,6 +179,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         int totalCount = queue.totalCount();
         AlbumAction next = queue.completeCurrent();
         if (next == null) {
+            AlbumAutomationWakeLock.release();
             toast("All approved album changes are complete");
             startActivity(new Intent(this, AlbumReviewActivity.class)
                     .putExtra(AlbumReviewActivity.EXTRA_COMPLETED_COUNT, totalCount)
@@ -183,6 +189,13 @@ public final class KeepersAccessibilityService extends AccessibilityService {
         Intent intent = AlbumAutomationCoordinator.arm(this, next)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
+    }
+
+    private void dismissKeyboardIfVisible() {
+        ArrayList<Integer> windowTypes = new ArrayList<>();
+        for (AccessibilityWindowInfo window : getWindows()) windowTypes.add(window.getType());
+        if (GooglePhotosKeyboardGuard.shouldDismiss(windowTypes))
+            performGlobalAction(GLOBAL_ACTION_BACK);
     }
 
     private AccessibilityNodeInfo findFavourite(AccessibilityNodeInfo node) {
@@ -293,6 +306,7 @@ public final class KeepersAccessibilityService extends AccessibilityService {
 
     @Override public void onDestroy() {
         if (albumRetry != null) albumRetry.cancel();
+        AlbumAutomationWakeLock.release();
         super.onDestroy();
     }
 }

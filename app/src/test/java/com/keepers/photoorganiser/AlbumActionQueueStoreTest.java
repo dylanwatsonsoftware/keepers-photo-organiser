@@ -37,4 +37,19 @@ public class AlbumActionQueueStoreTest {
         assertFalse(store.isActive());
         assertEquals(2, store.completedCount());
     }
+
+    @Test public void severalAlbumsForOnePhotoCompleteBeforeThePhotoIsReviewed() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        new ReviewedPhotoStore(context).clear();
+        AlbumActionQueueStore store = new AlbumActionQueueStore(context);
+        store.begin(List.of(
+                new AlbumAction("photo-a", "Ada", "Ada Photos"),
+                new AlbumAction("photo-a", "Family", "Family Photos")));
+
+        store.completeCurrent();
+        assertFalse(new ReviewedPhotoStore(context).contains("photo-a"));
+
+        store.completeCurrent();
+        assertTrue(new ReviewedPhotoStore(context).contains("photo-a"));
+    }
 }

@@ -6,6 +6,7 @@ public final class AlbumApprovalInvalidator {
     private AlbumApprovalInvalidator() {}
 
     public static void invalidate(Context context) {
+        AlbumAutomationWakeLock.release();
         new AlbumReviewSelectionStore(context).clear();
         new AlbumActionQueueStore(context).cancel();
         context.getSharedPreferences(KeepersAccessibilityService.PREFS, Context.MODE_PRIVATE)
