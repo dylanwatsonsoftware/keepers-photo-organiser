@@ -41,6 +41,24 @@ public class RecommendationPreferenceProfileTest {
         assertEquals(.8, profile.score(landscape), .0001);
     }
 
+    @Test public void contextChangesWhichTechnicalSignalsMatterMost() {
+        PhotoFeatures focusLed = new PhotoFeatures("focus-led", 0, 0, .7,
+                1, .7, .4, .7, 0, -1, -1, -1);
+        PhotoFeatures compositionLed = new PhotoFeatures("composition-led", 0, 0, .7,
+                .4, .7, 1, .7, 0, -1, -1, -1);
+        RecommendationPreferenceProfile landscape = RecommendationPreferenceProfile
+                .learn(List.of()).withContexts(Map.of(
+                        "focus-led", PhotoContext.of(PhotoContextType.LANDSCAPE, 1),
+                        "composition-led", PhotoContext.of(PhotoContextType.LANDSCAPE, 1)));
+        RecommendationPreferenceProfile document = RecommendationPreferenceProfile
+                .learn(List.of()).withContexts(Map.of(
+                        "focus-led", PhotoContext.of(PhotoContextType.DOCUMENT, 1),
+                        "composition-led", PhotoContext.of(PhotoContextType.DOCUMENT, 1)));
+
+        assertTrue(landscape.score(compositionLed) > landscape.score(focusLed));
+        assertTrue(document.score(focusLed) > document.score(compositionLed));
+    }
+
     @Test public void smileDoesNotActAsUniversalPhotoQuality() {
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of());
         PhotoFeatures smiling = portrait("smiling", .8, 1, .8);

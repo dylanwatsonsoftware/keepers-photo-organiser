@@ -49,4 +49,19 @@ public class PhotoInsightStoreTest {
 
         assertEquals(.82, store.loadFeatures("portrait").cameraFacing(), .001);
     }
+
+    @Test public void loadedAssessmentUsesTheCachedPhotoContext() {
+        PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
+        PhotoContextStore contexts = new PhotoContextStore(RuntimeEnvironment.getApplication());
+        contexts.clear();
+        PhotoFeatures document = new PhotoFeatures("context-document", 1, 2, .7,
+                1, .7, .4, .7, 0, -1, -1, -1);
+        store.save(List.of(document), Map.of(), Set.of());
+        contexts.save(document.id(), PhotoContext.of(PhotoContextType.DOCUMENT, .9));
+
+        PhotoInsight insight = store.load(document.id());
+
+        assertTrue(insight.assessment().explanation().contains("Document weighting"));
+        contexts.clear();
+    }
 }

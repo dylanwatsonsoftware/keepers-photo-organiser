@@ -71,6 +71,7 @@ public final class ReviewActivity extends Activity {
     private final InfiniteScrollTrigger infiniteScroll = new InfiniteScrollTrigger(600);
     private boolean hasMorePhotos;
     private FaceAnalyzer faceAnalyzer;
+    private PhotoContextAnalyzer photoContextAnalyzer;
     private GalleryFilter galleryFilter = GalleryFilter.ALL;
     private PhotoOrigin originFilter;
     private Map<String, PhotoOrigin> photoOrigins = Map.of();
@@ -89,6 +90,7 @@ public final class ReviewActivity extends Activity {
     private ExecutorService videoAnalysisExecutor;
     private VideoFrameAnalyzer videoFrameAnalyzer;
     private boolean videoAnalysisRunning;
+    private int pendingSemanticContexts;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,6 +99,7 @@ public final class ReviewActivity extends Activity {
         KeeperSelectionRecovery.runOnce(this);
         thumbnailLoader = AsyncThumbnailLoader.forResolver(getContentResolver());
         faceAnalyzer = createFaceAnalyzer();
+        photoContextAnalyzer = createPhotoContextAnalyzer();
         videoFrameAnalyzer = new VideoFrameAnalyzer(this);
         videoAnalysisExecutor = Executors.newSingleThreadExecutor(runnable ->
                 new Thread(() -> {
@@ -169,6 +172,14 @@ public final class ReviewActivity extends Activity {
             return new MlKitFaceAnalyzer();
         } catch (IllegalStateException unavailable) {
             return (photoId, bitmap, result) -> result.accept(List.of());
+        }
+    }
+
+    private static PhotoContextAnalyzer createPhotoContextAnalyzer() {
+        try {
+            return new MlKitPhotoContextAnalyzer();
+        } catch (IllegalStateException unavailable) {
+            return (bitmap, result) -> result.accept(List.of());
         }
     }
 
@@ -289,6 +300,7 @@ public final class ReviewActivity extends Activity {
             stackMembers = Map.of();
             analyzedCount = 0;
             mediaAnalysisQueue.clear();
+            pendingSemanticContexts = 0;
             grid.removeAllViews();
             tiles.clear();
             previousCount = 0;
@@ -350,15 +362,34 @@ public final class ReviewActivity extends Activity {
             if (recentPhoto.mediaType() == MediaType.VIDEO) return;
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
+                PhotoContextStore contextStore = new PhotoContextStore(this);
+                PhotoContext cachedContext = contextStore.load(photo.toString());
+                PhotoAnalysisJoin enrichment = cachedContext == null
+                        ? new PhotoAnalysisJoin(signals -> {
+                            if (generation != analysisGeneration) return;
+                            PhotoFeatures measured = measuredFeatures(photo, recentPhoto,
+                                    bitmap, assessment, FaceSignals.from(signals.faces()));
+                            contextStore.save(photo.toString(),
+                                    PhotoContextClassifier.infer(measured, signals.labels()));
+                            pendingSemanticContexts--;
+                            if (pendingSemanticContexts == 0
+                                    && mediaAnalysisQueue.photosComplete())
+                                finalizePhotoInsights();
+                        }) : null;
+                if (enrichment != null) {
+                    pendingSemanticContexts++;
+                    photoContextAnalyzer.analyze(bitmap, enrichment::acceptLabels);
+                }
                 faceAnalyzer.analyze(photo.toString(), bitmap, faces -> {
                     if (generation != analysisGeneration) return;
                     new FaceObservationStore(this).save(photo.toString(), faces);
-                    FaceSignals faceSignals = FaceSignals.from(faces);
-                    features.add(new PhotoFeatures(photo.toString(), recentPhoto.takenAtMillis(),
-                            PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
-                            assessment.exposure(), assessment.composition(), assessment.motionStability(),
-                            faceSignals.faceCount(), faceSignals.averageSmile(),
-                            faceSignals.minimumEyeOpen(), faceSignals.minimumCameraFacing()));
+                    PhotoFeatures measured = measuredFeatures(photo, recentPhoto, bitmap,
+                            assessment, FaceSignals.from(faces));
+                    PhotoContext initialContext = cachedContext == null
+                            ? PhotoContextClassifier.infer(measured, List.of()) : cachedContext;
+                    contextStore.save(photo.toString(), initialContext);
+                    features.add(measured);
+                    if (enrichment != null) enrichment.acceptFaces(faces);
                     finishStillPhotoAnalysis(generation);
                 });
                 return;
@@ -503,6 +534,15 @@ public final class ReviewActivity extends Activity {
         return tile;
     }
 
+    private static PhotoFeatures measuredFeatures(Uri photo, RecentPhoto recentPhoto,
+            Bitmap bitmap, PhotoQualityAssessment assessment, FaceSignals faceSignals) {
+        return new PhotoFeatures(photo.toString(), recentPhoto.takenAtMillis(),
+                PhotoFeatureExtractor.hash(bitmap), assessment.detail(), assessment.focus(),
+                assessment.exposure(), assessment.composition(), assessment.motionStability(),
+                faceSignals.faceCount(), faceSignals.averageSmile(),
+                faceSignals.minimumEyeOpen(), faceSignals.minimumCameraFacing());
+    }
+
     private void finishStillPhotoAnalysis(int generation) {
         if (generation != analysisGeneration) return;
         analyzedCount++;
@@ -538,6 +578,13 @@ public final class ReviewActivity extends Activity {
                 visibleFeatures, members, keepers);
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
                 feedbackStore.load(), comparisons, hiddenFeatures);
+        Map<String, PhotoContext> contexts = new HashMap<>();
+        PhotoContextStore contextStore = new PhotoContextStore(this);
+        for (PhotoFeatures feature : features) {
+            PhotoContext context = contextStore.load(feature.id());
+            if (context != null) contexts.put(feature.id(), context);
+        }
+        profile = profile.withContexts(contexts);
         BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
         new PhotoStackStore(this).save(members);
         new PhotoInsightStore(this).save(features, stacks, result.recommended(),
@@ -1116,6 +1163,7 @@ public final class ReviewActivity extends Activity {
         analysisGeneration++;
         mediaAnalysisQueue.clear();
         if (videoAnalysisExecutor != null) videoAnalysisExecutor.shutdownNow();
+        photoContextAnalyzer.close();
         faceAnalyzer.close();
         thumbnailLoader.close();
         super.onDestroy();

@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.view.LayoutInflater;
@@ -235,7 +236,7 @@ public class PreviewLayoutTest {
         assertTrue(hint.getText().toString().contains("Pinch to zoom"));
     }
 
-    @Test public void fullscreenVideoHasAStyledScrubbingTimeline() {
+    @Test public void fullscreenVideoHasMinimalControlsOverTheExistingGradient() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);
         String packageName = RuntimeEnvironment.getApplication().getPackageName();
@@ -255,6 +256,8 @@ public class PreviewLayoutTest {
         assertTrue(layout.findViewById(seekId) instanceof SeekBar);
         assertTrue(layout.findViewById(elapsedId) instanceof TextView);
         assertTrue(layout.findViewById(durationId) instanceof TextView);
-        assertNotNull(layout.findViewById(timelineId).getBackground());
+        assertNull(layout.findViewById(timelineId).getBackground());
+        assertNull(layout.findViewById(R.id.preview_video_play).getBackground());
+        assertNotNull(layout.findViewById(R.id.preview_controls).getBackground());
     }
 }

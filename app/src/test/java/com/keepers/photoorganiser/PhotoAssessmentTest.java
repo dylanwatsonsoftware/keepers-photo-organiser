@@ -53,4 +53,16 @@ public class PhotoAssessmentTest {
         assertTrue(explanation.contains("★ Looking at camera — 82%"));
         assertTrue(explanation.contains("Least forward-facing person across 2 detected faces"));
     }
+
+    @Test public void contextualAssessmentNamesAndUsesTheLikelyPhotoType() {
+        PhotoFeatures focusLed = new PhotoFeatures("document", 0, 0, .7,
+                1, .7, .4, .7, 0, -1, -1, -1);
+
+        PhotoAssessment assessment = PhotoAssessment.from(focusLed, null, false,
+                PhotoContext.of(PhotoContextType.DOCUMENT, .9));
+
+        assertEquals("Likely photo type", assessment.rules().get(0).name());
+        assertTrue(assessment.explanation().contains("Document"));
+        assertTrue(assessment.score() > PhotoAssessment.from(focusLed, null, false).score());
+    }
 }

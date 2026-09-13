@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public record PhotoAssessment(int score, List<AssessmentRule> rules) {
@@ -11,7 +12,16 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
 
     public static PhotoAssessment from(PhotoFeatures photo, PhotoStackPosition stack,
             boolean previousKeeper) {
+        return from(photo, stack, previousKeeper, PhotoContext.general());
+    }
+
+    public static PhotoAssessment from(PhotoFeatures photo, PhotoStackPosition stack,
+            boolean previousKeeper, PhotoContext context) {
         ArrayList<AssessmentRule> rules = new ArrayList<>();
+        PhotoContextType subject = context.dominantSubject();
+        if (subject != PhotoContextType.GENERAL) rules.add(AssessmentRule.scored(
+                "Likely photo type", context.probability(subject),
+                subject.displayName() + " weighting is used for this assessment."));
         rules.add(AssessmentRule.scored("Focus", photo.focus(),
                 "Edge clarity, weighted toward the centre of the photo."));
         rules.add(AssessmentRule.scored("Useful detail", photo.quality(),
@@ -43,12 +53,8 @@ public record PhotoAssessment(int score, List<AssessmentRule> rules) {
         rules.add(AssessmentRule.scored("Your previous Keeper choices", previousKeeper ? 1 : 0,
                 previousKeeper ? "You previously marked this photo as a Keeper."
                         : "No matching Keeper preference has been learned for this photo yet."));
-        double total = photo.focus() + photo.exposure() + photo.composition()
-                + photo.motionStability() + photo.quality();
-        double signalWeight = 5;
-        if (photo.eyesOpen() >= 0) { total += photo.eyesOpen() * 1.5; signalWeight += 1.5; }
-        if (photo.cameraFacing() >= 0) { total += photo.cameraFacing(); signalWeight++; }
-        double core = total / signalWeight;
+        double core = RecommendationPreferenceProfile.learn(List.of())
+                .withContexts(Map.of(photo.id(), context)).score(photo);
         return new PhotoAssessment((int) Math.round(core * 100), rules);
     }
 

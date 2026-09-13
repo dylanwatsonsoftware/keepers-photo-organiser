@@ -9,10 +9,12 @@ import java.util.Set;
 public final class PhotoInsightStore {
     private final SharedPreferences preferences;
     private final KeeperSelectionStore keeperSelections;
+    private final PhotoContextStore photoContexts;
 
     public PhotoInsightStore(Context context) {
         preferences = context.getSharedPreferences("photo_insights", Context.MODE_PRIVATE);
         keeperSelections = new KeeperSelectionStore(context);
+        photoContexts = new PhotoContextStore(context);
     }
 
     public void save(List<PhotoFeatures> features, Map<String, PhotoStackPosition> stacks,
@@ -67,7 +69,8 @@ public final class PhotoInsightStore {
                     : stack == null ? "Below the current recommendation cutoff"
                     : "Another photo in this stack scored higher";
             return new PhotoInsight(quality, stack, recommended, alternative, reason,
-                    PhotoAssessment.from(features, stack, keeperSelections.load().contains(id)));
+                    PhotoAssessment.from(features, stack, keeperSelections.load().contains(id),
+                            contextOrGeneral(id)));
         } catch (NumberFormatException invalid) {
             return null;
         }
@@ -90,5 +93,10 @@ public final class PhotoInsightStore {
         } catch (NumberFormatException invalid) {
             return null;
         }
+    }
+
+    private PhotoContext contextOrGeneral(String id) {
+        PhotoContext context = photoContexts.load(id);
+        return context == null ? PhotoContext.general() : context;
     }
 }

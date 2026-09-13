@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -404,7 +405,7 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
-    @Test public void videoPlaybackUsesPaddedImageButtonInsteadOfFontGlyph() {
+    @Test public void videoPlaybackUsesAMinimalPaddedVectorControl() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);
         imports.clear();
@@ -417,7 +418,7 @@ public class PreviewQuickReviewTest {
 
         assertTrue(control instanceof ImageButton);
         assertTrue(((ImageButton) control).getDrawable() != null);
-        assertTrue(control.getBackground() != null);
+        assertNull(control.getBackground());
         assertEquals(control.getPaddingLeft(), control.getPaddingRight());
         assertEquals(control.getPaddingTop(), control.getPaddingBottom());
         imports.clear();

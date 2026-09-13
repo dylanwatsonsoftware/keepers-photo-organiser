@@ -3,17 +3,25 @@ package com.keepers.photoorganiser;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
 public final class RecommendationPreferenceProfile {
     private static final double[] DEFAULT_WEIGHTS = { 1, 1, 1, 1, 1, 1.5, 1 };
     private final double[] weights;
     private final double strength;
     private final int feedbackCount;
+    private final Map<String, PhotoContext> contexts;
 
     private RecommendationPreferenceProfile(double[] weights, double strength, int feedbackCount) {
+        this(weights, strength, feedbackCount, Map.of());
+    }
+
+    private RecommendationPreferenceProfile(double[] weights, double strength, int feedbackCount,
+            Map<String, PhotoContext> contexts) {
         this.weights = weights;
         this.strength = strength;
         this.feedbackCount = feedbackCount;
+        this.contexts = Map.copyOf(contexts);
     }
 
     public static RecommendationPreferenceProfile learn(List<RecommendationFeedback> feedback) {
@@ -58,16 +66,23 @@ public final class RecommendationPreferenceProfile {
 
     public double score(PhotoFeatures photo) {
         double[] values = values(photo);
-        double baseline = weightedAverage(values, DEFAULT_WEIGHTS);
+        PhotoContext context = contexts.getOrDefault(photo.id(), PhotoContext.general());
+        double[] baselineWeights = contextualWeights(DEFAULT_WEIGHTS, context);
+        double baseline = weightedAverage(values, baselineWeights);
         if (feedbackCount == 0) return baseline;
+        double[] contextualWeights = contextualWeights(weights, context);
         double weighted = 0;
         double totalWeight = 0;
         for (int index = 0; index < weights.length; index++) {
             if (Double.isNaN(values[index])) continue;
-            weighted += weights[index] * values[index];
-            totalWeight += weights[index];
+            weighted += contextualWeights[index] * values[index];
+            totalWeight += contextualWeights[index];
         }
         return baseline * (1 - strength) + weighted / totalWeight * strength;
+    }
+
+    public RecommendationPreferenceProfile withContexts(Map<String, PhotoContext> contexts) {
+        return new RecommendationPreferenceProfile(weights, strength, feedbackCount, contexts);
     }
 
     public int feedbackCount() { return feedbackCount; }
@@ -97,5 +112,12 @@ public final class RecommendationPreferenceProfile {
             totalWeight += signalWeights[index];
         }
         return totalWeight == 0 ? 0 : total / totalWeight;
+    }
+
+    private static double[] contextualWeights(double[] base, PhotoContext context) {
+        double[] adjusted = new double[base.length];
+        for (int index = 0; index < base.length; index++)
+            adjusted[index] = base[index] * context.signalMultiplier(index);
+        return adjusted;
     }
 }
