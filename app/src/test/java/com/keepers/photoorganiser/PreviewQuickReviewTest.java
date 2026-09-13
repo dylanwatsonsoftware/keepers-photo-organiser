@@ -401,6 +401,7 @@ public class PreviewQuickReviewTest {
         VideoView playback = activity.findViewById(R.id.preview_video);
 
         assertEquals(View.VISIBLE, thumbnail.getVisibility());
+        assertEquals("First frame of video", thumbnail.getContentDescription());
         assertTrue(surface.indexOfChild(thumbnail) > surface.indexOfChild(playback));
         imports.clear();
     }

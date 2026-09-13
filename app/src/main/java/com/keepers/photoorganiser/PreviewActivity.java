@@ -47,6 +47,7 @@ public final class PreviewActivity extends Activity {
     private static final long VIDEO_PROGRESS_UPDATE_MS = 250;
     private static final String ADD_NEW_PERSON = "__add_new_person__";
     private AsyncThumbnailLoader loader;
+    private VideoFirstFrameLoader videoFirstFrameLoader;
     private KeeperSelectionStore store;
     private Uri photo;
     private PhotoNavigator navigator;
@@ -91,6 +92,7 @@ public final class PreviewActivity extends Activity {
         store = new KeeperSelectionStore(this);
         suggestionStore = new SuggestionStore(this);
         loader = AsyncThumbnailLoader.forResolver(getContentResolver());
+        videoFirstFrameLoader = new VideoFirstFrameLoader(this);
         int limit = getIntent().getIntExtra(ReviewActivity.EXTRA_REVIEW_LIMIT,
                 ReviewWindow.PAGE_SIZE);
         ArrayList<RecentPhoto> galleryPhotos = new ArrayList<>(
@@ -636,7 +638,10 @@ public final class PreviewActivity extends Activity {
             ImageView videoThumbnail = frontImage;
             if (!photo.equals(videoThumbnail.getTag())) videoThumbnail.setImageDrawable(null);
             videoThumbnail.setVisibility(View.VISIBLE);
-            loader.load(videoThumbnail, photo, screen);
+            videoThumbnail.setContentDescription("First frame of video");
+            videoFirstFrameLoader.load(videoThumbnail, photo, screen, firstFrame -> {
+                if (firstFrame == null) loader.load(videoThumbnail, photo, screen);
+            });
             video.setVideoURI(photo);
             video.setVisibility(View.VISIBLE);
             RecentPhoto videoDetails = mediaDetails.get(photo.toString());
@@ -1404,6 +1409,7 @@ public final class PreviewActivity extends Activity {
         if (currentVideo != null) currentVideo.stopPlayback();
         if (adjacentVideo != null) adjacentVideo.stopPlayback();
         loader.close();
+        videoFirstFrameLoader.close();
         super.onDestroy();
     }
 
