@@ -11,7 +11,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.VideoView;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -330,8 +333,45 @@ public class PreviewQuickReviewTest {
         PreviewActivity activity = create(context, video, false);
 
         assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_video).getVisibility());
-        assertEquals(View.GONE, activity.findViewById(R.id.preview_image).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_image).getVisibility());
         assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_video_play).getVisibility());
+        imports.clear();
+    }
+
+    @Test public void localVideoShowsThumbnailAbovePlaybackSurfaceBeforePlaying() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/preview-video-thumbnail");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+
+        PreviewActivity activity = create(context, video, false);
+        FrameLayout surface = activity.findViewById(R.id.preview_current_surface);
+        ImageView thumbnail = activity.findViewById(R.id.preview_image);
+        VideoView playback = activity.findViewById(R.id.preview_video);
+
+        assertEquals(View.VISIBLE, thumbnail.getVisibility());
+        assertTrue(surface.indexOfChild(thumbnail) > surface.indexOfChild(playback));
+        imports.clear();
+    }
+
+    @Test public void videoPlaybackUsesPaddedImageButtonInsteadOfFontGlyph() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri video = Uri.parse("content://media/video/media/preview-video-icon");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL,
+                MediaType.VIDEO, 8_000));
+
+        PreviewActivity activity = create(context, video, false);
+        View control = activity.findViewById(R.id.preview_video_play);
+
+        assertTrue(control instanceof ImageButton);
+        assertTrue(((ImageButton) control).getDrawable() != null);
+        assertTrue(control.getBackground() != null);
+        assertEquals(control.getPaddingLeft(), control.getPaddingRight());
+        assertEquals(control.getPaddingTop(), control.getPaddingBottom());
         imports.clear();
     }
 

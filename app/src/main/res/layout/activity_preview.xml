@@ -16,12 +16,6 @@
             android:layout_height="match_parent"
             android:visibility="invisible">
 
-            <ImageView
-                android:id="@+id/preview_adjacent_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter" />
-
             <VideoView
                 android:id="@+id/preview_adjacent_video"
                 android:layout_width="match_parent"
@@ -29,7 +23,13 @@
                 android:tag="video_surface"
                 android:visibility="gone" />
 
-            <TextView
+            <ImageView
+                android:id="@+id/preview_adjacent_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
                 android:id="@+id/preview_adjacent_video_play"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
@@ -39,11 +39,11 @@
                 android:contentDescription="Play video"
                 android:elevation="3dp"
                 android:focusable="true"
-                android:gravity="center"
+                android:padding="18dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_play"
                 android:tag="video_play"
-                android:text="▶"
-                android:textColor="#FFFFFF"
-                android:textSize="28sp"
+                android:tint="#FFFFFF"
                 android:visibility="gone" />
         </FrameLayout>
 
@@ -53,12 +53,6 @@
             android:layout_height="match_parent"
             android:elevation="1dp">
 
-            <ImageView
-                android:id="@+id/preview_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter" />
-
             <VideoView
                 android:id="@+id/preview_video"
                 android:layout_width="match_parent"
@@ -66,7 +60,13 @@
                 android:tag="video_surface"
                 android:visibility="gone" />
 
-            <TextView
+            <ImageView
+                android:id="@+id/preview_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
                 android:id="@+id/preview_video_play"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
@@ -76,11 +76,11 @@
                 android:contentDescription="Play video"
                 android:elevation="3dp"
                 android:focusable="true"
-                android:gravity="center"
+                android:padding="18dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_play"
                 android:tag="video_play"
-                android:text="▶"
-                android:textColor="#FFFFFF"
-                android:textSize="28sp"
+                android:tint="#FFFFFF"
                 android:visibility="gone" />
         </FrameLayout>
     </FrameLayout>

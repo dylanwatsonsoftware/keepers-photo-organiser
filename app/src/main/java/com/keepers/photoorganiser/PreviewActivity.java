@@ -6,10 +6,12 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.FrameLayout;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
@@ -613,32 +615,41 @@ public final class PreviewActivity extends Activity {
         resetZoom();
         VideoView video = currentSurface.findViewWithTag("video_surface");
         View play = currentSurface.findViewWithTag("video_play");
+        int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
+                getResources().getDisplayMetrics().heightPixels);
         findViewById(R.id.preview_hide).setContentDescription(
                 mediaTypeOf(photo) == MediaType.VIDEO ? "Hide video" : "Hide photo");
         if (mediaTypeOf(photo) == MediaType.VIDEO) {
-            frontImage.setVisibility(View.GONE);
+            ImageView videoThumbnail = frontImage;
+            if (!photo.equals(videoThumbnail.getTag())) videoThumbnail.setImageDrawable(null);
+            videoThumbnail.setVisibility(View.VISIBLE);
+            loader.load(videoThumbnail, photo, screen);
             video.setVideoURI(photo);
             video.setVisibility(View.VISIBLE);
+            video.setOnInfoListener((player, what, extra) -> {
+                if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START)
+                    videoThumbnail.setVisibility(View.GONE);
+                return false;
+            });
             if (play != null) {
                 play.setVisibility(photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
+                setVideoControlState(play, false);
                 play.setOnClickListener(view -> {
                     if (video.isPlaying()) {
                         video.pause();
-                        ((TextView) play).setText("▶");
-                        play.setContentDescription("Play video");
+                        setVideoControlState(play, false);
                     } else {
                         video.start();
-                        ((TextView) play).setText("❚❚");
-                        play.setContentDescription("Pause video");
+                        setVideoControlState(play, true);
                     }
                 });
             }
             video.setOnPreparedListener(player -> player.setLooping(false));
             video.setOnCompletionListener(player -> {
+                videoThumbnail.setVisibility(View.VISIBLE);
                 if (play != null) {
-                    ((TextView) play).setText("▶");
-                    play.setContentDescription("Play video");
-                    play.setVisibility(View.VISIBLE);
+                    setVideoControlState(play, false);
+                    play.setVisibility(photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
                 }
             });
             updateRecommendation();
@@ -649,14 +660,18 @@ public final class PreviewActivity extends Activity {
         video.setVisibility(View.GONE);
         if (play != null) play.setVisibility(View.GONE);
         frontImage.setVisibility(View.VISIBLE);
-        int screen = Math.max(getResources().getDisplayMetrics().widthPixels,
-                getResources().getDisplayMetrics().heightPixels);
         PreviewImageSizes sizes = PreviewImageSizes.forScreen(screen);
         loader.loadProgressive(frontImage, photo, sizes.previewPixels(), sizes.fullPixels(), bitmap -> {
             if (bitmap != null) frontImage.setVisibility(View.VISIBLE);
         });
         updateRecommendation();
         showStackCarousel();
+    }
+
+    private static void setVideoControlState(View control, boolean playing) {
+        ((ImageButton) control).setImageResource(
+                playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        control.setContentDescription(playing ? "Pause video" : "Play video");
     }
 
     private void updateRecommendation() {
@@ -1283,11 +1298,8 @@ public final class PreviewActivity extends Activity {
                 : currentSurface.findViewWithTag("video_surface");
         if (video != null && video.isPlaying()) {
             video.pause();
-            TextView play = currentSurface.findViewWithTag("video_play");
-            if (play != null) {
-                play.setText("▶");
-                play.setContentDescription("Play video");
-            }
+            View play = currentSurface.findViewWithTag("video_play");
+            if (play != null) setVideoControlState(play, false);
         }
     }
 }
