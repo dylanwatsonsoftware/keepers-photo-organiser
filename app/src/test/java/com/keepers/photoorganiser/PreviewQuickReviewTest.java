@@ -248,7 +248,8 @@ public class PreviewQuickReviewTest {
         new HiddenPhotoStore(context).clear();
     }
 
-    @Test public void swipingStackCarouselSelectsTheAdjacentStackPhoto() throws Exception {
+    @Test public void draggingStackCarouselSelectsPhotosContinuouslyBeforeRelease()
+            throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);
         imports.clear();
@@ -268,10 +269,18 @@ public class PreviewQuickReviewTest {
 
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_DOWN, 220, 40));
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 100, 40));
+        assertEquals(last, currentPhoto(activity));
+
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 220, 40));
+        assertEquals(middle, currentPhoto(activity));
+
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 340, 40));
+        assertEquals(first, currentPhoto(activity));
+
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_UP, 100, 40));
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
 
-        assertEquals(last, currentPhoto(activity));
+        assertEquals(first, currentPhoto(activity));
         imports.clear();
     }
 

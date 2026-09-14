@@ -79,6 +79,8 @@ public final class PreviewActivity extends Activity {
     private Map<String, RecentPhoto> mediaDetails = Map.of();
     private boolean photoChromeVisible = true;
     private GestureCoordinates stackCarouselGesture;
+    private int stackCarouselStartIndex = -1;
+    private boolean stackCarouselDragging;
     private List<Uri> stackCarouselMembers = List.of();
     private final Handler playbackHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingVideoAutoplay;
@@ -795,6 +797,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void showStackCarousel() {
+        if (stackCarouselDragging) return;
         List<String> members = new PhotoStackStore(this).load(photo.toString());
         Set<String> hidden = new HiddenPhotoStore(this).load();
         members = members.stream().filter(member -> !hidden.contains(member)
@@ -837,23 +840,25 @@ public final class PreviewActivity extends Activity {
     private boolean handleStackCarouselTouch(MotionEvent event) {
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
+            stackCarouselStartIndex = stackCarouselMembers.indexOf(photo);
+            if (stackCarouselStartIndex < 0) return false;
             stackCarouselGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
+            stackCarouselDragging = true;
             return false;
         }
-        if (action == MotionEvent.ACTION_CANCEL) {
-            stackCarouselGesture = null;
-            return false;
-        }
-        if (action != MotionEvent.ACTION_UP || stackCarouselGesture == null) return false;
-        float deltaX = stackCarouselGesture.deltaX(event.getRawX());
-        stackCarouselGesture = null;
-        int currentIndex = stackCarouselMembers.indexOf(photo);
-        if (currentIndex < 0) return false;
-        int targetIndex = StackCarouselSwipe.targetIndex(currentIndex,
-                stackCarouselMembers.size(), deltaX, dp(24), dp(72));
-        if (targetIndex != currentIndex) {
+        if (action == MotionEvent.ACTION_MOVE && stackCarouselGesture != null) {
+            float deltaX = stackCarouselGesture.deltaX(event.getRawX());
+            int targetIndex = StackCarouselSwipe.targetIndex(stackCarouselStartIndex,
+                    stackCarouselMembers.size(), deltaX, dp(36), dp(72));
             Uri target = stackCarouselMembers.get(targetIndex);
-            findViewById(R.id.preview_stack_carousel).post(() -> selectStackPhoto(target));
+            if (!target.equals(photo)) selectStackPhoto(target);
+            return false;
+        }
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            stackCarouselGesture = null;
+            stackCarouselStartIndex = -1;
+            stackCarouselDragging = false;
+            findViewById(R.id.preview_stack_carousel).post(this::showStackCarousel);
         }
         return false;
     }
