@@ -75,6 +75,11 @@ public final class StackThumbnailView {
         return (ImageView) thumbnail.getChildAt(0);
     }
 
+    public static void setSelected(FrameLayout thumbnail, boolean selected) {
+        image(thumbnail).setAlpha(selected ? 1f : .72f);
+        thumbnail.getChildAt(1).setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
+    }
+
     public static ImageView heart(FrameLayout thumbnail) {
         return thumbnail.findViewWithTag("stack_heart");
     }

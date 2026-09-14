@@ -867,11 +867,24 @@ public final class PreviewActivity extends Activity {
         if (selected.equals(photo)) return;
         resetZoom();
         photo = selected;
+        if (stackCarouselDragging) updateStackCarouselSelection();
         navigator = stackNavigator(photo, true);
         setIntent(PreviewPageRequest.forPhoto(getIntent(), photo));
         loadCurrent();
         updateButton();
         if (analysisSheet.getVisibility() == View.VISIBLE) showAnalysis();
+    }
+
+    private void updateStackCarouselSelection() {
+        LinearLayout thumbnails = findViewById(R.id.preview_stack_thumbnails);
+        int count = Math.min(thumbnails.getChildCount(), stackCarouselMembers.size());
+        for (int index = 0; index < count; index++) {
+            FrameLayout thumbnail = (FrameLayout) thumbnails.getChildAt(index);
+            boolean selected = stackCarouselMembers.get(index).equals(photo);
+            StackThumbnailView.setSelected(thumbnail, selected);
+            thumbnail.setContentDescription(selected
+                    ? "Current photo in stack" : "Show photo from stack");
+        }
     }
 
     private PhotoNavigator stackNavigator(Uri current, boolean preserveCurrentMember) {

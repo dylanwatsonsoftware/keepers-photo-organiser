@@ -15,6 +15,7 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
@@ -265,14 +266,23 @@ public class PreviewQuickReviewTest {
         new SuggestionStore(context).save(Set.of(middle.toString()));
         PreviewActivity activity = create(context, first, false);
         HorizontalScrollView carousel = activity.findViewById(R.id.preview_stack_carousel);
+        LinearLayout thumbnails = activity.findViewById(R.id.preview_stack_thumbnails);
         assertEquals(middle, currentPhoto(activity));
+        assertEquals(View.VISIBLE, ((FrameLayout) thumbnails.getChildAt(1))
+                .getChildAt(1).getVisibility());
 
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_DOWN, 220, 40));
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 100, 40));
         assertEquals(last, currentPhoto(activity));
+        assertEquals(View.INVISIBLE, ((FrameLayout) thumbnails.getChildAt(1))
+                .getChildAt(1).getVisibility());
+        assertEquals(View.VISIBLE, ((FrameLayout) thumbnails.getChildAt(2))
+                .getChildAt(1).getVisibility());
 
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 220, 40));
         assertEquals(middle, currentPhoto(activity));
+        assertEquals(View.VISIBLE, ((FrameLayout) thumbnails.getChildAt(1))
+                .getChildAt(1).getVisibility());
 
         carousel.dispatchTouchEvent(event(MotionEvent.ACTION_MOVE, 340, 40));
         assertEquals(first, currentPhoto(activity));
