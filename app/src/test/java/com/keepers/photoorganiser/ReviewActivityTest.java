@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.Manifest;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
+import org.robolectric.shadows.ShadowViewGroup;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
@@ -321,16 +323,22 @@ public class ReviewActivityTest {
                 Uri.parse("content://media/photo/range-3"),
                 Uri.parse("content://media/photo/range-4"),
                 Uri.parse("content://media/photo/range-5"),
-                Uri.parse("content://media/photo/range-6")));
+                Uri.parse("content://media/photo/range-6"),
+                Uri.parse("content://media/photo/range-7"),
+                Uri.parse("content://media/photo/range-8"),
+                Uri.parse("content://media/photo/range-9"),
+                Uri.parse("content://media/photo/range-10"),
+                Uri.parse("content://media/photo/range-11"),
+                Uri.parse("content://media/photo/range-12")));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         layoutThreeColumnGrid(grid, 100);
         View anchor = grid.getChildAt(0);
 
         assertTrue(anchor.performLongClick());
-        dispatchMove(anchor, 250, 150);
+        dispatchMove(anchor, 250, 350);
 
-        assertEquals("6 selected", text(activity, R.id.selection_count));
-        for (int index = 0; index < 6; index++) assertEquals(View.VISIBLE,
+        assertEquals("12 selected", text(activity, R.id.selection_count));
+        for (int index = 0; index < 12; index++) assertEquals(View.VISIBLE,
                 grid.getChildAt(index).findViewWithTag("hide_selection_check").getVisibility());
 
         dispatchMove(anchor, 150, 50);
@@ -342,6 +350,22 @@ public class ReviewActivityTest {
                 grid.getChildAt(1).findViewWithTag("hide_selection_check").getVisibility());
         assertEquals(View.GONE,
                 grid.getChildAt(2).findViewWithTag("hide_selection_check").getVisibility());
+    }
+
+    @Test public void heldRangeGesturePreventsVerticalScrollFromStealingLaterRows() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/scroll-lock")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        View anchor = grid.getChildAt(0);
+        ShadowViewGroup shadowScroll = Shadows.shadowOf(scroll);
+
+        assertFalse(shadowScroll.getDisallowInterceptTouchEvent());
+        assertTrue(anchor.performLongClick());
+        assertTrue(shadowScroll.getDisallowInterceptTouchEvent());
+
+        dispatchUp(anchor, 50, 50);
+        assertFalse(shadowScroll.getDisallowInterceptTouchEvent());
     }
 
     @Test public void heldDragPreservesSelectionsMadeBeforeThatRangeGesture() {
@@ -822,7 +846,8 @@ public class ReviewActivityTest {
     }
 
     private static void layoutThreeColumnGrid(GridLayout grid, int tileSize) {
-        grid.layout(0, 0, tileSize * 3, tileSize * 2);
+        int rows = (grid.getChildCount() + 2) / 3;
+        grid.layout(0, 0, tileSize * 3, tileSize * rows);
         for (int index = 0; index < grid.getChildCount(); index++) {
             int column = index % 3;
             int row = index / 3;

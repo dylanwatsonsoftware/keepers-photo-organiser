@@ -1055,7 +1055,7 @@ public final class ReviewActivity extends Activity {
             rangeSelectionBaseline = Set.of();
         }
         rangeSelectionGestureActive = true;
-        findViewById(R.id.review_scroll).getParent()
+        ((ScrollView) findViewById(R.id.review_scroll))
                 .requestDisallowInterceptTouchEvent(true);
         updateMediaRangeSelection(mediaId);
     }
@@ -1102,7 +1102,7 @@ public final class ReviewActivity extends Activity {
         rangeSelectionGestureActive = false;
         rangeSelectionAnchor = -1;
         rangeSelectionBaseline = Set.of();
-        findViewById(R.id.review_scroll).getParent()
+        ((ScrollView) findViewById(R.id.review_scroll))
                 .requestDisallowInterceptTouchEvent(false);
     }
 
