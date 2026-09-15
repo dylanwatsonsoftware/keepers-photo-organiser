@@ -41,11 +41,12 @@ public class ReviewLayoutTest {
 
         assertTrue(findViewWithContentDescription(layout, "Clear keepers") == null);
         assertTrue(layout.findViewById(R.id.open_settings) instanceof ImageButton);
-        int shareId = layout.getResources().getIdentifier(
-                "select_media_to_share", "id", layout.getContext().getPackageName());
-        assertTrue(shareId != 0);
-        assertTrue(layout.findViewById(shareId) instanceof ImageButton);
-        assertNotNull(((ImageButton) layout.findViewById(shareId)).getDrawable());
+        assertTrue(layout.getResources().getIdentifier(
+                "select_media_to_share", "id", layout.getContext().getPackageName()) == 0);
+        assertNotNull(layout.findViewById(layout.getResources().getIdentifier(
+                "selection_count", "id", layout.getContext().getPackageName())));
+        assertNotNull(layout.findViewById(layout.getResources().getIdentifier(
+                "cancel_selection", "id", layout.getContext().getPackageName())));
         LinearLayout summary = layout.findViewById(R.id.photo_summary);
         assertNotNull(summary);
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
@@ -72,20 +73,26 @@ public class ReviewLayoutTest {
         assertNotNull(metadata.getBackground());
     }
 
-    @Test public void galleryShareSelectionUsesEstablishedStyledActions() {
+    @Test public void gallerySelectionMenuUsesEstablishedStyledActions() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
         int actionsId = layout.getResources().getIdentifier(
-                "bulk_share_actions", "id", layout.getContext().getPackageName());
-        int confirmId = layout.getResources().getIdentifier(
-                "confirm_share_media", "id", layout.getContext().getPackageName());
+                "gallery_selection_actions", "id", layout.getContext().getPackageName());
 
         assertTrue(actionsId != 0);
-        assertTrue(confirmId != 0);
-        View confirm = layout.findViewById(confirmId);
-        assertTrue(confirm instanceof TextView);
-        assertTrue(!(confirm instanceof Button));
-        assertNotNull(confirm.getBackground());
+        for (String name : new String[]{"selection_hide", "selection_share",
+                "selection_keeper", "selection_albums"}) {
+            int actionId = layout.getResources().getIdentifier(
+                    name, "id", layout.getContext().getPackageName());
+            assertTrue(actionId != 0);
+            View action = layout.findViewById(actionId);
+            assertTrue(action instanceof TextView);
+            assertTrue(!(action instanceof Button));
+            assertTrue(action.isClickable());
+            assertNotNull(action.getBackground());
+            assertNotNull(((TextView) action).getCompoundDrawables()[1]);
+            assertNotNull(((TextView) action).getCompoundDrawableTintList());
+        }
     }
 
     private static View findViewWithText(View view, String text) {

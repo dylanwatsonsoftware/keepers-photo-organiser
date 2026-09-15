@@ -1,6 +1,7 @@
 package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNull;
@@ -11,6 +12,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
@@ -234,10 +236,9 @@ public class ReviewActivityTest {
         activity.showPhotos(List.of(first, second));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
-        activity.findViewById(R.id.select_photos_to_hide).performClick();
-        grid.getChildAt(0).performClick();
+        assertTrue(grid.getChildAt(0).performLongClick());
         grid.getChildAt(1).performClick();
-        activity.findViewById(R.id.confirm_hide_photos).performClick();
+        activity.findViewById(id(activity, "selection_hide")).performClick();
 
         assertEquals(Set.of(first.toString(), second.toString()),
                 new HiddenPhotoStore(activity).load());
@@ -252,17 +253,9 @@ public class ReviewActivityTest {
                 new RecentPhoto(photo, 20),
                 new RecentPhoto(video, 10, MediaType.VIDEO, 3_000)));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
-        int selectId = activity.getResources().getIdentifier(
-                "select_media_to_share", "id", activity.getPackageName());
-        int confirmId = activity.getResources().getIdentifier(
-                "confirm_share_media", "id", activity.getPackageName());
-
-        assertTrue(selectId != 0);
-        assertTrue(confirmId != 0);
-        activity.findViewById(selectId).performClick();
-        grid.getChildAt(0).performClick();
+        assertTrue(grid.getChildAt(0).performLongClick());
         grid.getChildAt(1).performClick();
-        activity.findViewById(confirmId).performClick();
+        activity.findViewById(id(activity, "selection_share")).performClick();
 
         Intent chooser = Shadows.shadowOf(activity).getNextStartedActivity();
         Intent share = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
@@ -278,14 +271,75 @@ public class ReviewActivityTest {
         activity.showPhotos(List.of(Uri.parse("content://media/photo/select-green")));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
-        activity.findViewById(R.id.select_media_to_share).performClick();
-        grid.getChildAt(0).performClick();
+        assertTrue(grid.getChildAt(0).performLongClick());
 
         TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
         assertEquals(View.VISIBLE, check.getVisibility());
         assertEquals("✓", check.getText().toString());
         GradientDrawable background = (GradientDrawable) check.getBackground();
         assertEquals(Color.rgb(24, 128, 56), background.getColor().getDefaultColor());
+    }
+
+    @Test public void longPressStartsInsetGallerySelectionWithCountAndCancel() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/one"),
+                Uri.parse("content://media/photo/two")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        assertTrue(grid.getChildAt(0).performLongClick());
+
+        assertEquals("1 selected", text(activity, id(activity, "selection_count")));
+        assertEquals(View.VISIBLE,
+                activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
+        ImageView image = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
+        assertEquals(.9f, image.getScaleX(), .001f);
+        TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
+        assertEquals(Gravity.TOP | Gravity.START,
+                ((android.widget.FrameLayout.LayoutParams) check.getLayoutParams()).gravity);
+
+        grid.getChildAt(1).performClick();
+        assertEquals("2 selected", text(activity, id(activity, "selection_count")));
+        activity.findViewById(id(activity, "cancel_selection")).performClick();
+
+        assertEquals(View.GONE,
+                activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
+        assertEquals(1f, image.getScaleX(), .001f);
+        assertEquals(View.GONE, check.getVisibility());
+    }
+
+    @Test public void gallerySelectionCanMarkMultipleItemsAsKeepers() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri first = Uri.parse("content://media/photo/keeper-one");
+        Uri second = Uri.parse("content://media/photo/keeper-two");
+        activity.showPhotos(List.of(first, second));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        assertTrue(grid.getChildAt(0).performLongClick());
+        grid.getChildAt(1).performClick();
+        activity.findViewById(id(activity, "selection_keeper")).performClick();
+
+        assertEquals(Set.of(first.toString(), second.toString()),
+                new KeeperSelectionStore(activity).load());
+        assertEquals(View.GONE,
+                activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
+    }
+
+    @Test public void gallerySelectionCanOpenOnlyThoseItemsInAddToAlbums() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri first = Uri.parse("content://media/photo/album-one");
+        Uri second = Uri.parse("content://media/photo/album-two");
+        activity.showPhotos(List.of(first, second));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        assertTrue(grid.getChildAt(0).performLongClick());
+        activity.findViewById(id(activity, "selection_albums")).performClick();
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
+        assertEquals(List.of(first.toString()),
+                started.getStringArrayListExtra("selected_media"));
+        assertTrue(new KeeperSelectionStore(activity).load().contains(first.toString()));
+        assertFalse(new KeeperSelectionStore(activity).load().contains(second.toString()));
     }
 
     @Test public void galleryBulkHideHidesEveryPhotoInASelectedStack() {
@@ -302,9 +356,8 @@ public class ReviewActivityTest {
         new PhotoStackStore(activity).save(Map.of(first, stack, second, stack));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
 
-        activity.findViewById(R.id.select_photos_to_hide).performClick();
-        grid.getChildAt(0).performClick();
-        activity.findViewById(R.id.confirm_hide_photos).performClick();
+        assertTrue(grid.getChildAt(0).performLongClick());
+        activity.findViewById(id(activity, "selection_hide")).performClick();
 
         assertEquals(Set.of(first, second), new HiddenPhotoStore(activity).load());
         assertEquals(1, grid.getChildCount());
@@ -692,5 +745,11 @@ public class ReviewActivityTest {
 
     private static String text(ReviewActivity activity, int id) {
         return ((TextView) activity.findViewById(id)).getText().toString();
+    }
+
+    private static int id(ReviewActivity activity, String name) {
+        int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        assertTrue("Missing view id " + name, id != 0);
+        return id;
     }
 }

@@ -15,6 +15,7 @@
         android:paddingEnd="12dp">
 
         <TextView
+            android:id="@+id/gallery_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -22,6 +23,31 @@
             android:textColor="#202124"
             android:textSize="28sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/selection_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="1 selected"
+            android:textColor="#202124"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/cancel_selection"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="14dp"
+            android:text="Cancel"
+            android:textColor="#3C4043"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/open_settings"
@@ -33,17 +59,6 @@
             android:src="@drawable/ic_settings"
             android:tint="#5F6368" />
 
-        <ImageButton android:id="@+id/select_media_to_share" android:layout_width="44dp"
-            android:layout_height="44dp" android:layout_marginStart="4dp"
-            android:background="@drawable/gallery_icon_button"
-            android:contentDescription="Select media to share" android:padding="11dp"
-            android:src="@drawable/ic_share" android:tint="#5F6368" />
-
-        <ImageButton android:id="@+id/select_photos_to_hide" android:layout_width="44dp"
-            android:layout_height="44dp" android:layout_marginStart="4dp"
-            android:background="@drawable/gallery_icon_button"
-            android:contentDescription="Select media to hide" android:padding="11dp"
-            android:src="@drawable/ic_hide" android:tint="#5F6368" />
     </LinearLayout>
 
     <LinearLayout
@@ -102,46 +117,6 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/bulk_hide_actions" android:layout_width="match_parent"
-        android:layout_height="48dp" android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="10dp" android:gravity="center_vertical"
-        android:orientation="horizontal" android:visibility="gone">
-        <TextView android:id="@+id/bulk_hide_status" android:layout_width="0dp"
-            android:layout_height="match_parent" android:layout_weight="1"
-            android:gravity="center_vertical" android:text="Tap photos to select"
-            android:textColor="#3C4043" android:textStyle="bold" />
-        <TextView android:id="@+id/cancel_hide_photos" android:layout_width="wrap_content"
-            android:layout_height="40dp" android:background="@drawable/gallery_filter_chip"
-            android:clickable="true" android:focusable="true" android:gravity="center"
-            android:paddingHorizontal="14dp" android:text="Cancel" android:textColor="#3C4043"
-            android:textStyle="bold" />
-        <TextView android:id="@+id/confirm_hide_photos" android:layout_width="wrap_content"
-            android:layout_height="40dp" android:layout_marginStart="8dp"
-            android:background="@drawable/gallery_primary_action" android:clickable="true"
-            android:focusable="true" android:gravity="center" android:paddingHorizontal="14dp"
-            android:text="Hide selected" android:textColor="#FFFFFF" android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/bulk_share_actions" android:layout_width="match_parent"
-        android:layout_height="48dp" android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="10dp" android:gravity="center_vertical"
-        android:orientation="horizontal" android:visibility="gone">
-        <TextView android:id="@+id/bulk_share_status" android:layout_width="0dp"
-            android:layout_height="match_parent" android:layout_weight="1"
-            android:gravity="center_vertical" android:text="Tap media to select"
-            android:textColor="#3C4043" android:textStyle="bold" />
-        <TextView android:id="@+id/cancel_share_media" android:layout_width="wrap_content"
-            android:layout_height="40dp" android:background="@drawable/gallery_filter_chip"
-            android:clickable="true" android:focusable="true" android:gravity="center"
-            android:paddingHorizontal="14dp" android:text="Cancel" android:textColor="#3C4043"
-            android:textStyle="bold" />
-        <TextView android:id="@+id/confirm_share_media" android:layout_width="wrap_content"
-            android:layout_height="40dp" android:layout_marginStart="8dp"
-            android:background="@drawable/gallery_primary_action" android:clickable="true"
-            android:focusable="true" android:gravity="center" android:paddingHorizontal="14dp"
-            android:text="Share selected" android:textColor="#FFFFFF" android:textStyle="bold" />
     </LinearLayout>
 
     <HorizontalScrollView
@@ -404,6 +379,94 @@
         android:layout_margin="12dp"
         android:indeterminateTint="#B06000"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/gallery_selection_actions"
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/person_setup_card"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="6dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/selection_hide"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:drawablePadding="3dp"
+            android:drawableTint="#3C4043"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Hide"
+            android:textColor="#3C4043"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:drawableTop="@drawable/ic_hide" />
+
+        <TextView
+            android:id="@+id/selection_share"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:drawablePadding="3dp"
+            android:drawableTint="#3C4043"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Share"
+            android:textColor="#3C4043"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:drawableTop="@drawable/ic_share" />
+
+        <TextView
+            android:id="@+id/selection_keeper"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:drawablePadding="3dp"
+            android:drawableTint="#D93025"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Keeper"
+            android:textColor="#3C4043"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:drawableTop="@drawable/ic_heart_filled" />
+
+        <TextView
+            android:id="@+id/selection_albums"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_filter_chip"
+            android:clickable="true"
+            android:drawablePadding="3dp"
+            android:drawableTint="#3C4043"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Albums"
+            android:textColor="#3C4043"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:drawableTop="@drawable/ic_review_albums" />
+    </LinearLayout>
+
     <FrameLayout
         android:id="@+id/open_album_review"
         android:layout_width="match_parent"

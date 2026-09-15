@@ -82,11 +82,9 @@ public final class ReviewActivity extends Activity {
     private String pickerAccessToken;
     private String pickerSessionId;
     private boolean metadataVisible;
-    private boolean selectingPhotosToHide;
-    private boolean selectingMediaToShare;
+    private boolean selectingMedia;
     private boolean viewportLoadPending;
-    private final Set<String> hideSelections = new HashSet<>();
-    private final Set<String> shareSelections = new HashSet<>();
+    private final Set<String> mediaSelections = new HashSet<>();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private ExecutorService videoAnalysisExecutor;
@@ -114,12 +112,12 @@ public final class ReviewActivity extends Activity {
                 startActivity(new Intent(this, PeopleActivity.class)));
         findViewById(R.id.open_album_review).setOnClickListener(view ->
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
-        findViewById(R.id.select_photos_to_hide).setOnClickListener(view -> beginHideSelection());
-        findViewById(R.id.select_media_to_share).setOnClickListener(view -> beginShareSelection());
-        findViewById(R.id.cancel_hide_photos).setOnClickListener(view -> endHideSelection());
-        findViewById(R.id.confirm_hide_photos).setOnClickListener(view -> hideSelectedPhotos());
-        findViewById(R.id.cancel_share_media).setOnClickListener(view -> endShareSelection());
-        findViewById(R.id.confirm_share_media).setOnClickListener(view -> shareSelectedMedia());
+        findViewById(R.id.cancel_selection).setOnClickListener(view -> endMediaSelection());
+        findViewById(R.id.selection_hide).setOnClickListener(view -> hideSelectedMedia());
+        findViewById(R.id.selection_share).setOnClickListener(view -> shareSelectedMedia());
+        findViewById(R.id.selection_keeper).setOnClickListener(view -> keepSelectedMedia());
+        findViewById(R.id.selection_albums).setOnClickListener(view ->
+                addSelectedMediaToAlbums());
         findViewById(R.id.filter_keepers).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_include_keepers).setOnClickListener(view ->
@@ -158,6 +156,14 @@ public final class ReviewActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleImportAction(intent);
+    }
+
+    @Override public void onBackPressed() {
+        if (selectingMedia) {
+            endMediaSelection();
+            return;
+        }
+        super.onBackPressed();
     }
 
     private void handleImportAction(Intent intent) {
@@ -415,6 +421,10 @@ public final class ReviewActivity extends Activity {
         markerParams.setMargins(0, dp(7), dp(7), 0);
         tile.addView(marker, markerParams);
         marker.setOnClickListener(view -> {
+            if (selectingMedia) {
+                toggleMediaSelection(photo.toString());
+                return;
+            }
             boolean selected = selectionStore.toggle(photo);
             PhotoFeatures measured = features.stream()
                     .filter(item -> item.id().equals(photo.toString())).findFirst().orElse(null);
@@ -506,17 +516,24 @@ public final class ReviewActivity extends Activity {
         hideCheck.setGravity(Gravity.CENTER);
         hideCheck.setBackground(selectionCircle());
         hideCheck.setVisibility(View.GONE);
-        tile.addView(hideCheck, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
+        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+                Gravity.TOP | Gravity.START);
+        checkParams.setMargins(dp(7), dp(7), 0, 0);
+        tile.addView(hideCheck, checkParams);
         tile.setContentDescription(recentPhoto.mediaType() == MediaType.VIDEO
                 ? "Video. Tap to mark as keeper." : "Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> {
-            if (selectingMediaToShare) { toggleShareSelection(photo.toString()); return; }
-            if (selectingPhotosToHide) { toggleHideSelection(photo.toString()); return; }
+            if (selectingMedia) { toggleMediaSelection(photo.toString()); return; }
             Intent preview = new Intent(this, PreviewActivity.class)
                     .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit());
             if (recentPhoto.mediaType() == MediaType.VIDEO)
                 preview.putExtra(PreviewActivity.EXTRA_AUTOPLAY_VIDEO, true);
             startActivity(preview);
+        });
+        tile.setOnLongClickListener(view -> {
+            if (!selectingMedia) beginMediaSelection(photo.toString());
+            else toggleMediaSelection(photo.toString());
+            return true;
         });
         TextView videoDuration = new TextView(this);
         videoDuration.setTag("video_duration");
@@ -943,6 +960,7 @@ public final class ReviewActivity extends Activity {
         ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
                 ? "No new keepers" : count + (count == 1 ? " new keeper" : " new keepers"));
         applyFilter();
+        updateMediaSelectionDisplay();
     }
 
     void showSuggestions(Set<String> recommended) {
@@ -1012,95 +1030,105 @@ public final class ReviewActivity extends Activity {
         updateMetadataOverlays();
     }
 
-    private void beginHideSelection() {
-        endShareSelection();
-        selectingPhotosToHide = true;
-        hideSelections.clear();
-        findViewById(R.id.bulk_hide_actions).setVisibility(View.VISIBLE);
-        updateHideSelectionDisplay();
+    private void beginMediaSelection(String mediaId) {
+        selectingMedia = true;
+        mediaSelections.clear();
+        mediaSelections.add(mediaId);
+        updateMediaSelectionDisplay();
     }
 
-    private void endHideSelection() {
-        selectingPhotosToHide = false;
-        hideSelections.clear();
-        findViewById(R.id.bulk_hide_actions).setVisibility(View.GONE);
-        updateHideSelectionDisplay();
+    private void endMediaSelection() {
+        selectingMedia = false;
+        mediaSelections.clear();
+        updateSelectionDisplay();
     }
 
-    private void toggleHideSelection(String photoId) {
-        if (!hideSelections.add(photoId)) hideSelections.remove(photoId);
-        updateHideSelectionDisplay();
+    private void toggleMediaSelection(String mediaId) {
+        if (!mediaSelections.add(mediaId)) mediaSelections.remove(mediaId);
+        if (mediaSelections.isEmpty()) endMediaSelection();
+        else updateMediaSelectionDisplay();
     }
 
-    private void updateHideSelectionDisplay() {
+    private void updateMediaSelectionDisplay() {
+        TextView title = findViewById(R.id.gallery_title);
+        TextView count = findViewById(R.id.selection_count);
+        View cancel = findViewById(R.id.cancel_selection);
+        View settings = findViewById(R.id.open_settings);
+        View actions = findViewById(R.id.gallery_selection_actions);
+        View albums = findViewById(R.id.open_album_review);
+        title.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        count.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
+        cancel.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
+        settings.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        actions.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
+        albums.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        count.setText(mediaSelections.size() + " selected");
         for (FrameLayout tile : tiles) {
+            boolean selected = selectingMedia
+                    && mediaSelections.contains(tile.getTag().toString());
+            ImageView image = (ImageView) tile.getChildAt(0);
+            image.setScaleX(selected ? .9f : 1f);
+            image.setScaleY(selected ? .9f : 1f);
             TextView check = tile.findViewWithTag("hide_selection_check");
-            check.setVisibility(selectingPhotosToHide
-                    && hideSelections.contains(tile.getTag().toString())
-                    ? View.VISIBLE : View.GONE);
+            check.setVisibility(selected ? View.VISIBLE : View.GONE);
+            if (selectingMedia) {
+                tile.getChildAt(1).setVisibility(View.GONE);
+                tile.getChildAt(2).setVisibility(View.GONE);
+            }
         }
-        TextView status = findViewById(R.id.bulk_hide_status);
-        status.setText(hideSelections.isEmpty() ? "Tap photos to select"
-                : hideSelections.size() + (hideSelections.size() == 1
-                        ? " photo selected" : " photos selected"));
-        View confirm = findViewById(R.id.confirm_hide_photos);
-        confirm.setEnabled(!hideSelections.isEmpty());
-        confirm.setAlpha(hideSelections.isEmpty() ? .4f : 1f);
     }
 
-    private void hideSelectedPhotos() {
-        if (hideSelections.isEmpty()) return;
-        new HiddenPhotoStore(this).hide(Set.copyOf(hideSelections));
-        endHideSelection();
-        applyFilter();
-    }
-
-    private void beginShareSelection() {
-        endHideSelection();
-        selectingMediaToShare = true;
-        shareSelections.clear();
-        findViewById(R.id.bulk_share_actions).setVisibility(View.VISIBLE);
-        updateShareSelectionDisplay();
-    }
-
-    private void endShareSelection() {
-        selectingMediaToShare = false;
-        shareSelections.clear();
-        findViewById(R.id.bulk_share_actions).setVisibility(View.GONE);
-        updateShareSelectionDisplay();
-    }
-
-    private void toggleShareSelection(String mediaId) {
-        if (!shareSelections.add(mediaId)) shareSelections.remove(mediaId);
-        updateShareSelectionDisplay();
-    }
-
-    private void updateShareSelectionDisplay() {
-        for (FrameLayout tile : tiles) {
-            TextView check = tile.findViewWithTag("hide_selection_check");
-            check.setVisibility(selectingMediaToShare
-                    && shareSelections.contains(tile.getTag().toString())
-                    ? View.VISIBLE : View.GONE);
-        }
-        TextView status = findViewById(R.id.bulk_share_status);
-        status.setText(shareSelections.isEmpty() ? "Tap media to select"
-                : shareSelections.size() + (shareSelections.size() == 1
-                        ? " item selected" : " items selected"));
-        View confirm = findViewById(R.id.confirm_share_media);
-        confirm.setEnabled(!shareSelections.isEmpty());
-        confirm.setAlpha(shareSelections.isEmpty() ? .4f : 1f);
+    private void hideSelectedMedia() {
+        if (mediaSelections.isEmpty()) return;
+        new HiddenPhotoStore(this).hide(Set.copyOf(mediaSelections));
+        endMediaSelection();
     }
 
     private void shareSelectedMedia() {
-        if (shareSelections.isEmpty()) return;
+        if (mediaSelections.isEmpty()) return;
         List<Uri> selected = photos.stream().filter(photo ->
-                shareSelections.contains(photo.toString())).toList();
+                mediaSelections.contains(photo.toString())).toList();
         List<MediaType> types = selected.stream().map(photo ->
                 mediaTypes.getOrDefault(photo.toString(), MediaType.PHOTO)).toList();
         Intent share = MediaShareIntentFactory.create(selected, types);
         startActivity(Intent.createChooser(share,
                 selected.size() == 1 ? "Share photo" : "Share media"));
-        endShareSelection();
+        endMediaSelection();
+    }
+
+    private void keepSelectedMedia() {
+        markSelectedAsKeepers();
+        endMediaSelection();
+    }
+
+    private void addSelectedMediaToAlbums() {
+        if (mediaSelections.isEmpty()) return;
+        ArrayList<String> selected = new ArrayList<>();
+        for (Uri photo : photos)
+            if (mediaSelections.contains(photo.toString())) selected.add(photo.toString());
+        markSelectedAsKeepers();
+        startActivity(new Intent(this, AlbumReviewActivity.class)
+                .putStringArrayListExtra(AlbumReviewActivity.EXTRA_SELECTED_MEDIA, selected));
+        endMediaSelection();
+    }
+
+    private void markSelectedAsKeepers() {
+        if (mediaSelections.isEmpty()) return;
+        HashSet<String> keepers = new HashSet<>(selectionStore.load());
+        keepers.addAll(mediaSelections);
+        selectionStore.replace(keepers);
+        RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
+        for (String mediaId : mediaSelections) {
+            PhotoFeatures measured = features.stream().filter(item ->
+                    item.id().equals(mediaId)).findFirst().orElse(null);
+            if (measured == null) measured = new PhotoInsightStore(this).loadFeatures(mediaId);
+            if (measured == null) continue;
+            RecommendationFeedback previous = feedbackStore.load(mediaId);
+            feedbackStore.save(RecommendationFeedback.from(measured,
+                    RecommendationFeedback.LOVED,
+                    previous == null ? "" : previous.comment()));
+        }
+        AlbumApprovalInvalidator.invalidate(this);
     }
 
     private void updateMetadataOverlays() {

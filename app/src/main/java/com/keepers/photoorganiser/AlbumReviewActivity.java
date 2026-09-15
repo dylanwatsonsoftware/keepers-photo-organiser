@@ -26,6 +26,7 @@ import java.util.Map;
 
 public final class AlbumReviewActivity extends Activity {
     public static final String EXTRA_COMPLETED_COUNT = "completed_album_change_count";
+    public static final String EXTRA_SELECTED_MEDIA = "selected_media";
     private AsyncThumbnailLoader thumbnailLoader;
     private AlbumReviewSelectionStore reviewStore;
     private boolean showReviewed;
@@ -89,6 +90,8 @@ public final class AlbumReviewActivity extends Activity {
 
     private void render() {
         Set<String> keepers = new KeeperSelectionStore(this).load();
+        ArrayList<String> requested = getIntent().getStringArrayListExtra(EXTRA_SELECTED_MEDIA);
+        if (requested != null) keepers.retainAll(new HashSet<>(requested));
         List<TrackedPerson> people = new TrackedPersonStore(this).load().stream()
                 .filter(person -> !person.albumName().isBlank()).toList();
         List<RegisteredAlbum> otherAlbums = new RegisteredAlbumStore(this).load().stream()

@@ -32,6 +32,24 @@ import android.net.Uri;
 
 @RunWith(RobolectricTestRunner.class)
 public class AlbumReviewActivityTest {
+    @Test public void gallerySelectionOpensOnlyTheRequestedKeepers() {
+        seed();
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        Intent intent = new Intent(context, AlbumReviewActivity.class)
+                .putStringArrayListExtra("selected_media",
+                        new java.util.ArrayList<>(List.of("content://photos/b")));
+
+        AlbumReviewActivity activity = Robolectric.buildActivity(
+                AlbumReviewActivity.class, intent).setup().get();
+        LinearLayout queue = activity.findViewById(R.id.album_review_items);
+
+        assertEquals(1, queue.getChildCount());
+        ImageView image = (ImageView) ((ViewGroup) queue.getChildAt(0)).getChildAt(0);
+        image.performClick();
+        assertEquals(Uri.parse("content://photos/b"),
+                Shadows.shadowOf(activity).getNextStartedActivity().getData());
+    }
+
     @Test public void oneDestinationCanBeAddedToEveryShownPhotoWithoutClearingSelections() {
         seed();
         AlbumReviewActivity activity = Robolectric.buildActivity(AlbumReviewActivity.class)
