@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
@@ -305,6 +306,68 @@ public class ReviewActivityTest {
                 activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
         assertEquals(1f, image.getScaleX(), .001f);
         assertEquals(View.GONE, check.getVisibility());
+    }
+
+    @Test public void heldDragExpandsAndContractsTheVisibleSelectionRange() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/range-1"),
+                Uri.parse("content://media/photo/range-2"),
+                Uri.parse("content://media/photo/range-3"),
+                Uri.parse("content://media/photo/range-4"),
+                Uri.parse("content://media/photo/range-5"),
+                Uri.parse("content://media/photo/range-6")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        layoutThreeColumnGrid(grid, 100);
+        View anchor = grid.getChildAt(0);
+
+        assertTrue(anchor.performLongClick());
+        dispatchMove(anchor, 250, 150);
+
+        assertEquals("6 selected", text(activity, R.id.selection_count));
+        for (int index = 0; index < 6; index++) assertEquals(View.VISIBLE,
+                grid.getChildAt(index).findViewWithTag("hide_selection_check").getVisibility());
+
+        dispatchMove(anchor, 150, 50);
+
+        assertEquals("2 selected", text(activity, R.id.selection_count));
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(0).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(1).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.GONE,
+                grid.getChildAt(2).findViewWithTag("hide_selection_check").getVisibility());
+    }
+
+    @Test public void heldDragPreservesSelectionsMadeBeforeThatRangeGesture() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/existing-1"),
+                Uri.parse("content://media/photo/existing-2"),
+                Uri.parse("content://media/photo/existing-3"),
+                Uri.parse("content://media/photo/existing-4"),
+                Uri.parse("content://media/photo/existing-5")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        layoutThreeColumnGrid(grid, 100);
+        grid.getChildAt(4).performLongClick();
+        dispatchUp(grid.getChildAt(4), 150, 150);
+        grid.getChildAt(0).performClick();
+
+        View anchor = grid.getChildAt(1);
+        anchor.performLongClick();
+        dispatchMove(anchor, -50, 150);
+        assertEquals("5 selected", text(activity, R.id.selection_count));
+        dispatchMove(anchor, 50, 50);
+
+        assertEquals("3 selected", text(activity, R.id.selection_count));
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(0).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(1).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(4).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.GONE,
+                grid.getChildAt(2).findViewWithTag("hide_selection_check").getVisibility());
     }
 
     @Test public void gallerySelectionCanMarkMultipleItemsAsKeepers() {
@@ -751,5 +814,29 @@ public class ReviewActivityTest {
         int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
         assertTrue("Missing view id " + name, id != 0);
         return id;
+    }
+
+    private static void layoutThreeColumnGrid(GridLayout grid, int tileSize) {
+        grid.layout(0, 0, tileSize * 3, tileSize * 2);
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            int column = index % 3;
+            int row = index / 3;
+            grid.getChildAt(index).layout(column * tileSize, row * tileSize,
+                    (column + 1) * tileSize, (row + 1) * tileSize);
+        }
+    }
+
+    private static void dispatchMove(View view, float localX, float localY) {
+        MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_MOVE,
+                localX, localY, 0);
+        view.dispatchTouchEvent(event);
+        event.recycle();
+    }
+
+    private static void dispatchUp(View view, float localX, float localY) {
+        MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP,
+                localX, localY, 0);
+        view.dispatchTouchEvent(event);
+        event.recycle();
     }
 }

@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.os.Process;
 import android.provider.MediaStore;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
@@ -83,8 +84,11 @@ public final class ReviewActivity extends Activity {
     private String pickerSessionId;
     private boolean metadataVisible;
     private boolean selectingMedia;
+    private boolean rangeSelectionGestureActive;
+    private int rangeSelectionAnchor = -1;
     private boolean viewportLoadPending;
     private final Set<String> mediaSelections = new HashSet<>();
+    private Set<String> rangeSelectionBaseline = Set.of();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private ExecutorService videoAnalysisExecutor;
@@ -531,9 +535,19 @@ public final class ReviewActivity extends Activity {
             startActivity(preview);
         });
         tile.setOnLongClickListener(view -> {
-            if (!selectingMedia) beginMediaSelection(photo.toString());
-            else toggleMediaSelection(photo.toString());
+            beginMediaRangeSelection(photo.toString());
             return true;
+        });
+        tile.setOnTouchListener((view, event) -> {
+            if (!rangeSelectionGestureActive) return false;
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                String target = visibleMediaAt(view, event.getX(), event.getY());
+                if (target != null) updateMediaRangeSelection(target);
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                finishMediaRangeSelection();
+            }
+            return false;
         });
         TextView videoDuration = new TextView(this);
         videoDuration.setTag("video_duration");
@@ -1030,14 +1044,70 @@ public final class ReviewActivity extends Activity {
         updateMetadataOverlays();
     }
 
-    private void beginMediaSelection(String mediaId) {
-        selectingMedia = true;
+    private void beginMediaRangeSelection(String mediaId) {
+        List<String> visible = visibleMediaIds();
+        rangeSelectionAnchor = visible.indexOf(mediaId);
+        if (rangeSelectionAnchor < 0) return;
+        rangeSelectionBaseline = new HashSet<>(mediaSelections);
+        if (!selectingMedia) {
+            selectingMedia = true;
+            mediaSelections.clear();
+            rangeSelectionBaseline = Set.of();
+        }
+        rangeSelectionGestureActive = true;
+        findViewById(R.id.review_scroll).getParent()
+                .requestDisallowInterceptTouchEvent(true);
+        updateMediaRangeSelection(mediaId);
+    }
+
+    private void updateMediaRangeSelection(String mediaId) {
+        if (!rangeSelectionGestureActive) return;
+        List<String> visible = visibleMediaIds();
+        int current = visible.indexOf(mediaId);
+        if (current < 0 || rangeSelectionAnchor >= visible.size()) return;
         mediaSelections.clear();
-        mediaSelections.add(mediaId);
+        mediaSelections.addAll(rangeSelectionBaseline);
+        int first = Math.min(rangeSelectionAnchor, current);
+        int last = Math.max(rangeSelectionAnchor, current);
+        mediaSelections.addAll(visible.subList(first, last + 1));
         updateMediaSelectionDisplay();
     }
 
+    private List<String> visibleMediaIds() {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        ArrayList<String> visible = new ArrayList<>();
+        for (int index = 0; index < grid.getChildCount(); index++)
+            visible.add(grid.getChildAt(index).getTag().toString());
+        return visible;
+    }
+
+    private String visibleMediaAt(View touchTarget, float localX, float localY) {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int[] touchLocation = new int[2];
+        touchTarget.getLocationOnScreen(touchLocation);
+        float rawX = touchLocation[0] + localX;
+        float rawY = touchLocation[1] + localY;
+        int[] location = new int[2];
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            View tile = grid.getChildAt(index);
+            tile.getLocationOnScreen(location);
+            if (rawX >= location[0] && rawX < location[0] + tile.getWidth()
+                    && rawY >= location[1] && rawY < location[1] + tile.getHeight())
+                return tile.getTag().toString();
+        }
+        return null;
+    }
+
+    private void finishMediaRangeSelection() {
+        rangeSelectionGestureActive = false;
+        rangeSelectionAnchor = -1;
+        rangeSelectionBaseline = Set.of();
+        findViewById(R.id.review_scroll).getParent()
+                .requestDisallowInterceptTouchEvent(false);
+    }
+
     private void endMediaSelection() {
+        finishMediaRangeSelection();
         selectingMedia = false;
         mediaSelections.clear();
         updateSelectionDisplay();
