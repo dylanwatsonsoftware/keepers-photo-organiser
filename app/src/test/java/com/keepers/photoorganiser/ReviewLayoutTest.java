@@ -2,6 +2,7 @@ package com.keepers.photoorganiser;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -86,12 +87,18 @@ public class ReviewLayoutTest {
                     name, "id", layout.getContext().getPackageName());
             assertTrue(actionId != 0);
             View action = layout.findViewById(actionId);
-            assertTrue(action instanceof TextView);
+            assertTrue(action instanceof FrameLayout);
             assertTrue(!(action instanceof Button));
             assertTrue(action.isClickable());
             assertNotNull(action.getBackground());
-            assertNotNull(((TextView) action).getCompoundDrawables()[1]);
-            assertNotNull(((TextView) action).getCompoundDrawableTintList());
+            LinearLayout content = (LinearLayout) ((FrameLayout) action).getChildAt(0);
+            assertEquals(LinearLayout.VERTICAL, content.getOrientation());
+            assertEquals(Gravity.CENTER, content.getGravity());
+            ImageView icon = (ImageView) content.getChildAt(0);
+            assertEquals(24, icon.getLayoutParams().width);
+            assertEquals(24, icon.getLayoutParams().height);
+            assertEquals(ImageView.ScaleType.CENTER_INSIDE, icon.getScaleType());
+            assertTrue(content.getChildAt(1) instanceof TextView);
         }
     }
 

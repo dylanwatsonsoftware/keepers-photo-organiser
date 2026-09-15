@@ -394,7 +394,7 @@
         android:padding="6dp"
         android:visibility="gone">
 
-        <TextView
+        <FrameLayout
             android:id="@+id/selection_hide"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -402,17 +402,38 @@
             android:layout_weight="1"
             android:background="@drawable/gallery_filter_chip"
             android:clickable="true"
-            android:drawablePadding="3dp"
-            android:drawableTint="#3C4043"
+            android:contentDescription="Hide selected media"
             android:focusable="true"
-            android:gravity="center"
-            android:text="Hide"
-            android:textColor="#3C4043"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:drawableTop="@drawable/ic_hide" />
+            >
 
-        <TextView
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginBottom="3dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_hide"
+                    android:tint="#3C4043" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hide"
+                    android:textColor="#3C4043"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/selection_share"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -420,17 +441,38 @@
             android:layout_weight="1"
             android:background="@drawable/gallery_filter_chip"
             android:clickable="true"
-            android:drawablePadding="3dp"
-            android:drawableTint="#3C4043"
+            android:contentDescription="Share selected media"
             android:focusable="true"
-            android:gravity="center"
-            android:text="Share"
-            android:textColor="#3C4043"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:drawableTop="@drawable/ic_share" />
+            >
 
-        <TextView
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginBottom="3dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_share"
+                    android:tint="#3C4043" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Share"
+                    android:textColor="#3C4043"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/selection_keeper"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -438,17 +480,38 @@
             android:layout_weight="1"
             android:background="@drawable/gallery_filter_chip"
             android:clickable="true"
-            android:drawablePadding="3dp"
-            android:drawableTint="#D93025"
+            android:contentDescription="Mark selected media as keepers"
             android:focusable="true"
-            android:gravity="center"
-            android:text="Keeper"
-            android:textColor="#3C4043"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:drawableTop="@drawable/ic_heart_filled" />
+            >
 
-        <TextView
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginBottom="3dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_heart_filled"
+                    android:tint="#D93025" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Keeper"
+                    android:textColor="#3C4043"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/selection_albums"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -456,15 +519,36 @@
             android:layout_weight="1"
             android:background="@drawable/gallery_filter_chip"
             android:clickable="true"
-            android:drawablePadding="3dp"
-            android:drawableTint="#3C4043"
+            android:contentDescription="Add selected media to albums"
             android:focusable="true"
-            android:gravity="center"
-            android:text="Albums"
-            android:textColor="#3C4043"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:drawableTop="@drawable/ic_review_albums" />
+            >
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginBottom="3dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_review_albums"
+                    android:tint="#3C4043" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Albums"
+                    android:textColor="#3C4043"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
 
     <FrameLayout
