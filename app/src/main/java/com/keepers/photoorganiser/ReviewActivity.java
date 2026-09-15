@@ -83,8 +83,10 @@ public final class ReviewActivity extends Activity {
     private String pickerSessionId;
     private boolean metadataVisible;
     private boolean selectingPhotosToHide;
+    private boolean selectingMediaToShare;
     private boolean viewportLoadPending;
     private final Set<String> hideSelections = new HashSet<>();
+    private final Set<String> shareSelections = new HashSet<>();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private ExecutorService videoAnalysisExecutor;
@@ -113,8 +115,11 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.open_album_review).setOnClickListener(view ->
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
         findViewById(R.id.select_photos_to_hide).setOnClickListener(view -> beginHideSelection());
+        findViewById(R.id.select_media_to_share).setOnClickListener(view -> beginShareSelection());
         findViewById(R.id.cancel_hide_photos).setOnClickListener(view -> endHideSelection());
         findViewById(R.id.confirm_hide_photos).setOnClickListener(view -> hideSelectedPhotos());
+        findViewById(R.id.cancel_share_media).setOnClickListener(view -> endShareSelection());
+        findViewById(R.id.confirm_share_media).setOnClickListener(view -> shareSelectedMedia());
         findViewById(R.id.filter_keepers).setOnClickListener(view ->
                 toggleFilter(GalleryFilter.KEEPERS));
         findViewById(R.id.filter_include_keepers).setOnClickListener(view ->
@@ -505,6 +510,7 @@ public final class ReviewActivity extends Activity {
         tile.setContentDescription(recentPhoto.mediaType() == MediaType.VIDEO
                 ? "Video. Tap to mark as keeper." : "Photo. Tap to mark as keeper.");
         tile.setOnClickListener(view -> {
+            if (selectingMediaToShare) { toggleShareSelection(photo.toString()); return; }
             if (selectingPhotosToHide) { toggleHideSelection(photo.toString()); return; }
             Intent preview = new Intent(this, PreviewActivity.class)
                     .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit());
@@ -1000,6 +1006,7 @@ public final class ReviewActivity extends Activity {
     }
 
     private void beginHideSelection() {
+        endShareSelection();
         selectingPhotosToHide = true;
         hideSelections.clear();
         findViewById(R.id.bulk_hide_actions).setVisibility(View.VISIBLE);
@@ -1039,6 +1046,54 @@ public final class ReviewActivity extends Activity {
         new HiddenPhotoStore(this).hide(Set.copyOf(hideSelections));
         endHideSelection();
         applyFilter();
+    }
+
+    private void beginShareSelection() {
+        endHideSelection();
+        selectingMediaToShare = true;
+        shareSelections.clear();
+        findViewById(R.id.bulk_share_actions).setVisibility(View.VISIBLE);
+        updateShareSelectionDisplay();
+    }
+
+    private void endShareSelection() {
+        selectingMediaToShare = false;
+        shareSelections.clear();
+        findViewById(R.id.bulk_share_actions).setVisibility(View.GONE);
+        updateShareSelectionDisplay();
+    }
+
+    private void toggleShareSelection(String mediaId) {
+        if (!shareSelections.add(mediaId)) shareSelections.remove(mediaId);
+        updateShareSelectionDisplay();
+    }
+
+    private void updateShareSelectionDisplay() {
+        for (FrameLayout tile : tiles) {
+            TextView check = tile.findViewWithTag("hide_selection_check");
+            check.setVisibility(selectingMediaToShare
+                    && shareSelections.contains(tile.getTag().toString())
+                    ? View.VISIBLE : View.GONE);
+        }
+        TextView status = findViewById(R.id.bulk_share_status);
+        status.setText(shareSelections.isEmpty() ? "Tap media to select"
+                : shareSelections.size() + (shareSelections.size() == 1
+                        ? " item selected" : " items selected"));
+        View confirm = findViewById(R.id.confirm_share_media);
+        confirm.setEnabled(!shareSelections.isEmpty());
+        confirm.setAlpha(shareSelections.isEmpty() ? .4f : 1f);
+    }
+
+    private void shareSelectedMedia() {
+        if (shareSelections.isEmpty()) return;
+        List<Uri> selected = photos.stream().filter(photo ->
+                shareSelections.contains(photo.toString())).toList();
+        List<MediaType> types = selected.stream().map(photo ->
+                mediaTypes.getOrDefault(photo.toString(), MediaType.PHOTO)).toList();
+        Intent share = MediaShareIntentFactory.create(selected, types);
+        startActivity(Intent.createChooser(share,
+                selected.size() == 1 ? "Share photo" : "Share media"));
+        endShareSelection();
     }
 
     private void updateMetadataOverlays() {

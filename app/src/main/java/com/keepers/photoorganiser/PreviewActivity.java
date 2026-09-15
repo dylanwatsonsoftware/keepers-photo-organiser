@@ -76,6 +76,7 @@ public final class PreviewActivity extends Activity {
     private float lastPanRawY;
     private boolean quickReview;
     private View previewQuickReview;
+    private View previewShare;
     private Map<String, RecentPhoto> mediaDetails = Map.of();
     private boolean photoChromeVisible = true;
     private GestureCoordinates stackCarouselGesture;
@@ -170,6 +171,9 @@ public final class PreviewActivity extends Activity {
         previewQuickReview.setOnClickListener(view -> startActivity(
                 PreviewPageRequest.forPhoto(getIntent(), photo)
                         .putExtra(EXTRA_QUICK_REVIEW, true)));
+        previewShare = findViewById(R.id.preview_share);
+        previewShare.setVisibility(quickReview ? View.GONE : View.VISIBLE);
+        previewShare.setOnClickListener(view -> shareCurrentMedia());
         loadCurrent();
         findViewById(R.id.preview_keeper).setOnClickListener(view -> {
             boolean selected = store.toggle(photo);
@@ -194,6 +198,13 @@ public final class PreviewActivity extends Activity {
     private void updateButton() {
         ((TextView) findViewById(R.id.preview_keeper)).setText(store.load().contains(photo.toString())
                 ? "♥ Keeper" : "♡ Keeper");
+    }
+
+    private void shareCurrentMedia() {
+        MediaType type = mediaTypeOf(photo);
+        Intent share = MediaShareIntentFactory.create(List.of(photo), List.of(type));
+        startActivity(Intent.createChooser(share,
+                type == MediaType.VIDEO ? "Share video" : "Share photo"));
     }
 
     private void hideCurrentPhoto() {
@@ -914,6 +925,7 @@ public final class PreviewActivity extends Activity {
     private void showAnalysis() {
         boolean opening = analysisSheet.getVisibility() != View.VISIBLE;
         previewQuickReview.setVisibility(View.GONE);
+        previewShare.setVisibility(View.GONE);
         showAnalysisFaces();
         showMetadata();
         showSavedAlbums();
@@ -1322,6 +1334,8 @@ public final class PreviewActivity extends Activity {
                     analysisSheet.setAlpha(1);
                     previewQuickReview.setVisibility(quickReview ? View.GONE
                             : photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
+                    previewShare.setVisibility(quickReview ? View.GONE
+                            : photoChromeVisible ? View.VISIBLE : View.INVISIBLE);
                 }).start();
     }
 
@@ -1396,6 +1410,7 @@ public final class PreviewActivity extends Activity {
         previewClose.setVisibility(visibility);
         previewControls.setVisibility(visibility);
         previewQuickReview.setVisibility(visibility);
+        previewShare.setVisibility(quickReview ? View.GONE : visibility);
         View play = currentSurface.findViewWithTag("video_play");
         if (play != null && mediaTypeOf(photo) == MediaType.VIDEO)
             play.setVisibility(visibility);

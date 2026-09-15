@@ -41,6 +41,11 @@ public class ReviewLayoutTest {
 
         assertTrue(findViewWithContentDescription(layout, "Clear keepers") == null);
         assertTrue(layout.findViewById(R.id.open_settings) instanceof ImageButton);
+        int shareId = layout.getResources().getIdentifier(
+                "select_media_to_share", "id", layout.getContext().getPackageName());
+        assertTrue(shareId != 0);
+        assertTrue(layout.findViewById(shareId) instanceof ImageButton);
+        assertNotNull(((ImageButton) layout.findViewById(shareId)).getDrawable());
         LinearLayout summary = layout.findViewById(R.id.photo_summary);
         assertNotNull(summary);
         assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
@@ -65,6 +70,22 @@ public class ReviewLayoutTest {
         assertTrue(!(metadata instanceof Button));
         assertTrue(metadata.isClickable());
         assertNotNull(metadata.getBackground());
+    }
+
+    @Test public void galleryShareSelectionUsesEstablishedStyledActions() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+        int actionsId = layout.getResources().getIdentifier(
+                "bulk_share_actions", "id", layout.getContext().getPackageName());
+        int confirmId = layout.getResources().getIdentifier(
+                "confirm_share_media", "id", layout.getContext().getPackageName());
+
+        assertTrue(actionsId != 0);
+        assertTrue(confirmId != 0);
+        View confirm = layout.findViewById(confirmId);
+        assertTrue(confirm instanceof TextView);
+        assertTrue(!(confirm instanceof Button));
+        assertNotNull(confirm.getBackground());
     }
 
     private static View findViewWithText(View view, String text) {

@@ -242,6 +242,35 @@ public class ReviewActivityTest {
         assertEquals(0, grid.getChildCount());
     }
 
+    @Test public void galleryCanShareASelectedGroupOfPhotosAndVideos() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri photo = Uri.parse("content://media/images/media/share-photo");
+        Uri video = Uri.parse("content://media/video/media/share-video");
+        activity.showMedia(List.of(
+                new RecentPhoto(photo, 20),
+                new RecentPhoto(video, 10, MediaType.VIDEO, 3_000)));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        int selectId = activity.getResources().getIdentifier(
+                "select_media_to_share", "id", activity.getPackageName());
+        int confirmId = activity.getResources().getIdentifier(
+                "confirm_share_media", "id", activity.getPackageName());
+
+        assertTrue(selectId != 0);
+        assertTrue(confirmId != 0);
+        activity.findViewById(selectId).performClick();
+        grid.getChildAt(0).performClick();
+        grid.getChildAt(1).performClick();
+        activity.findViewById(confirmId).performClick();
+
+        Intent chooser = Shadows.shadowOf(activity).getNextStartedActivity();
+        Intent share = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals(Intent.ACTION_SEND_MULTIPLE, share.getAction());
+        assertEquals("*/*", share.getType());
+        assertEquals(List.of(photo, video),
+                share.getParcelableArrayListExtra(Intent.EXTRA_STREAM));
+        assertTrue((share.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+    }
+
     @Test public void galleryBulkHideHidesEveryPhotoInASelectedStack() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/hide-stack-1";

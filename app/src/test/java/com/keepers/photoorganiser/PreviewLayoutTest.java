@@ -200,6 +200,19 @@ public class PreviewLayoutTest {
         assertNotNull(((ImageButton) close).getDrawable());
     }
 
+    @Test public void fullscreenPhotoHasACompactShareAction() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        int shareId = layout.getResources().getIdentifier(
+                "preview_share", "id", layout.getContext().getPackageName());
+
+        assertTrue(shareId != 0);
+        View share = layout.findViewById(shareId);
+        assertTrue(share instanceof ImageButton);
+        assertNotNull(((ImageButton) share).getDrawable());
+        assertEquals("Share photo", share.getContentDescription());
+    }
+
     @Test public void photoViewIncludesAHiddenAnalysisSheet() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_preview, null);

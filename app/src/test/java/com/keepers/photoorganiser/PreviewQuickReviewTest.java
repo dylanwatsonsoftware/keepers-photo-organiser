@@ -39,6 +39,9 @@ public class PreviewQuickReviewTest {
         Context context = RuntimeEnvironment.getApplication();
         PreviewActivity activity = create(context,
                 Uri.parse("content://photo/fullscreen-chrome-toggle"), false);
+        int shareId = activity.getResources().getIdentifier(
+                "preview_share", "id", activity.getPackageName());
+        assertTrue(shareId != 0);
         Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
         swipe.setAccessible(true);
 
@@ -49,6 +52,7 @@ public class PreviewQuickReviewTest {
         assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
         assertEquals(View.INVISIBLE,
                 activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+        assertEquals(View.INVISIBLE, activity.findViewById(shareId).getVisibility());
 
         swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
         swipe.invoke(activity, event(MotionEvent.ACTION_UP, 100, 100));
@@ -57,6 +61,25 @@ public class PreviewQuickReviewTest {
         assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
         assertEquals(View.VISIBLE,
                 activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(shareId).getVisibility());
+    }
+
+    @Test public void fullscreenCanShareItsCurrentPhoto() {
+        Context context = RuntimeEnvironment.getApplication();
+        Uri photo = Uri.parse("content://media/images/media/fullscreen-share");
+        PreviewActivity activity = create(context, photo, false);
+        int shareId = activity.getResources().getIdentifier(
+                "preview_share", "id", activity.getPackageName());
+
+        assertTrue(shareId != 0);
+        activity.findViewById(shareId).performClick();
+
+        Intent chooser = Shadows.shadowOf(activity).getNextStartedActivity();
+        Intent share = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals(Intent.ACTION_SEND, share.getAction());
+        assertEquals("image/*", share.getType());
+        assertEquals(photo, share.getParcelableExtra(Intent.EXTRA_STREAM));
+        assertTrue((share.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
     }
 
     @Test public void tappingQuickReviewCardDoesNotHideDecisionControls() throws Exception {
