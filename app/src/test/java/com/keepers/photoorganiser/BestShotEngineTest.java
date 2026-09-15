@@ -183,6 +183,18 @@ public class BestShotEngineTest {
                         feature("third", 600_000, 0x5555555555555555L, 0.7))));
     }
 
+    @Test public void nearbyBetterSingletonDisplacesWeakerStackRepresentative() {
+        List<PhotoFeatures> photos = List.of(
+                feature("stack-soft", 1_000, 0L, .35),
+                feature("stack-best", 2_000, 1L, .45),
+                feature("nearby-single-best", 125_000, 2L, .75),
+                feature("overall-best", 400_000, -1L, .90),
+                feature("runner-up", 600_000, 0xAAAAAAAAAAAAAAAAL, .80));
+
+        assertEquals(Set.of("overall-best", "runner-up", "nearby-single-best"),
+                BestShotEngine.recommend(photos));
+    }
+
     @Test public void looselyRelatedNeighbouringStacksRecommendAtMostTwoPhotos() {
         long firstScene = 0L;
         long secondScene = (1L << 26) - 1;

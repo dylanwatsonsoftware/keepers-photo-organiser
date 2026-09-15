@@ -97,11 +97,23 @@ public final class BestShotEngine {
         int limit = (candidates.size() + 2) / 3;
         Set<String> recommendations = new HashSet<>();
         for (int index = 0; index < limit; index++) recommendations.add(candidates.get(index).id());
-        for (List<PhotoFeatures> group : groups) {
-            if (group.size() < 2) continue;
-            PhotoFeatures stackBest = best(group, profile);
-            if (stackBest.quality() >= MIN_USABLE_STACK_QUALITY) {
-                recommendations.add(stackBest.id());
+        for (List<PhotoFeatures> comparison : comparisonGroups(photos, namedFaces)) {
+            Set<String> comparisonIds = comparison.stream()
+                    .map(PhotoFeatures::id).collect(java.util.stream.Collectors.toSet());
+            int stackCount = (int) groups.stream().filter(group -> group.size() > 1
+                    && group.stream().anyMatch(photo -> comparisonIds.contains(photo.id()))).count();
+            if (stackCount == 0) continue;
+            List<PhotoFeatures> rankedComparison = new ArrayList<>(comparison);
+            rankedComparison.sort(java.util.Comparator
+                    .comparingDouble((PhotoFeatures photo) ->
+                            stackScore(photo, comparison, profile))
+                    .reversed().thenComparing(PhotoFeatures::id));
+            int comparisonLimit = Math.min(stackCount, MAX_RECOMMENDATIONS_PER_COMPARISON);
+            for (int index = 0; index < comparisonLimit; index++) {
+                PhotoFeatures momentBest = rankedComparison.get(index);
+                if (momentBest.quality() >= MIN_USABLE_STACK_QUALITY) {
+                    recommendations.add(momentBest.id());
+                }
             }
         }
         return recommendations;
@@ -175,8 +187,12 @@ public final class BestShotEngine {
                     - previous.takenAtMillis() > COMPARISON_WINDOW_MILLIS;
             boolean peopleBreak = previous != null && knownPeopleAreDisjoint(
                     previous.id(), photo.id(), namedFaces);
+            boolean sameNamedMoment = previous != null && photo.takenAtMillis()
+                    - previous.takenAtMillis() <= NAMED_FACE_WINDOW_MILLIS
+                    && sameKnownPeople(previous.id(), photo.id(), namedFaces);
             boolean visualBreak = previous != null && Long.bitCount(previous.perceptualHash()
-                    ^ photo.perceptualHash()) > MAX_WITHIN_COMPARISON_HASH_DISTANCE;
+                    ^ photo.perceptualHash()) > MAX_WITHIN_COMPARISON_HASH_DISTANCE
+                    && !sameNamedMoment;
             if (previous == null || timeBreak || peopleBreak || visualBreak) {
                 latest = new ArrayList<>();
                 groups.add(latest);
