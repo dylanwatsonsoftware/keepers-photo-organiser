@@ -61,6 +61,7 @@ public final class ReviewActivity extends Activity {
     private static final long RANGE_SCROLL_FRAME_MILLIS = 16;
     private static final int RANGE_SCROLL_EDGE_DP = 72;
     private static final int RANGE_SCROLL_MAX_STEP_DP = 20;
+    private static final long SELECTION_SCALE_ANIMATION_MILLIS = 140;
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
@@ -98,6 +99,7 @@ public final class ReviewActivity extends Activity {
     private boolean rangeSelectionScrollScheduled;
     private boolean viewportLoadPending;
     private final Set<String> mediaSelections = new HashSet<>();
+    private final Set<String> renderedMediaSelections = new HashSet<>();
     private Set<String> rangeSelectionBaseline = Set.of();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -340,6 +342,7 @@ public final class ReviewActivity extends Activity {
             pendingSemanticContexts = 0;
             grid.removeAllViews();
             tiles.clear();
+            renderedMediaSelections.clear();
             previousCount = 0;
         }
         mediaAnalysisQueue.add(recentPhotos.subList(previousCount, recentPhotos.size()));
@@ -1217,12 +1220,22 @@ public final class ReviewActivity extends Activity {
         albums.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
         count.setText(mediaSelections.size() + " selected");
         for (FrameLayout tile : tiles) {
+            String mediaId = tile.getTag().toString();
             boolean selected = selectingMedia
-                    && mediaSelections.contains(tile.getTag().toString());
+                    && mediaSelections.contains(mediaId);
             ImageView image = (ImageView) tile.getChildAt(0);
             tile.setBackgroundColor(selected ? Color.rgb(232, 234, 237) : Color.TRANSPARENT);
-            image.setScaleX(selected ? .84f : 1f);
-            image.setScaleY(selected ? .84f : 1f);
+            boolean selectionChanged = selected != renderedMediaSelections.contains(mediaId);
+            if (selectionChanged) {
+                if (selected) renderedMediaSelections.add(mediaId);
+                else renderedMediaSelections.remove(mediaId);
+                float targetScale = selected ? .84f : 1f;
+                image.animate().cancel();
+                image.animate().scaleX(targetScale).scaleY(targetScale)
+                        .setDuration(SELECTION_SCALE_ANIMATION_MILLIS)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+            }
             TextView check = tile.findViewWithTag("hide_selection_check");
             check.setVisibility(selected ? View.VISIBLE : View.GONE);
             if (selectingMedia) {

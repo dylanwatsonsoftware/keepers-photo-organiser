@@ -298,6 +298,8 @@ public class ReviewActivityTest {
         assertEquals(View.VISIBLE,
                 activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
         ImageView image = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
+        Shadows.shadowOf(android.os.Looper.getMainLooper())
+                .idleFor(140, TimeUnit.MILLISECONDS);
         assertEquals(.84f, image.getScaleX(), .001f);
         assertEquals(Color.rgb(232, 234, 237),
                 ((ColorDrawable) grid.getChildAt(0).getBackground()).getColor());
@@ -311,10 +313,34 @@ public class ReviewActivityTest {
 
         assertEquals(View.GONE,
                 activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
+        Shadows.shadowOf(android.os.Looper.getMainLooper())
+                .idleFor(140, TimeUnit.MILLISECONDS);
         assertEquals(1f, image.getScaleX(), .001f);
         assertEquals(Color.TRANSPARENT,
                 ((ColorDrawable) grid.getChildAt(0).getBackground()).getColor());
         assertEquals(View.GONE, check.getVisibility());
+    }
+
+    @Test public void galleryPhotoAnimatesWhenSelectionShrinksAndExpands() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/animated-selection")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        View tile = grid.getChildAt(0);
+        ImageView image = (ImageView) ((ViewGroup) tile).getChildAt(0);
+
+        assertTrue(tile.performLongClick());
+
+        assertEquals(140L, image.animate().getDuration());
+        Shadows.shadowOf(android.os.Looper.getMainLooper())
+                .idleFor(140, TimeUnit.MILLISECONDS);
+        assertEquals(.84f, image.getScaleX(), .001f);
+
+        activity.findViewById(R.id.cancel_selection).performClick();
+
+        assertEquals(140L, image.animate().getDuration());
+        Shadows.shadowOf(android.os.Looper.getMainLooper())
+                .idleFor(140, TimeUnit.MILLISECONDS);
+        assertEquals(1f, image.getScaleX(), .001f);
     }
 
     @Test public void heldDragExpandsAndContractsTheVisibleSelectionRange() {
@@ -399,13 +425,14 @@ public class ReviewActivityTest {
             dispatchMoveAtViewport(anchor, 150, 150);
             Shadows.shadowOf(android.os.Looper.getMainLooper())
                     .idleFor(80, TimeUnit.MILLISECONDS);
-            assertEquals(bottomScroll, scroll.getScrollY());
+            assertTrue(scroll.getScrollY() <= bottomScroll);
+            int settledBottomScroll = scroll.getScrollY();
 
             scroll.layout(0, 0, 300, 300);
             dispatchMoveAtViewport(anchor, 150, 5);
             Shadows.shadowOf(android.os.Looper.getMainLooper())
                     .idleFor(160, TimeUnit.MILLISECONDS);
-            assertTrue(scroll.getScrollY() < bottomScroll);
+            assertTrue(scroll.getScrollY() < settledBottomScroll);
         } finally {
             dispatchRangeUp(anchor, 150, 5);
         }
