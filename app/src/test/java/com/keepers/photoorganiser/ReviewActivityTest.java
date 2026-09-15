@@ -23,9 +23,11 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.Manifest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -366,6 +368,78 @@ public class ReviewActivityTest {
 
         dispatchUp(anchor, 50, 50);
         assertFalse(shadowScroll.getDisallowInterceptTouchEvent());
+    }
+
+    @Test public void heldSelectionAutoScrollsAndExtendsAtTheBottomEdge() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        ArrayList<Uri> photos = new ArrayList<>();
+        for (int index = 0; index < 30; index++)
+            photos.add(Uri.parse("content://media/photo/edge-scroll-" + index));
+        activity.showPhotos(photos);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        scroll.layout(0, 0, 300, 300);
+        layoutThreeColumnGrid(grid, 100);
+        View anchor = grid.getChildAt(0);
+
+        assertTrue(anchor.performLongClick());
+        try {
+            dispatchMoveAtViewport(anchor, 150, 295);
+            int selectedBeforeScroll = selectedCount(activity);
+            Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(160, TimeUnit.MILLISECONDS);
+
+            assertTrue(scroll.getScrollY() > 0);
+            assertTrue("before=" + selectedBeforeScroll + " after=" + selectedCount(activity)
+                            + " scroll=" + scroll.getScrollY(),
+                    selectedCount(activity) > selectedBeforeScroll);
+            int bottomScroll = scroll.getScrollY();
+
+            scroll.layout(0, 0, 300, 300);
+            dispatchMoveAtViewport(anchor, 150, 150);
+            Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(80, TimeUnit.MILLISECONDS);
+            assertEquals(bottomScroll, scroll.getScrollY());
+
+            scroll.layout(0, 0, 300, 300);
+            dispatchMoveAtViewport(anchor, 150, 5);
+            Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(160, TimeUnit.MILLISECONDS);
+            assertTrue(scroll.getScrollY() < bottomScroll);
+        } finally {
+            dispatchRangeUp(anchor, 150, 5);
+        }
+    }
+
+    @Test public void heldSelectionScrollsFasterDeeperInsideTheEdge() {
+        int shallowScroll = autoScrollDistanceAtBottomEdge(245);
+        int deepScroll = autoScrollDistanceAtBottomEdge(295);
+
+        assertTrue("deep=" + deepScroll + " shallow=" + shallowScroll,
+                shallowScroll > 0 && deepScroll > shallowScroll);
+    }
+
+    private static int autoScrollDistanceAtBottomEdge(float pointerY) {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        ArrayList<Uri> photos = new ArrayList<>();
+        for (int index = 0; index < 30; index++)
+            photos.add(Uri.parse("content://media/photo/edge-speed-" + index));
+        activity.showPhotos(photos);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        scroll.layout(0, 0, 300, 300);
+        layoutThreeColumnGrid(grid, 100);
+        View anchor = grid.getChildAt(0);
+
+        assertTrue(anchor.performLongClick());
+        try {
+            dispatchMoveAtViewport(anchor, 150, pointerY);
+            Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(160, TimeUnit.MILLISECONDS);
+            return scroll.getScrollY();
+        } finally {
+            dispatchRangeUp(anchor, 150, pointerY);
+        }
     }
 
     @Test public void heldDragPreservesSelectionsMadeBeforeThatRangeGesture() {
@@ -845,6 +919,10 @@ public class ReviewActivityTest {
         return id;
     }
 
+    private static int selectedCount(ReviewActivity activity) {
+        return Integer.parseInt(text(activity, R.id.selection_count).split(" ")[0]);
+    }
+
     private static void layoutThreeColumnGrid(GridLayout grid, int tileSize) {
         int rows = (grid.getChildCount() + 2) / 3;
         grid.layout(0, 0, tileSize * 3, tileSize * rows);
@@ -860,6 +938,22 @@ public class ReviewActivityTest {
         MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_MOVE,
                 localX, localY, 0);
         view.dispatchTouchEvent(event);
+        event.recycle();
+    }
+
+    private static void dispatchMoveAtViewport(View view, float viewportX, float viewportY) {
+        ScrollView scroll = (ScrollView) view.getParent().getParent();
+        dispatchRangeTouch(view, MotionEvent.ACTION_MOVE,
+                viewportX + scroll.getScrollX(), viewportY + scroll.getScrollY());
+    }
+
+    private static void dispatchRangeUp(View view, float localX, float localY) {
+        dispatchRangeTouch(view, MotionEvent.ACTION_UP, localX, localY);
+    }
+
+    private static void dispatchRangeTouch(View view, int action, float localX, float localY) {
+        MotionEvent event = MotionEvent.obtain(0, 0, action, localX, localY, 0);
+        Shadows.shadowOf(view).getOnTouchListener().onTouch(view, event);
         event.recycle();
     }
 

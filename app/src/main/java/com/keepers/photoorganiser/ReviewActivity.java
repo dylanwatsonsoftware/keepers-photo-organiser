@@ -58,6 +58,9 @@ public final class ReviewActivity extends Activity {
     public static final String ACTION_IMPORT_GOOGLE_PHOTOS =
             "com.keepers.photoorganiser.action.IMPORT_GOOGLE_PHOTOS";
     private static final int PHOTO_PERMISSION = 200;
+    private static final long RANGE_SCROLL_FRAME_MILLIS = 16;
+    private static final int RANGE_SCROLL_EDGE_DP = 72;
+    private static final int RANGE_SCROLL_MAX_STEP_DP = 20;
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
@@ -86,11 +89,28 @@ public final class ReviewActivity extends Activity {
     private boolean selectingMedia;
     private boolean rangeSelectionGestureActive;
     private int rangeSelectionAnchor = -1;
+    private float rangeSelectionPointerX;
+    private float rangeSelectionPointerY;
+    private float rangeSelectionTouchOriginX;
+    private float rangeSelectionTouchOriginY;
+    private int rangeSelectionScrollStep;
+    private boolean rangeSelectionScrollScheduled;
     private boolean viewportLoadPending;
     private final Set<String> mediaSelections = new HashSet<>();
     private Set<String> rangeSelectionBaseline = Set.of();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable rangeSelectionAutoScroll = new Runnable() {
+        @Override public void run() {
+            rangeSelectionScrollScheduled = false;
+            if (!rangeSelectionGestureActive || rangeSelectionScrollStep == 0) return;
+            ScrollView scroll = findViewById(R.id.review_scroll);
+            scroll.scrollBy(0, rangeSelectionScrollStep);
+            String target = visibleMediaAt(rangeSelectionPointerX, rangeSelectionPointerY);
+            if (target != null) updateMediaRangeSelection(target);
+            scheduleRangeSelectionAutoScroll();
+        }
+    };
     private ExecutorService videoAnalysisExecutor;
     private VideoFrameAnalyzer videoFrameAnalyzer;
     private boolean videoAnalysisRunning;
@@ -535,14 +555,20 @@ public final class ReviewActivity extends Activity {
             startActivity(preview);
         });
         tile.setOnLongClickListener(view -> {
-            beginMediaRangeSelection(photo.toString());
+            beginMediaRangeSelection(photo.toString(), view);
             return true;
         });
         tile.setOnTouchListener((view, event) -> {
             if (!rangeSelectionGestureActive) return false;
             if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                String target = visibleMediaAt(view, event.getX(), event.getY());
+                ScrollView scroll = findViewById(R.id.review_scroll);
+                rangeSelectionPointerX = rangeSelectionTouchOriginX + event.getX()
+                        - scroll.getScrollX();
+                rangeSelectionPointerY = rangeSelectionTouchOriginY + event.getY()
+                        - scroll.getScrollY();
+                String target = visibleMediaAt(rangeSelectionPointerX, rangeSelectionPointerY);
                 if (target != null) updateMediaRangeSelection(target);
+                updateRangeSelectionAutoScroll();
             } else if (event.getActionMasked() == MotionEvent.ACTION_UP
                     || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
                 finishMediaRangeSelection();
@@ -1044,7 +1070,7 @@ public final class ReviewActivity extends Activity {
         updateMetadataOverlays();
     }
 
-    private void beginMediaRangeSelection(String mediaId) {
+    private void beginMediaRangeSelection(String mediaId, View touchTarget) {
         List<String> visible = visibleMediaIds();
         rangeSelectionAnchor = visible.indexOf(mediaId);
         if (rangeSelectionAnchor < 0) return;
@@ -1055,6 +1081,9 @@ public final class ReviewActivity extends Activity {
             rangeSelectionBaseline = Set.of();
         }
         rangeSelectionGestureActive = true;
+        rangeSelectionTouchOriginX = touchTarget.getLeft();
+        rangeSelectionTouchOriginY = touchTarget.getTop();
+        rangeSelectionScrollStep = 0;
         ((ScrollView) findViewById(R.id.review_scroll))
                 .requestDisallowInterceptTouchEvent(true);
         updateMediaRangeSelection(mediaId);
@@ -1081,24 +1110,65 @@ public final class ReviewActivity extends Activity {
         return visible;
     }
 
-    private String visibleMediaAt(View touchTarget, float localX, float localY) {
+    private String visibleMediaAt(float viewportX, float viewportY) {
+        ScrollView scroll = findViewById(R.id.review_scroll);
         GridLayout grid = findViewById(R.id.photo_grid);
-        int[] touchLocation = new int[2];
-        touchTarget.getLocationOnScreen(touchLocation);
-        float rawX = touchLocation[0] + localX;
-        float rawY = touchLocation[1] + localY;
-        int[] location = new int[2];
+        float contentX = viewportX + scroll.getScrollX();
+        float contentY = viewportY + scroll.getScrollY();
+        View nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
         for (int index = 0; index < grid.getChildCount(); index++) {
             View tile = grid.getChildAt(index);
-            tile.getLocationOnScreen(location);
-            if (rawX >= location[0] && rawX < location[0] + tile.getWidth()
-                    && rawY >= location[1] && rawY < location[1] + tile.getHeight())
+            float left = tile.getLeft();
+            float top = tile.getTop();
+            if (contentX >= left && contentX < left + tile.getWidth()
+                    && contentY >= top && contentY < top + tile.getHeight())
                 return tile.getTag().toString();
+            float deltaX = contentX - (left + tile.getWidth() / 2f);
+            float deltaY = contentY - (top + tile.getHeight() / 2f);
+            double distance = deltaX * deltaX + deltaY * deltaY;
+            if (distance < nearestDistance) {
+                nearest = tile;
+                nearestDistance = distance;
+            }
         }
-        return null;
+        return nearest == null ? null : nearest.getTag().toString();
+    }
+
+    private void updateRangeSelectionAutoScroll() {
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        if (scroll.getHeight() <= 0) {
+            stopRangeSelectionAutoScroll();
+            return;
+        }
+        float top = 0;
+        float bottom = scroll.getHeight();
+        float edge = Math.min(dp(RANGE_SCROLL_EDGE_DP), scroll.getHeight() / 2f);
+        float intensity = 0;
+        if (rangeSelectionPointerY < top + edge) {
+            intensity = -Math.min(1, (top + edge - rangeSelectionPointerY) / edge);
+        } else if (rangeSelectionPointerY > bottom - edge) {
+            intensity = Math.min(1, (rangeSelectionPointerY - (bottom - edge)) / edge);
+        }
+        rangeSelectionScrollStep = Math.round(dp(RANGE_SCROLL_MAX_STEP_DP) * intensity);
+        if (rangeSelectionScrollStep == 0) stopRangeSelectionAutoScroll();
+        else scheduleRangeSelectionAutoScroll();
+    }
+
+    private void scheduleRangeSelectionAutoScroll() {
+        if (rangeSelectionScrollScheduled) return;
+        rangeSelectionScrollScheduled = true;
+        mainHandler.postDelayed(rangeSelectionAutoScroll, RANGE_SCROLL_FRAME_MILLIS);
+    }
+
+    private void stopRangeSelectionAutoScroll() {
+        rangeSelectionScrollStep = 0;
+        mainHandler.removeCallbacks(rangeSelectionAutoScroll);
+        rangeSelectionScrollScheduled = false;
     }
 
     private void finishMediaRangeSelection() {
+        stopRangeSelectionAutoScroll();
         rangeSelectionGestureActive = false;
         rangeSelectionAnchor = -1;
         rangeSelectionBaseline = Set.of();
@@ -1333,6 +1403,7 @@ public final class ReviewActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        stopRangeSelectionAutoScroll();
         analysisGeneration++;
         mediaAnalysisQueue.clear();
         if (videoAnalysisExecutor != null) videoAnalysisExecutor.shutdownNow();
