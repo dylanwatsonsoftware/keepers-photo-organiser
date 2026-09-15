@@ -88,6 +88,7 @@ public final class ReviewActivity extends Activity {
     private boolean metadataVisible;
     private boolean selectingMedia;
     private boolean rangeSelectionGestureActive;
+    private boolean rangeSelectionRemoving;
     private int rangeSelectionAnchor = -1;
     private float rangeSelectionPointerX;
     private float rangeSelectionPointerY;
@@ -571,7 +572,7 @@ public final class ReviewActivity extends Activity {
                 updateRangeSelectionAutoScroll();
             } else if (event.getActionMasked() == MotionEvent.ACTION_UP
                     || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                finishMediaRangeSelection();
+                completeMediaRangeSelection();
             }
             return false;
         });
@@ -1074,6 +1075,7 @@ public final class ReviewActivity extends Activity {
         List<String> visible = visibleMediaIds();
         rangeSelectionAnchor = visible.indexOf(mediaId);
         if (rangeSelectionAnchor < 0) return;
+        rangeSelectionRemoving = selectingMedia && mediaSelections.contains(mediaId);
         rangeSelectionBaseline = new HashSet<>(mediaSelections);
         if (!selectingMedia) {
             selectingMedia = true;
@@ -1098,7 +1100,9 @@ public final class ReviewActivity extends Activity {
         mediaSelections.addAll(rangeSelectionBaseline);
         int first = Math.min(rangeSelectionAnchor, current);
         int last = Math.max(rangeSelectionAnchor, current);
-        mediaSelections.addAll(visible.subList(first, last + 1));
+        List<String> range = visible.subList(first, last + 1);
+        if (rangeSelectionRemoving) mediaSelections.removeAll(range);
+        else mediaSelections.addAll(range);
         updateMediaSelectionDisplay();
     }
 
@@ -1170,10 +1174,19 @@ public final class ReviewActivity extends Activity {
     private void finishMediaRangeSelection() {
         stopRangeSelectionAutoScroll();
         rangeSelectionGestureActive = false;
+        rangeSelectionRemoving = false;
         rangeSelectionAnchor = -1;
         rangeSelectionBaseline = Set.of();
         ((ScrollView) findViewById(R.id.review_scroll))
                 .requestDisallowInterceptTouchEvent(false);
+    }
+
+    private void completeMediaRangeSelection() {
+        finishMediaRangeSelection();
+        if (selectingMedia && mediaSelections.isEmpty()) {
+            selectingMedia = false;
+            updateSelectionDisplay();
+        }
     }
 
     private void endMediaSelection() {

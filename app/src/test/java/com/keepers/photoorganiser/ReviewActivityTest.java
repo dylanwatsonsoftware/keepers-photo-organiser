@@ -473,6 +473,59 @@ public class ReviewActivityTest {
                 grid.getChildAt(2).findViewWithTag("hide_selection_check").getVisibility());
     }
 
+    @Test public void heldDragFromASelectedPhotoRemovesAndRestoresTheDraggedRange() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        ArrayList<Uri> photos = new ArrayList<>();
+        for (int index = 0; index < 12; index++)
+            photos.add(Uri.parse("content://media/photo/unselect-range-" + index));
+        activity.showPhotos(photos);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        layoutThreeColumnGrid(grid, 100);
+        View first = grid.getChildAt(0);
+        assertTrue(first.performLongClick());
+        dispatchMove(first, 250, 350);
+        dispatchUp(first, 250, 350);
+        assertEquals("12 selected", text(activity, R.id.selection_count));
+
+        View selectedAnchor = grid.getChildAt(2);
+        assertTrue(selectedAnchor.performLongClick());
+        dispatchMove(selectedAnchor, 50, 250);
+        assertEquals("5 selected", text(activity, R.id.selection_count));
+
+        dispatchMove(selectedAnchor, 50, 150);
+        assertEquals("8 selected", text(activity, R.id.selection_count));
+        assertEquals(View.VISIBLE,
+                grid.getChildAt(6).findViewWithTag("hide_selection_check").getVisibility());
+        assertEquals(View.GONE,
+                grid.getChildAt(4).findViewWithTag("hide_selection_check").getVisibility());
+        dispatchUp(selectedAnchor, 50, 150);
+    }
+
+    @Test public void removingTheWholeSelectedRangeExitsSelectionOnRelease() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/remove-all-1"),
+                Uri.parse("content://media/photo/remove-all-2"),
+                Uri.parse("content://media/photo/remove-all-3")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        layoutThreeColumnGrid(grid, 100);
+        View first = grid.getChildAt(0);
+        assertTrue(first.performLongClick());
+        dispatchMove(first, 250, 50);
+        dispatchUp(first, 250, 50);
+        assertEquals("3 selected", text(activity, R.id.selection_count));
+
+        assertTrue(first.performLongClick());
+        dispatchMove(first, 250, 50);
+        assertEquals("0 selected", text(activity, R.id.selection_count));
+        dispatchUp(first, 250, 50);
+
+        assertEquals(View.GONE, activity.findViewById(R.id.selection_count).getVisibility());
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.gallery_selection_actions).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.gallery_title).getVisibility());
+    }
+
     @Test public void gallerySelectionCanMarkMultipleItemsAsKeepers() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         Uri first = Uri.parse("content://media/photo/keeper-one");
