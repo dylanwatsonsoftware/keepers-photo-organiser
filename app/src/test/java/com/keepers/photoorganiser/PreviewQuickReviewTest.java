@@ -579,6 +579,34 @@ public class PreviewQuickReviewTest {
         new HiddenPhotoStore(context).clear();
     }
 
+    @Test public void tappingAStackCarouselThumbnailSelectsThatPhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri first = Uri.parse("content://photo/carousel-tap-first");
+        Uri middle = Uri.parse("content://photo/carousel-tap-middle");
+        Uri last = Uri.parse("content://photo/carousel-tap-last");
+        imports.add(new ImportedPhoto(first, 30, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(middle, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(last, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(first.toString(), middle.toString(), last.toString());
+        new PhotoStackStore(context).save(Map.of(first.toString(), stack,
+                middle.toString(), stack, last.toString(), stack));
+        new SuggestionStore(context).save(Set.of(middle.toString()));
+        PreviewActivity activity = create(context, first, false);
+        HorizontalScrollView carousel = activity.findViewById(R.id.preview_stack_carousel);
+        LinearLayout thumbnails = activity.findViewById(R.id.preview_stack_thumbnails);
+        layoutCarousel(carousel, thumbnails, 72);
+        assertEquals(middle, currentPhoto(activity));
+
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_DOWN, 36, 36));
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_UP, 36, 36));
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+
+        assertEquals(first, currentPhoto(activity));
+        imports.clear();
+    }
+
     @Test public void quickReviewUsesAnInsetElevatedCardDeckAndModeBadge() {
         Context context = RuntimeEnvironment.getApplication();
         Uri photo = Uri.parse("content://photo/card-treatment");
@@ -622,6 +650,15 @@ public class PreviewQuickReviewTest {
         Field field = PreviewActivity.class.getDeclaredField("photo");
         field.setAccessible(true);
         return (Uri) field.get(activity);
+    }
+
+    private static void layoutCarousel(HorizontalScrollView carousel,
+            LinearLayout thumbnails, int thumbnailSize) {
+        carousel.layout(0, 0, thumbnailSize * 3, thumbnailSize);
+        thumbnails.layout(0, 0, thumbnailSize * thumbnails.getChildCount(), thumbnailSize);
+        for (int index = 0; index < thumbnails.getChildCount(); index++)
+            thumbnails.getChildAt(index).layout(index * thumbnailSize, 0,
+                    (index + 1) * thumbnailSize, thumbnailSize);
     }
 
     private static MotionEvent event(int action, float x, float y) {

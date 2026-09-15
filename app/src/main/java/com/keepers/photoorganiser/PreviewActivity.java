@@ -866,12 +866,30 @@ public final class PreviewActivity extends Activity {
             return false;
         }
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            if (action == MotionEvent.ACTION_UP && stackCarouselGesture != null
+                    && Math.abs(stackCarouselGesture.deltaX(event.getRawX())) <= dp(8)
+                    && Math.abs(stackCarouselGesture.deltaY(event.getRawY())) <= dp(8))
+                selectTappedStackPhoto(event.getX());
             stackCarouselGesture = null;
             stackCarouselStartIndex = -1;
             stackCarouselDragging = false;
             findViewById(R.id.preview_stack_carousel).post(this::showStackCarousel);
         }
         return false;
+    }
+
+    private void selectTappedStackPhoto(float carouselX) {
+        HorizontalScrollView carousel = findViewById(R.id.preview_stack_carousel);
+        LinearLayout thumbnails = findViewById(R.id.preview_stack_thumbnails);
+        float contentX = carousel.getScrollX() + carouselX;
+        int count = Math.min(thumbnails.getChildCount(), stackCarouselMembers.size());
+        for (int index = 0; index < count; index++) {
+            View thumbnail = thumbnails.getChildAt(index);
+            if (contentX >= thumbnail.getLeft() && contentX < thumbnail.getRight()) {
+                selectStackPhoto(stackCarouselMembers.get(index));
+                return;
+            }
+        }
     }
 
     private void selectStackPhoto(Uri selected) {
