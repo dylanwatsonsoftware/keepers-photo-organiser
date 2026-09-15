@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.content.Intent;
@@ -293,7 +294,9 @@ public class ReviewActivityTest {
         assertEquals(View.VISIBLE,
                 activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
         ImageView image = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
-        assertEquals(.9f, image.getScaleX(), .001f);
+        assertEquals(.84f, image.getScaleX(), .001f);
+        assertEquals(Color.rgb(232, 234, 237),
+                ((ColorDrawable) grid.getChildAt(0).getBackground()).getColor());
         TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
         assertEquals(Gravity.TOP | Gravity.START,
                 ((android.widget.FrameLayout.LayoutParams) check.getLayoutParams()).gravity);
@@ -305,6 +308,8 @@ public class ReviewActivityTest {
         assertEquals(View.GONE,
                 activity.findViewById(id(activity, "gallery_selection_actions")).getVisibility());
         assertEquals(1f, image.getScaleX(), .001f);
+        assertEquals(Color.TRANSPARENT,
+                ((ColorDrawable) grid.getChildAt(0).getBackground()).getColor());
         assertEquals(View.GONE, check.getVisibility());
     }
 

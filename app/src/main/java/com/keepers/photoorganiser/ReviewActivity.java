@@ -1137,8 +1137,9 @@ public final class ReviewActivity extends Activity {
             boolean selected = selectingMedia
                     && mediaSelections.contains(tile.getTag().toString());
             ImageView image = (ImageView) tile.getChildAt(0);
-            image.setScaleX(selected ? .9f : 1f);
-            image.setScaleY(selected ? .9f : 1f);
+            tile.setBackgroundColor(selected ? Color.rgb(232, 234, 237) : Color.TRANSPARENT);
+            image.setScaleX(selected ? .84f : 1f);
+            image.setScaleY(selected ? .84f : 1f);
             TextView check = tile.findViewWithTag("hide_selection_check");
             check.setVisibility(selected ? View.VISIBLE : View.GONE);
             if (selectingMedia) {
