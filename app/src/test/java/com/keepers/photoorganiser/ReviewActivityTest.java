@@ -6,6 +6,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
@@ -269,6 +271,21 @@ public class ReviewActivityTest {
         assertEquals(List.of(photo, video),
                 share.getParcelableArrayListExtra(Intent.EXTRA_STREAM));
         assertTrue((share.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+    }
+
+    @Test public void gallerySelectionUsesAGreenTickInsteadOfRecommendationGold() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/select-green")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        activity.findViewById(R.id.select_media_to_share).performClick();
+        grid.getChildAt(0).performClick();
+
+        TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
+        assertEquals(View.VISIBLE, check.getVisibility());
+        assertEquals("✓", check.getText().toString());
+        GradientDrawable background = (GradientDrawable) check.getBackground();
+        assertEquals(Color.rgb(24, 128, 56), background.getColor().getDefaultColor());
     }
 
     @Test public void galleryBulkHideHidesEveryPhotoInASelectedStack() {

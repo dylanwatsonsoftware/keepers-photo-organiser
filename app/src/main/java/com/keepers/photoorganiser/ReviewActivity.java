@@ -504,7 +504,7 @@ public final class ReviewActivity extends Activity {
         hideCheck.setTextColor(Color.WHITE);
         hideCheck.setTextSize(18);
         hideCheck.setGravity(Gravity.CENTER);
-        hideCheck.setBackground(recommendationCircle());
+        hideCheck.setBackground(selectionCircle());
         hideCheck.setVisibility(View.GONE);
         tile.addView(hideCheck, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
         tile.setContentDescription(recentPhoto.mediaType() == MediaType.VIDEO
@@ -972,6 +972,13 @@ public final class ReviewActivity extends Activity {
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
         circle.setColor(Color.rgb(176, 96, 0));
+        return circle;
+    }
+
+    private GradientDrawable selectionCircle() {
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(Color.rgb(24, 128, 56));
         return circle;
     }
 
