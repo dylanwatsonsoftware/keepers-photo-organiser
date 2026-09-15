@@ -28,7 +28,17 @@ public final class GalleryMetadataOverlay {
     }
 
     public static String topSignals(PhotoFeatures photo, PhotoContext context, int limit) {
-        return contextSummary(context) + "\n" + topSignals(photo, limit);
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of())
+                .withContexts(Map.of(photo.id(), context));
+        return topSignals(photo, context, profile, limit);
+    }
+
+    public static String topSignals(PhotoFeatures photo, PhotoContext context,
+            RecommendationPreferenceProfile profile, int limit) {
+        RecommendationPreferenceProfile.Ranking ranking = profile.ranking(photo);
+        return contextSummary(context) + "\nRank " + ranking.score() + "% · Limiting "
+                + ranking.limitingSignal() + " " + ranking.limitingPercent() + "%\n"
+                + topSignals(photo, limit);
     }
 
     public static String rankingDetails(PhotoFeatures photo, PhotoContext context) {

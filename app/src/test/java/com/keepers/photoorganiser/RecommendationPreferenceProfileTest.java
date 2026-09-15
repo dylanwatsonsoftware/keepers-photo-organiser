@@ -95,6 +95,22 @@ public class RecommendationPreferenceProfileTest {
         assertEquals(1, profile.feedbackCount());
     }
 
+    @Test public void broaderSimilarMomentComparisonsTeachWhichTraitsWon() {
+        PhotoFeatures preferred = new PhotoFeatures("preferred", 1_000, 0L, .6,
+                .3, .6, .95, .6, 0, -1, -1);
+        PhotoFeatures alternative = new PhotoFeatures("alternative", 2_000,
+                (1L << 26) - 1, .6, .95, .6, .3, .6, 0, -1, -1);
+        List<PhotoFeatures> features = List.of(preferred, alternative);
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
+                List.of(), StackPreferenceComparison.from(features,
+                        BestShotEngine.comparisonMembers(features, Map.of()),
+                        Set.of("preferred")));
+
+        assertTrue(profile.score(comparisonFeature("similar-to-preferred", .35, .9))
+                > profile.score(comparisonFeature("similar-to-alternative", .9, .35)));
+        assertEquals(1, profile.feedbackCount());
+    }
+
     @Test public void hiddenPhotosAreCapturedWithoutRewritingTechnicalQuality() {
         PhotoFeatures hidden = comparisonFeature("hidden", .95, .3);
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(

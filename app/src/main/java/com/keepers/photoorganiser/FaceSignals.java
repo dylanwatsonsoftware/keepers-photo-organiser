@@ -13,8 +13,14 @@ public record FaceSignals(int faceCount, double averageSmile, double minimumEyeO
         double minimumCameraFacing = 1;
         for (FaceObservation face : observations) {
             if (face.smile() >= 0) { smiles += face.smile(); smileCount++; }
-            if (face.leftEyeOpen() >= 0) { minimumEye = Math.min(minimumEye, face.leftEyeOpen()); hasEye = true; }
-            if (face.rightEyeOpen() >= 0) { minimumEye = Math.min(minimumEye, face.rightEyeOpen()); hasEye = true; }
+            double eyeTotal = 0;
+            int eyeCount = 0;
+            if (face.leftEyeOpen() >= 0) { eyeTotal += face.leftEyeOpen(); eyeCount++; }
+            if (face.rightEyeOpen() >= 0) { eyeTotal += face.rightEyeOpen(); eyeCount++; }
+            if (eyeCount > 0) {
+                minimumEye = Math.min(minimumEye, eyeTotal / eyeCount);
+                hasEye = true;
+            }
             minimumCameraFacing = Math.min(minimumCameraFacing,
                     Math.max(0, 1 - Math.abs(face.yaw()) / 45.0));
         }

@@ -247,6 +247,17 @@ public class BestShotEngineTest {
         assertEquals(null, members.get("separate"));
     }
 
+    @Test public void exposesBroaderSimilarMomentMembersWithoutCreatingAVisibleStack() {
+        PhotoFeatures first = feature("first", 1_000, 0L, .5);
+        PhotoFeatures visuallyRelated = feature(
+                "visually-related", 2_000, (1L << 26) - 1, .8);
+
+        assertEquals(Map.of(), BestShotEngine.stackMembers(List.of(first, visuallyRelated)));
+        assertEquals(List.of("first", "visually-related"),
+                BestShotEngine.comparisonMembers(List.of(first, visuallyRelated), Map.of())
+                        .get("first"));
+    }
+
     private static PhotoFeatures feature(String id, long takenAt, long hash, double quality) {
         return new PhotoFeatures(id, takenAt, hash, quality);
     }

@@ -7,6 +7,10 @@ import java.util.Map;
 
 public final class RecommendationPreferenceProfile {
     private static final double[] DEFAULT_WEIGHTS = { 1, 1, 1, 1, 1, 1.5, 1 };
+    private static final String[] SIGNAL_LABELS = {
+            "Detail", "Focus", "Exposure", "Composition", "Motion", "Eyes open",
+            "Facing camera"
+    };
     private final double[] weights;
     private final double strength;
     private final int feedbackCount;
@@ -81,6 +85,31 @@ public final class RecommendationPreferenceProfile {
         return baseline * (1 - strength) + weighted / totalWeight * strength;
     }
 
+    public Ranking ranking(PhotoFeatures photo) {
+        double[] values = values(photo);
+        PhotoContext context = contexts.getOrDefault(photo.id(), PhotoContext.general());
+        double[] baselineWeights = contextualWeights(DEFAULT_WEIGHTS, context);
+        double baselineTotal = availableWeight(values, baselineWeights);
+        double[] learnedWeights = contextualWeights(weights, context);
+        double learnedTotal = availableWeight(values, learnedWeights);
+        int limiting = -1;
+        double largestPenalty = -1;
+        for (int index = 0; index < values.length; index++) {
+            if (Double.isNaN(values[index])) continue;
+            double influence = baselineTotal == 0 ? 0
+                    : (1 - strength) * baselineWeights[index] / baselineTotal;
+            if (feedbackCount > 0 && learnedTotal > 0)
+                influence += strength * learnedWeights[index] / learnedTotal;
+            double penalty = influence * (1 - values[index]);
+            if (penalty > largestPenalty) {
+                largestPenalty = penalty;
+                limiting = index;
+            }
+        }
+        return new Ranking(percent(score(photo)), limiting < 0 ? "None" : SIGNAL_LABELS[limiting],
+                limiting < 0 ? 0 : percent(values[limiting]));
+    }
+
     public RecommendationPreferenceProfile withContexts(Map<String, PhotoContext> contexts) {
         return new RecommendationPreferenceProfile(weights, strength, feedbackCount, contexts);
     }
@@ -114,10 +143,23 @@ public final class RecommendationPreferenceProfile {
         return totalWeight == 0 ? 0 : total / totalWeight;
     }
 
+    private static double availableWeight(double[] values, double[] signalWeights) {
+        double total = 0;
+        for (int index = 0; index < values.length; index++)
+            if (!Double.isNaN(values[index])) total += signalWeights[index];
+        return total;
+    }
+
+    private static int percent(double value) {
+        return (int) Math.round(Math.max(0, Math.min(1, value)) * 100);
+    }
+
     private static double[] contextualWeights(double[] base, PhotoContext context) {
         double[] adjusted = new double[base.length];
         for (int index = 0; index < base.length; index++)
             adjusted[index] = base[index] * context.signalMultiplier(index);
         return adjusted;
     }
+
+    public record Ranking(int score, String limitingSignal, int limitingPercent) {}
 }

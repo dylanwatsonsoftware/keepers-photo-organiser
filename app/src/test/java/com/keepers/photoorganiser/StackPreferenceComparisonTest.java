@@ -52,6 +52,16 @@ public class StackPreferenceComparisonTest {
                 .mapToDouble(StackPreferenceComparison::weight).sum(), .0001);
     }
 
+    @Test public void keeperCanTeachFromABroaderSimilarMomentGroup() {
+        PhotoFeatures keeper = feature("keeper", .4, .9);
+        PhotoFeatures related = feature("related", .9, .2);
+        List<String> moment = List.of("keeper", "related");
+
+        assertEquals(List.of(new StackPreferenceComparison(keeper, related, 1)),
+                StackPreferenceComparison.from(List.of(keeper, related),
+                        Map.of("keeper", moment, "related", moment), Set.of("keeper")));
+    }
+
     private static PhotoFeatures feature(String id, double focus, double composition) {
         return new PhotoFeatures(id, 0, id.hashCode(), .6,
                 focus, .6, composition, .6, 0, -1, -1);

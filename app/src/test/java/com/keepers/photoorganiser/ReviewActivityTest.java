@@ -82,7 +82,8 @@ public class ReviewActivityTest {
         activity.findViewById(R.id.toggle_metadata).performClick();
 
         assertEquals(View.VISIBLE, overlay.getVisibility());
-        assertEquals("Type · Portrait 85%\nFocus 92%\nComposition 88%\nDetail 81%",
+        assertEquals("Type · Portrait 85%\nRank 76% · Limiting Motion 47%\n"
+                        + "Focus 92%\nComposition 88%\nDetail 81%",
                 overlay.getText().toString());
         assertTrue(activity.findViewById(R.id.toggle_metadata).isSelected());
     }

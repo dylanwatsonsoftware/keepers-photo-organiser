@@ -151,6 +151,17 @@ public final class BestShotEngine {
         return result;
     }
 
+    public static Map<String, List<String>> comparisonMembers(List<PhotoFeatures> photos,
+            Map<String, Set<String>> namedFaces) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (List<PhotoFeatures> group : comparisonGroups(photos, namedFaces)) {
+            if (group.size() < 2) continue;
+            List<String> ids = group.stream().map(PhotoFeatures::id).toList();
+            for (String id : ids) result.put(id, ids);
+        }
+        return result;
+    }
+
     private static List<List<PhotoFeatures>> sceneGroups(List<PhotoFeatures> photos,
             Map<String, Set<String>> namedFaces) {
         List<PhotoFeatures> ordered = ordered(photos);

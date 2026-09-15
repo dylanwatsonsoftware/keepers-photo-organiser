@@ -12,7 +12,7 @@ public class FaceSignalsTest {
 
         assertEquals(2, signals.faceCount());
         assertEquals(0.7, signals.averageSmile(), 0.001);
-        assertEquals(0.7, signals.minimumEyeOpen(), 0.001);
+        assertEquals(0.75, signals.minimumEyeOpen(), 0.001);
     }
 
     @Test public void cameraFacingUsesTheLeastForwardFacingPerson() {
@@ -21,6 +21,12 @@ public class FaceSignalsTest {
                 observation(0.5, 0.95, 0.9, 30)));
 
         assertEquals(1.0 / 3.0, signals.minimumCameraFacing(), 0.001);
+    }
+
+    @Test public void oneLowEyeProbabilityDoesNotDominateTheWholePortrait() {
+        FaceSignals signals = FaceSignals.from(List.of(observation(0.9, 0.2, 1.0)));
+
+        assertEquals(0.6, signals.minimumEyeOpen(), 0.001);
     }
 
     private static FaceObservation observation(double smile, double leftEye, double rightEye) {

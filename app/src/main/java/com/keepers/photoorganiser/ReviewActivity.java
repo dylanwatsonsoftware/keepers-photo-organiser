@@ -70,6 +70,8 @@ public final class ReviewActivity extends Activity {
     private Set<String> suggestions = Set.of();
     private Set<String> goodAlternatives = Set.of();
     private Map<String, List<String>> stackMembers = Map.of();
+    private RecommendationPreferenceProfile recommendationProfile =
+            RecommendationPreferenceProfile.learn(List.of());
     private int analyzedCount;
     private int analysisGeneration;
     private final ReviewWindow reviewWindow = new ReviewWindow();
@@ -337,6 +339,7 @@ public final class ReviewActivity extends Activity {
             suggestions = Set.of();
             goodAlternatives = Set.of();
             stackMembers = Map.of();
+            recommendationProfile = RecommendationPreferenceProfile.learn(List.of());
             analyzedCount = 0;
             mediaAnalysisQueue.clear();
             pendingSemanticContexts = 0;
@@ -467,6 +470,7 @@ public final class ReviewActivity extends Activity {
             }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
+            refreshRecommendationsIfReady();
         });
 
         ImageView suggestion = new ImageView(this);
@@ -643,7 +647,8 @@ public final class ReviewActivity extends Activity {
         List<PhotoFeatures> hiddenFeatures = features.stream()
                 .filter(feature -> hiddenIds.contains(feature.id())).toList();
         List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
-                visibleFeatures, members, keepers);
+                visibleFeatures,
+                BestShotEngine.comparisonMembers(visibleFeatures, namedFaces), keepers);
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
                 feedbackStore.load(), comparisons, hiddenFeatures);
         Map<String, PhotoContext> contexts = new HashMap<>();
@@ -653,6 +658,7 @@ public final class ReviewActivity extends Activity {
             if (context != null) contexts.put(feature.id(), context);
         }
         profile = profile.withContexts(contexts);
+        recommendationProfile = profile;
         BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
         new PhotoStackStore(this).save(members);
         new PhotoInsightStore(this).save(features, stacks, result.recommended(),
@@ -1296,11 +1302,25 @@ public final class ReviewActivity extends Activity {
                     previous == null ? "" : previous.comment()));
         }
         AlbumApprovalInvalidator.invalidate(this);
+        refreshRecommendationsIfReady();
+    }
+
+    private void refreshRecommendationsIfReady() {
+        if (features.isEmpty() || !mediaAnalysisQueue.photosComplete()
+                || pendingSemanticContexts > 0) return;
+        finalizePhotoInsights();
     }
 
     private void updateMetadataOverlays() {
         PhotoInsightStore insights = new PhotoInsightStore(this);
         PhotoContextStore contexts = new PhotoContextStore(this);
+        HashMap<String, PhotoContext> visibleContexts = new HashMap<>();
+        for (FrameLayout tile : tiles) {
+            PhotoContext context = contexts.load(tile.getTag().toString());
+            if (context != null) visibleContexts.put(tile.getTag().toString(), context);
+        }
+        RecommendationPreferenceProfile displayProfile =
+                recommendationProfile.withContexts(visibleContexts);
         for (FrameLayout tile : tiles) {
             TextView overlay = tile.findViewWithTag("metadata_overlay");
             PhotoFeatures photo = insights.loadFeatures(tile.getTag().toString());
@@ -1318,7 +1338,8 @@ public final class ReviewActivity extends Activity {
                 PhotoContext context = contexts.load(tile.getTag().toString());
                 overlay.setText(photo == null ? "Analysing…"
                         : GalleryMetadataOverlay.topSignals(photo,
-                                context == null ? PhotoContext.general() : context, 3));
+                                context == null ? PhotoContext.general() : context,
+                                displayProfile, 3));
             }
             overlay.setVisibility(metadataVisible ? View.VISIBLE : View.GONE);
         }
@@ -1421,7 +1442,10 @@ public final class ReviewActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (!photos.isEmpty()) updateSelectionDisplay();
+        if (!photos.isEmpty()) {
+            updateSelectionDisplay();
+            refreshRecommendationsIfReady();
+        }
     }
 
     private int dp(int value) {
