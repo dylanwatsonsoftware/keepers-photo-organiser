@@ -100,8 +100,11 @@ public final class ReviewActivity extends Activity {
     private boolean gridScaleInProgress;
     private boolean suppressTouchUntilScaleEnds;
     private String gridScaleFocusMediaId;
+    private float gridScaleFocusViewportX;
     private float gridScaleFocusViewportY;
+    private float gridScaleFocusFractionX;
     private float gridScaleFocusFractionY;
+    private android.view.animation.Animation gridSettleAnimation;
     private final Map<String, Float> mediaAspectRatios = new HashMap<>();
     private boolean selectingMedia;
     private boolean rangeSelectionGestureActive;
@@ -337,14 +340,15 @@ public final class ReviewActivity extends Activity {
         grid.setScaleX(1f);
         grid.setScaleY(1f);
         setGridColumns(targetColumns);
-        restoreGridScaleFocus();
         android.view.animation.ScaleAnimation settle = new android.view.animation.ScaleAnimation(
                 settleStart, 1f, settleStart, 1f,
                 android.view.animation.Animation.RELATIVE_TO_SELF, pivotX,
                 android.view.animation.Animation.RELATIVE_TO_SELF, pivotY);
         settle.setDuration(220);
         settle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+        gridSettleAnimation = settle;
         grid.startAnimation(settle);
+        restoreGridScaleFocus(settleStart);
         accumulatedGridScale = 1f;
     }
 
@@ -365,15 +369,21 @@ public final class ReviewActivity extends Activity {
             }
         }
         gridScaleFocusMediaId = mediaId;
+        gridScaleFocusViewportX = viewportX;
         gridScaleFocusViewportY = viewportY;
+        gridScaleFocusFractionX = focused == null || focused.getWidth() == 0 ? .5f
+                : Math.max(0f, Math.min(1f, (viewportX + scroll.getScrollX()
+                        - focused.getLeft()) / focused.getWidth()));
         gridScaleFocusFractionY = focused == null || focused.getHeight() == 0 ? .5f
                 : Math.max(0f, Math.min(1f, (viewportY + scroll.getScrollY()
                         - focused.getTop()) / focused.getHeight()));
     }
 
-    private void restoreGridScaleFocus() {
+    private void restoreGridScaleFocus(float settleStart) {
         String mediaId = gridScaleFocusMediaId;
+        float viewportX = gridScaleFocusViewportX;
         float viewportY = gridScaleFocusViewportY;
+        float fractionX = gridScaleFocusFractionX;
         float fractionY = gridScaleFocusFractionY;
         gridScaleFocusMediaId = null;
         if (mediaId == null) return;
@@ -393,7 +403,28 @@ public final class ReviewActivity extends Activity {
                     - viewportY);
             int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
             scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
+            float anchorX = focused.getLeft() + focused.getWidth() * fractionX;
+            float anchorY = focused.getTop() + focused.getHeight() * fractionY;
+            float deltaX = viewportX + scroll.getScrollX() - anchorX;
+            float deltaY = viewportY + scroll.getScrollY() - anchorY;
+            android.view.animation.AnimationSet anchoredSettle =
+                    new android.view.animation.AnimationSet(true);
+            anchoredSettle.addAnimation(new android.view.animation.ScaleAnimation(
+                    settleStart, 1f, settleStart, 1f,
+                    android.view.animation.Animation.ABSOLUTE, anchorX,
+                    android.view.animation.Animation.ABSOLUTE, anchorY));
+            anchoredSettle.addAnimation(new android.view.animation.TranslateAnimation(
+                    deltaX, 0f, deltaY, 0f));
+            anchoredSettle.setDuration(220);
+            anchoredSettle.setInterpolator(
+                    new android.view.animation.DecelerateInterpolator(1.5f));
+            gridSettleAnimation = anchoredSettle;
+            grid.startAnimation(anchoredSettle);
         });
+    }
+
+    android.view.animation.Animation gridSettleAnimation() {
+        return gridSettleAnimation;
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

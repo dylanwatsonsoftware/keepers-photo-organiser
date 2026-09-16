@@ -213,12 +213,27 @@ public class ReviewActivityTest {
         dispatchPinch(activity, MotionEvent.ACTION_UP, focusX - 400, focusY,
                 focusX + 400, focusY, 1);
         layoutGrid(grid, 1, 500);
-        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(1, TimeUnit.MILLISECONDS);
 
         assertEquals(1, activity.gridColumns());
         float settledViewportY = focused.getTop() + focused.getHeight() / 2f
                 - scroll.getScrollY();
         assertEquals(viewportY, settledViewportY, 2f);
+        android.view.animation.Animation settle = activity.gridSettleAnimation();
+        assertNotNull(settle);
+        settle.initialize(grid.getWidth(), grid.getHeight(), grid.getWidth(), grid.getHeight());
+        settle.setStartTime(0);
+        Transformation initialFrame = new Transformation();
+        settle.getTransformation(0, initialFrame);
+        float[] focusedPoint = {focused.getLeft() + focused.getWidth() / 2f,
+                focused.getTop() + focused.getHeight() / 2f};
+        initialFrame.getMatrix().mapPoints(focusedPoint);
+        float expectedX = focusX - scrollLocation[0] + scroll.getScrollX();
+        float expectedY = viewportY + scroll.getScrollY();
+        assertTrue("Focused X expected " + expectedX + " but was " + focusedPoint[0],
+                Math.abs(expectedX - focusedPoint[0]) <= 2f);
+        assertTrue("Focused Y expected " + expectedY + " but was " + focusedPoint[1],
+                Math.abs(expectedY - focusedPoint[1]) <= 2f);
     }
 
     @Test public void populatedGridCanShrinkWithoutInvalidColumnIndices() {
