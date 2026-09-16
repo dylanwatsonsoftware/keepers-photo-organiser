@@ -307,7 +307,7 @@
                 >
                 <ImageView android:layout_width="24dp" android:layout_height="24dp"
                     android:layout_marginBottom="4dp" android:importantForAccessibility="no"
-                    android:src="@drawable/ic_hide" android:tint="@color/gallery_text_primary" />
+                    android:src="@drawable/ic_hide" android:tint="@color/gallery_text_secondary" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Hide" android:textColor="@color/gallery_filter_text"
                     android:textSize="12sp" android:textStyle="bold" />
@@ -320,7 +320,7 @@
                 >
                 <ImageView android:layout_width="24dp" android:layout_height="24dp"
                     android:layout_marginBottom="4dp" android:importantForAccessibility="no"
-                    android:src="@drawable/ic_share" android:tint="@color/gallery_text_primary" />
+                    android:src="@drawable/ic_share" android:tint="@color/gallery_accent_share" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Share" android:textColor="@color/gallery_filter_text"
                     android:textSize="12sp" android:textStyle="bold" />
@@ -333,7 +333,7 @@
                 >
                 <ImageView android:layout_width="24dp" android:layout_height="24dp"
                     android:layout_marginBottom="4dp" android:importantForAccessibility="no"
-                    android:src="@drawable/ic_heart_filled" android:tint="@color/gallery_text_primary" />
+                    android:src="@drawable/ic_heart_filled" android:tint="@color/gallery_accent_keeper" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Keeper" android:textColor="@color/gallery_filter_text"
                     android:textSize="12sp" android:textStyle="bold" />
@@ -346,7 +346,7 @@
                 >
                 <ImageView android:layout_width="24dp" android:layout_height="24dp"
                     android:layout_marginBottom="4dp" android:importantForAccessibility="no"
-                    android:src="@drawable/ic_review_albums" android:tint="@color/gallery_text_primary" />
+                    android:src="@drawable/ic_review_albums" android:tint="@color/gallery_accent_warm" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Albums" android:textColor="@color/gallery_filter_text"
                     android:textSize="12sp" android:textStyle="bold" />

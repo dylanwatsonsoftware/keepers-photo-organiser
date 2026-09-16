@@ -9,6 +9,7 @@
     <color name="gallery_grid_gutter">#11110F</color>
     <color name="gallery_accent_keeper">#FF7A7F</color>
     <color name="gallery_accent_warm">#E3A84F</color>
+    <color name="gallery_accent_share">#8AB4F8</color>
     <color name="gallery_primary">#F4F1EA</color>
     <color name="gallery_primary_pressed">#D7D1C7</color>
     <color name="gallery_on_primary">#171512</color>

@@ -154,6 +154,24 @@ public class ReviewLayoutTest {
         }
     }
 
+    @Test public void gallerySelectionActionsUseContextualIconColours() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        View layout = LayoutInflater.from(context).inflate(R.layout.activity_review, null);
+
+        assertEquals(context.getColor(R.color.gallery_text_secondary),
+                actionIcon(layout, R.id.selection_hide).getImageTintList().getDefaultColor());
+        assertEquals(0xFF4278B8,
+                actionIcon(layout, R.id.selection_share).getImageTintList().getDefaultColor());
+        assertEquals(context.getColor(R.color.gallery_accent_keeper),
+                actionIcon(layout, R.id.selection_keeper).getImageTintList().getDefaultColor());
+        assertEquals(context.getColor(R.color.gallery_accent_warm),
+                actionIcon(layout, R.id.selection_albums).getImageTintList().getDefaultColor());
+    }
+
+    private static ImageView actionIcon(View layout, int actionId) {
+        return (ImageView) ((LinearLayout) layout.findViewById(actionId)).getChildAt(0);
+    }
+
     private static View findViewWithText(View view, String text) {
         if (view instanceof TextView && text.contentEquals(((TextView) view).getText())) return view;
         if (!(view instanceof android.view.ViewGroup)) return null;
