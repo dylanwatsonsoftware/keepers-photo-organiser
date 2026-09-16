@@ -792,7 +792,7 @@ public final class ReviewActivity extends Activity {
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
             android.view.animation.ScaleAnimation pop =
-                    new android.view.animation.ScaleAnimation(.9f, 1f, .9f, 1f,
+                    new android.view.animation.ScaleAnimation(.87f, 1f, .87f, 1f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
             pop.setDuration(HEART_FEEDBACK_ANIMATION_MILLIS);

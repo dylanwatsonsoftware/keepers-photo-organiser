@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.ScaleAnimation;
+import android.view.animation.Transformation;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -199,6 +200,14 @@ public class ReviewActivityTest {
 
         assertTrue(heart.getAnimation() instanceof ScaleAnimation);
         assertTrue(heart.getAnimation().getDuration() <= 200);
+        ScaleAnimation animation = (ScaleAnimation) heart.getAnimation();
+        animation.initialize(100, 100, 100, 100);
+        animation.setStartTime(0);
+        Transformation initialFrame = new Transformation();
+        animation.getTransformation(0, initialFrame);
+        float[] matrixValues = new float[9];
+        initialFrame.getMatrix().getValues(matrixValues);
+        assertEquals(.87f, matrixValues[android.graphics.Matrix.MSCALE_X], .001f);
     }
 
     @Test public void keeperHeartStillAnimatesAfterAnalysisHasCompleted() {
