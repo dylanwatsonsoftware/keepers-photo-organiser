@@ -99,6 +99,9 @@ public final class ReviewActivity extends Activity {
     private int gridScaleStartColumns;
     private boolean gridScaleInProgress;
     private boolean suppressTouchUntilScaleEnds;
+    private String gridScaleFocusMediaId;
+    private float gridScaleFocusViewportY;
+    private float gridScaleFocusFractionY;
     private final Map<String, Float> mediaAspectRatios = new HashMap<>();
     private boolean selectingMedia;
     private boolean rangeSelectionGestureActive;
@@ -284,6 +287,7 @@ public final class ReviewActivity extends Activity {
                         accumulatedGridScale = 1f;
                         gridScaleStartColumns = gridColumns;
                         gridScaleInProgress = true;
+                        captureGridScaleFocus(detector.getFocusX(), detector.getFocusY());
                         GridLayout grid = findViewById(R.id.photo_grid);
                         grid.clearAnimation();
                         grid.setScaleX(1f);
@@ -333,6 +337,7 @@ public final class ReviewActivity extends Activity {
         grid.setScaleX(1f);
         grid.setScaleY(1f);
         setGridColumns(targetColumns);
+        restoreGridScaleFocus();
         android.view.animation.ScaleAnimation settle = new android.view.animation.ScaleAnimation(
                 settleStart, 1f, settleStart, 1f,
                 android.view.animation.Animation.RELATIVE_TO_SELF, pivotX,
@@ -341,6 +346,54 @@ public final class ReviewActivity extends Activity {
         settle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
         grid.startAnimation(settle);
         accumulatedGridScale = 1f;
+    }
+
+    private void captureGridScaleFocus(float windowX, float windowY) {
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int[] scrollLocation = new int[2];
+        scroll.getLocationInWindow(scrollLocation);
+        float viewportX = windowX - scrollLocation[0];
+        float viewportY = windowY - scrollLocation[1];
+        String mediaId = visibleMediaAt(viewportX, viewportY);
+        View focused = null;
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            View tile = grid.getChildAt(index);
+            if (mediaId != null && mediaId.equals(tile.getTag().toString())) {
+                focused = tile;
+                break;
+            }
+        }
+        gridScaleFocusMediaId = mediaId;
+        gridScaleFocusViewportY = viewportY;
+        gridScaleFocusFractionY = focused == null || focused.getHeight() == 0 ? .5f
+                : Math.max(0f, Math.min(1f, (viewportY + scroll.getScrollY()
+                        - focused.getTop()) / focused.getHeight()));
+    }
+
+    private void restoreGridScaleFocus() {
+        String mediaId = gridScaleFocusMediaId;
+        float viewportY = gridScaleFocusViewportY;
+        float fractionY = gridScaleFocusFractionY;
+        gridScaleFocusMediaId = null;
+        if (mediaId == null) return;
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        GridLayout grid = findViewById(R.id.photo_grid);
+        grid.post(() -> {
+            View focused = null;
+            for (int index = 0; index < grid.getChildCount(); index++) {
+                View tile = grid.getChildAt(index);
+                if (mediaId.equals(tile.getTag().toString())) {
+                    focused = tile;
+                    break;
+                }
+            }
+            if (focused == null) return;
+            int requested = Math.round(focused.getTop() + focused.getHeight() * fractionY
+                    - viewportY);
+            int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
+            scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
+        });
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

@@ -173,6 +173,54 @@ public class ReviewActivityTest {
                 grid.getChildAt(0).findViewWithTag("hide_selection_check").getVisibility());
     }
 
+    @Test public void zoomingInKeepsTheFocusedPhotoAtThePinchPosition() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.setGridColumns(4);
+        ArrayList<Uri> photos = new ArrayList<>();
+        for (int index = 0; index < 32; index++)
+            photos.add(Uri.parse("content://media/photo/focus-" + index));
+        activity.showPhotos(photos);
+        View content = activity.findViewById(android.R.id.content);
+        content.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        content.layout(0, 0, 1080, 1920);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        scroll.layout(0, 150, 1080, 750);
+        layoutGrid(grid, 4, 200);
+        scroll.scrollTo(0, 800);
+        View focused = grid.getChildAt(22);
+        float viewportY = focused.getTop() + focused.getHeight() / 2f - scroll.getScrollY();
+        int[] scrollLocation = new int[2];
+        scroll.getLocationInWindow(scrollLocation);
+        float focusX = scrollLocation[0] + focused.getLeft() + focused.getWidth() / 2f;
+        float focusY = scrollLocation[1] + viewportY;
+
+        dispatchPinch(activity, MotionEvent.ACTION_DOWN, focusX - 50, focusY,
+                focusX + 50, focusY, 1);
+        dispatchPinch(activity, MotionEvent.ACTION_POINTER_DOWN
+                        | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                focusX - 50, focusY, focusX + 50, focusY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_MOVE, focusX - 100, focusY,
+                focusX + 100, focusY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_MOVE, focusX - 200, focusY,
+                focusX + 200, focusY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_MOVE, focusX - 400, focusY,
+                focusX + 400, focusY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_POINTER_UP
+                        | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                focusX - 400, focusY, focusX + 400, focusY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_UP, focusX - 400, focusY,
+                focusX + 400, focusY, 1);
+        layoutGrid(grid, 1, 500);
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+
+        assertEquals(1, activity.gridColumns());
+        float settledViewportY = focused.getTop() + focused.getHeight() / 2f
+                - scroll.getScrollY();
+        assertEquals(viewportY, settledViewportY, 2f);
+    }
+
     @Test public void populatedGridCanShrinkWithoutInvalidColumnIndices() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
@@ -1432,11 +1480,15 @@ public class ReviewActivityTest {
     }
 
     private static void layoutThreeColumnGrid(GridLayout grid, int tileSize) {
-        int rows = (grid.getChildCount() + 2) / 3;
-        grid.layout(0, 0, tileSize * 3, tileSize * rows);
+        layoutGrid(grid, 3, tileSize);
+    }
+
+    private static void layoutGrid(GridLayout grid, int columns, int tileSize) {
+        int rows = (grid.getChildCount() + columns - 1) / columns;
+        grid.layout(0, 0, tileSize * columns, tileSize * rows);
         for (int index = 0; index < grid.getChildCount(); index++) {
-            int column = index % 3;
-            int row = index / 3;
+            int column = index % columns;
+            int row = index / columns;
             grid.getChildAt(index).layout(column * tileSize, row * tileSize,
                     (column + 1) * tileSize, (row + 1) * tileSize);
         }
