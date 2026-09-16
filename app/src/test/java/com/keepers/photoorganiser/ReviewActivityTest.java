@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.graphics.Color;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -870,6 +871,27 @@ public class ReviewActivityTest {
         assertEquals(1, grid.getChildCount());
         assertEquals("Saved Keeper photo. Tap to remove.",
                 grid.getChildAt(0).getContentDescription());
+    }
+
+    @Test public void newKeepersAreRedAndSavedKeepersAreWhite() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String fresh = "content://media/photo/fresh-keeper";
+        String saved = "content://media/photo/saved-keeper";
+        new KeeperSelectionStore(activity).replace(Set.of(fresh, saved));
+        AlbumCompletionStore completions = new AlbumCompletionStore(activity);
+        completions.clear();
+        completions.mark(saved, "Family");
+
+        activity.showPhotos(List.of(Uri.parse(fresh), Uri.parse(saved)));
+        activity.findViewById(R.id.filter_include_keepers).performClick();
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        ImageView freshHeart = (ImageView) ((ViewGroup) grid.getChildAt(0)).getChildAt(1);
+        ImageView savedHeart = (ImageView) ((ViewGroup) grid.getChildAt(1)).getChildAt(1);
+        assertEquals(activity.getColor(R.color.gallery_accent_keeper),
+                Shadows.shadowOf((PorterDuffColorFilter) freshHeart.getColorFilter()).getColor());
+        assertEquals(Color.WHITE,
+                Shadows.shadowOf((PorterDuffColorFilter) savedHeart.getColorFilter()).getColor());
     }
 
     @Test public void suggestionsUseStarsWithoutFadingAlternatives() {

@@ -1271,7 +1271,8 @@ public final class ReviewActivity extends Activity {
             ImageView heart = (ImageView) tile.getChildAt(1);
             heart.setImageResource(keeper ? R.drawable.ic_heart_filled
                     : R.drawable.ic_heart_outline);
-            heart.setColorFilter(keeper ? getColor(R.color.gallery_accent_keeper) : Color.WHITE);
+            heart.setColorFilter(keeper && !saved
+                    ? getColor(R.color.gallery_accent_keeper) : Color.WHITE);
             int heartPadding = dp(HeartIconStyle.paddingDp(keeper));
             heart.setPadding(heartPadding, heartPadding, heartPadding, heartPadding);
             heart.setVisibility(View.VISIBLE);
