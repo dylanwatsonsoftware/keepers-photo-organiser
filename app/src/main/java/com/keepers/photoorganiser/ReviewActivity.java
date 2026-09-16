@@ -339,7 +339,7 @@ public final class ReviewActivity extends Activity {
         float pivotY = grid.getHeight() == 0 ? .5f : grid.getPivotY() / grid.getHeight();
         grid.setScaleX(1f);
         grid.setScaleY(1f);
-        setGridColumns(targetColumns);
+        setGridColumns(targetColumns, false);
         android.view.animation.ScaleAnimation settle = new android.view.animation.ScaleAnimation(
                 settleStart, 1f, settleStart, 1f,
                 android.view.animation.Animation.RELATIVE_TO_SELF, pivotX,
@@ -399,8 +399,8 @@ public final class ReviewActivity extends Activity {
                 }
             }
             if (focused == null) return;
-            int requested = Math.round(focused.getTop() + focused.getHeight() / 2f
-                    - scroll.getHeight() / 2f);
+            int requested = Math.round(focused.getTop() + focused.getHeight() * fractionY
+                    - viewportY);
             int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
             scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
             float anchorX = focused.getLeft() + focused.getWidth() * fractionX;
@@ -668,6 +668,10 @@ public final class ReviewActivity extends Activity {
     }
 
     void setGridColumns(int requestedColumns) {
+        setGridColumns(requestedColumns, true);
+    }
+
+    private void setGridColumns(int requestedColumns, boolean preserveScrollAnchor) {
         int columns = clampGridColumns(requestedColumns);
         if (columns == gridColumns
                 && findViewById(R.id.photo_grid) != null
@@ -688,7 +692,7 @@ public final class ReviewActivity extends Activity {
             resetGridPlacement(visibleTile);
             grid.addView(visibleTile);
         }
-        reflowGrid(true);
+        reflowGrid(preserveScrollAnchor);
         updateGridDensityChoices();
         grid.announceForAccessibility(columns == 1 ? "One photo per row"
                 : columns + " photos per row");

@@ -173,7 +173,7 @@ public class ReviewActivityTest {
                 grid.getChildAt(0).findViewWithTag("hide_selection_check").getVisibility());
     }
 
-    @Test public void zoomingInKeepsTheFocusedPhotoAtThePinchPosition() {
+    @Test public void zoomingInKeepsTheFocusedPhotoStationaryThroughTheSettle() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.setGridColumns(4);
         ArrayList<Uri> photos = new ArrayList<>();
@@ -190,7 +190,9 @@ public class ReviewActivityTest {
         layoutGrid(grid, 4, 200);
         scroll.scrollTo(0, 1000);
         View focused = grid.getChildAt(22);
-        float viewportY = focused.getTop() + focused.getHeight() / 2f - scroll.getScrollY();
+        float focusFractionY = .25f;
+        float viewportY = focused.getTop() + focused.getHeight() * focusFractionY
+                - scroll.getScrollY();
         int[] scrollLocation = new int[2];
         scroll.getLocationInWindow(scrollLocation);
         float focusX = scrollLocation[0] + focused.getLeft() + focused.getWidth() / 2f;
@@ -216,9 +218,9 @@ public class ReviewActivityTest {
         Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(1, TimeUnit.MILLISECONDS);
 
         assertEquals(1, activity.gridColumns());
-        float settledViewportY = focused.getTop() + focused.getHeight() / 2f
+        float settledViewportY = focused.getTop() + focused.getHeight() * focusFractionY
                 - scroll.getScrollY();
-        assertEquals(scroll.getHeight() / 2f, settledViewportY, 2f);
+        assertEquals(viewportY, settledViewportY, 2f);
         android.view.animation.Animation settle = activity.gridSettleAnimation();
         assertNotNull(settle);
         settle.initialize(grid.getWidth(), grid.getHeight(), grid.getWidth(), grid.getHeight());
@@ -226,7 +228,7 @@ public class ReviewActivityTest {
         Transformation initialFrame = new Transformation();
         settle.getTransformation(0, initialFrame);
         float[] focusedPoint = {focused.getLeft() + focused.getWidth() / 2f,
-                focused.getTop() + focused.getHeight() / 2f};
+                focused.getTop() + focused.getHeight() * focusFractionY};
         initialFrame.getMatrix().mapPoints(focusedPoint);
         float expectedX = focusX - scrollLocation[0] + scroll.getScrollX();
         float expectedY = viewportY + scroll.getScrollY();
