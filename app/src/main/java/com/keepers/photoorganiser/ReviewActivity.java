@@ -399,8 +399,8 @@ public final class ReviewActivity extends Activity {
                 }
             }
             if (focused == null) return;
-            int requested = Math.round(focused.getTop() + focused.getHeight() * fractionY
-                    - viewportY);
+            int requested = Math.round(focused.getTop() + focused.getHeight() / 2f
+                    - scroll.getHeight() / 2f);
             int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
             scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
             float anchorX = focused.getLeft() + focused.getWidth() * fractionX;

@@ -188,7 +188,7 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         scroll.layout(0, 150, 1080, 750);
         layoutGrid(grid, 4, 200);
-        scroll.scrollTo(0, 800);
+        scroll.scrollTo(0, 1000);
         View focused = grid.getChildAt(22);
         float viewportY = focused.getTop() + focused.getHeight() / 2f - scroll.getScrollY();
         int[] scrollLocation = new int[2];
@@ -218,7 +218,7 @@ public class ReviewActivityTest {
         assertEquals(1, activity.gridColumns());
         float settledViewportY = focused.getTop() + focused.getHeight() / 2f
                 - scroll.getScrollY();
-        assertEquals(viewportY, settledViewportY, 2f);
+        assertEquals(scroll.getHeight() / 2f, settledViewportY, 2f);
         android.view.animation.Animation settle = activity.gridSettleAnimation();
         assertNotNull(settle);
         settle.initialize(grid.getWidth(), grid.getHeight(), grid.getWidth(), grid.getHeight());
