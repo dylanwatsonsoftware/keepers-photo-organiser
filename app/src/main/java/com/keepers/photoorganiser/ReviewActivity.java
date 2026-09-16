@@ -338,7 +338,8 @@ public final class ReviewActivity extends Activity {
         GridLayout grid = findViewById(R.id.photo_grid);
         int startColumns = Math.max(1, gridScaleStartColumns);
         float previewScale = accumulatedGridScale;
-        int targetColumns = clampGridColumns(Math.round(startColumns / previewScale));
+        float densityScale = previewScale * previewScale;
+        int targetColumns = clampGridColumns(Math.round(startColumns / densityScale));
         float settleStart = previewScale * targetColumns / startColumns;
         float pivotX = grid.getWidth() == 0 ? .5f : grid.getPivotX() / grid.getWidth();
         float pivotY = grid.getHeight() == 0 ? .5f : grid.getPivotY() / grid.getHeight();

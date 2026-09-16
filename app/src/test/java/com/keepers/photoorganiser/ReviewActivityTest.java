@@ -126,7 +126,7 @@ public class ReviewActivityTest {
         dispatchPinch(activity, MotionEvent.ACTION_UP, centreX - 200, centreY,
                 centreX + 200, centreY, 1);
 
-        assertEquals(3, activity.gridColumns());
+        assertEquals(2, activity.gridColumns());
         assertNotNull(grid.getAnimation());
     }
 
