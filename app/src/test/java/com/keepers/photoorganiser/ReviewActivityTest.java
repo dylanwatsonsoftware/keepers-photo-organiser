@@ -117,8 +117,8 @@ public class ReviewActivityTest {
                 centreX + 200, centreY, 2);
 
         assertEquals(4, grid.getColumnCount());
-        assertTrue(grid.getScaleX() > 1f);
-        assertTrue(grid.getScaleX() <= 1.12f);
+        assertTrue(grid.getScaleX() > 1.2f);
+        assertTrue(grid.getScaleX() <= 1.24f);
 
         dispatchPinch(activity, MotionEvent.ACTION_POINTER_UP
                         | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
