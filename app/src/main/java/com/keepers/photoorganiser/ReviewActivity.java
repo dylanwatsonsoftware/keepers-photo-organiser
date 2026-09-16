@@ -348,8 +348,15 @@ public final class ReviewActivity extends Activity {
         if (gridScaleDetector != null
                 && (inGallery || gridScaleInProgress || suppressTouchUntilScaleEnds))
             gridScaleDetector.onTouchEvent(event);
-        if (inGallery && (gridScaleInProgress || event.getPointerCount() > 1))
+        if (inGallery && (gridScaleInProgress || event.getPointerCount() > 1)) {
+            if (!suppressTouchUntilScaleEnds) {
+                MotionEvent cancel = MotionEvent.obtain(event);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+            }
             suppressTouchUntilScaleEnds = true;
+        }
         if (suppressTouchUntilScaleEnds) {
             if (event.getActionMasked() == MotionEvent.ACTION_UP
                     || event.getActionMasked() == MotionEvent.ACTION_CANCEL)

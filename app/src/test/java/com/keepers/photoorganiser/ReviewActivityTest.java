@@ -129,6 +129,50 @@ public class ReviewActivityTest {
         assertNotNull(grid.getAnimation());
     }
 
+    @Test public void pinchCancelsTheFirstFingersPendingLongPressSelection() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/pinch-no-selection-1"),
+                Uri.parse("content://media/photo/pinch-no-selection-2")));
+        View content = activity.findViewById(android.R.id.content);
+        content.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        content.layout(0, 0, 1080, 1920);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        View firstTile = grid.getChildAt(0);
+        int[] tileLocation = new int[2];
+        firstTile.getLocationOnScreen(tileLocation);
+        float centreX = tileLocation[0] + firstTile.getWidth() / 2f;
+        float centreY = tileLocation[1] + firstTile.getHeight() / 2f;
+        AtomicBoolean tileReceivedDown = new AtomicBoolean();
+        AtomicBoolean tileReceivedCancel = new AtomicBoolean();
+        firstTile.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN)
+                tileReceivedDown.set(true);
+            if (event.getActionMasked() == MotionEvent.ACTION_CANCEL)
+                tileReceivedCancel.set(true);
+            return false;
+        });
+
+        dispatchPinch(activity, MotionEvent.ACTION_DOWN, centreX, centreY,
+                centreX + 60, centreY, 1);
+        assertTrue("Tile bounds " + tileLocation[0] + "," + tileLocation[1] + " "
+                + firstTile.getWidth() + "x" + firstTile.getHeight()
+                + " at " + centreX + "," + centreY, tileReceivedDown.get());
+        dispatchPinch(activity, MotionEvent.ACTION_POINTER_DOWN
+                        | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                centreX, centreY, centreX + 60, centreY, 2);
+        assertTrue(tileReceivedCancel.get());
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(
+                android.view.ViewConfiguration.getLongPressTimeout() + 50L,
+                TimeUnit.MILLISECONDS);
+
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.gallery_selection_actions).getVisibility());
+        assertEquals(View.GONE,
+                grid.getChildAt(0).findViewWithTag("hide_selection_check").getVisibility());
+    }
+
     @Test public void populatedGridCanShrinkWithoutInvalidColumnIndices() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
