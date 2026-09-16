@@ -582,6 +582,20 @@ public class ReviewActivityTest {
                 background.getColor().getDefaultColor());
     }
 
+    @Test public void gallerySelectionTickIsCompact() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/select-compact")));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+
+        assertTrue(grid.getChildAt(0).performLongClick());
+
+        TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
+        assertEquals(dp(activity, 18), check.getLayoutParams().width);
+        assertEquals(dp(activity, 18), check.getLayoutParams().height);
+        assertEquals(10f * activity.getResources().getDisplayMetrics().scaledDensity,
+                check.getTextSize(), .01f);
+    }
+
     @Test public void longPressStartsInsetGallerySelectionWithCountAndCancel() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(Uri.parse("content://media/photo/one"),

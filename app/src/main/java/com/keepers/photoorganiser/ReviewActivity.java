@@ -880,11 +880,11 @@ public final class ReviewActivity extends Activity {
         hideCheck.setTag("hide_selection_check");
         hideCheck.setText("✓");
         hideCheck.setTextColor(Color.WHITE);
-        hideCheck.setTextSize(18);
+        hideCheck.setTextSize(10);
         hideCheck.setGravity(Gravity.CENTER);
         hideCheck.setBackground(selectionCircle());
         hideCheck.setVisibility(View.GONE);
-        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(34), dp(34),
+        FrameLayout.LayoutParams checkParams = new FrameLayout.LayoutParams(dp(18), dp(18),
                 Gravity.TOP | Gravity.START);
         checkParams.setMargins(dp(7), dp(7), 0, 0);
         tile.addView(hideCheck, checkParams);
