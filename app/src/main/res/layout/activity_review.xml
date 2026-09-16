@@ -92,7 +92,7 @@
                 android:gravity="center"
                 android:drawableStart="@drawable/ic_heart_filled"
                 android:drawablePadding="7dp"
-                android:drawableTint="@color/gallery_accent_keeper"
+                android:drawableTint="@color/gallery_keeper_filter_icon"
                 android:minWidth="112dp"
                 android:paddingHorizontal="16dp"
                 android:text="Keepers · 0"

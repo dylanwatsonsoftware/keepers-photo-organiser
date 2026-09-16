@@ -213,6 +213,20 @@ public class ReviewActivityTest {
         assertNotNull(suggested.getAnimation());
     }
 
+    @Test public void keepersFilterHeartIsWhiteUntilTheFilterIsSelected() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        TextView keepers = activity.findViewById(R.id.filter_keepers);
+
+        assertEquals(Color.WHITE, keepers.getCompoundDrawableTintList().getColorForState(
+                new int[]{-android.R.attr.state_selected}, Color.TRANSPARENT));
+
+        keepers.performClick();
+
+        assertEquals(activity.getColor(R.color.gallery_accent_keeper),
+                keepers.getCompoundDrawableTintList().getColorForState(
+                        new int[]{android.R.attr.state_selected}, Color.TRANSPARENT));
+    }
+
     @Test public void destinationsShowFeedbackBeforeNavigating() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         View albums = activity.findViewById(R.id.albums_destination);
