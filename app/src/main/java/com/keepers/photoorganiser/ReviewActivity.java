@@ -307,7 +307,7 @@ public final class ReviewActivity extends Activity {
                         float maximum = gridScaleStartColumns;
                         accumulatedGridScale = Math.max(minimum * .88f,
                                 Math.min(maximum * 1.12f, accumulatedGridScale));
-                        previewGridScale(accumulatedGridScale,
+                        previewGridScale(boundedGridPreviewScale(accumulatedGridScale),
                                 detector.getFocusX(), detector.getFocusY());
                         return true;
                     }
@@ -327,6 +327,11 @@ public final class ReviewActivity extends Activity {
         grid.setPivotY(Math.max(0, Math.min(grid.getHeight(), focusY - gridLocation[1])));
         grid.setScaleX(scale);
         grid.setScaleY(scale);
+    }
+
+    private static float boundedGridPreviewScale(float gestureScale) {
+        float response = (float) Math.log(Math.max(.01f, gestureScale)) * .18f;
+        return 1f + Math.max(-.12f, Math.min(.12f, response));
     }
 
     private void finishGridScalePreview() {
@@ -389,38 +394,45 @@ public final class ReviewActivity extends Activity {
         if (mediaId == null) return;
         ScrollView scroll = findViewById(R.id.review_scroll);
         GridLayout grid = findViewById(R.id.photo_grid);
-        grid.post(() -> {
-            View focused = null;
-            for (int index = 0; index < grid.getChildCount(); index++) {
-                View tile = grid.getChildAt(index);
-                if (mediaId.equals(tile.getTag().toString())) {
-                    focused = tile;
-                    break;
-                }
-            }
-            if (focused == null) return;
-            int requested = Math.round(focused.getTop() + focused.getHeight() * fractionY
-                    - viewportY);
-            int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
-            scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
-            float anchorX = focused.getLeft() + focused.getWidth() * fractionX;
-            float anchorY = focused.getTop() + focused.getHeight() * fractionY;
-            float deltaX = viewportX + scroll.getScrollX() - anchorX;
-            float deltaY = viewportY + scroll.getScrollY() - anchorY;
-            android.view.animation.AnimationSet anchoredSettle =
-                    new android.view.animation.AnimationSet(true);
-            anchoredSettle.addAnimation(new android.view.animation.ScaleAnimation(
-                    settleStart, 1f, settleStart, 1f,
-                    android.view.animation.Animation.ABSOLUTE, anchorX,
-                    android.view.animation.Animation.ABSOLUTE, anchorY));
-            anchoredSettle.addAnimation(new android.view.animation.TranslateAnimation(
-                    deltaX, 0f, deltaY, 0f));
-            anchoredSettle.setDuration(220);
-            anchoredSettle.setInterpolator(
-                    new android.view.animation.DecelerateInterpolator(1.5f));
-            gridSettleAnimation = anchoredSettle;
-            grid.startAnimation(anchoredSettle);
-        });
+        grid.getViewTreeObserver().addOnPreDrawListener(
+                new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override public boolean onPreDraw() {
+                        android.view.ViewTreeObserver observer = grid.getViewTreeObserver();
+                        if (observer.isAlive()) observer.removeOnPreDrawListener(this);
+                        View focused = null;
+                        for (int index = 0; index < grid.getChildCount(); index++) {
+                            View tile = grid.getChildAt(index);
+                            if (mediaId.equals(tile.getTag().toString())) {
+                                focused = tile;
+                                break;
+                            }
+                        }
+                        if (focused == null) return true;
+                        int requested = Math.round(focused.getTop()
+                                + focused.getHeight() * fractionY - viewportY);
+                        int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
+                        scroll.scrollTo(0, Math.max(0, Math.min(maximum, requested)));
+                        float anchorX = focused.getLeft() + focused.getWidth() * fractionX;
+                        float anchorY = focused.getTop() + focused.getHeight() * fractionY;
+                        float deltaX = viewportX + scroll.getScrollX() - anchorX;
+                        float deltaY = viewportY + scroll.getScrollY() - anchorY;
+                        android.view.animation.AnimationSet anchoredSettle =
+                                new android.view.animation.AnimationSet(true);
+                        anchoredSettle.addAnimation(new android.view.animation.ScaleAnimation(
+                                settleStart, 1f, settleStart, 1f,
+                                android.view.animation.Animation.ABSOLUTE, anchorX,
+                                android.view.animation.Animation.ABSOLUTE, anchorY));
+                        anchoredSettle.addAnimation(
+                                new android.view.animation.TranslateAnimation(
+                                        deltaX, 0f, deltaY, 0f));
+                        anchoredSettle.setDuration(220);
+                        anchoredSettle.setInterpolator(
+                                new android.view.animation.DecelerateInterpolator(1.5f));
+                        gridSettleAnimation = anchoredSettle;
+                        grid.startAnimation(anchoredSettle);
+                        return true;
+                    }
+                });
     }
 
     android.view.animation.Animation gridSettleAnimation() {

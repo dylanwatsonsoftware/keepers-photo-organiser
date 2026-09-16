@@ -117,7 +117,8 @@ public class ReviewActivityTest {
                 centreX + 200, centreY, 2);
 
         assertEquals(4, grid.getColumnCount());
-        assertTrue(grid.getScaleX() > 1.2f);
+        assertTrue(grid.getScaleX() > 1f);
+        assertTrue(grid.getScaleX() <= 1.12f);
 
         dispatchPinch(activity, MotionEvent.ACTION_POINTER_UP
                         | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
@@ -215,7 +216,7 @@ public class ReviewActivityTest {
         dispatchPinch(activity, MotionEvent.ACTION_UP, focusX - 400, focusY,
                 focusX + 400, focusY, 1);
         layoutGrid(grid, 1, 500);
-        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(1, TimeUnit.MILLISECONDS);
+        grid.getViewTreeObserver().dispatchOnPreDraw();
 
         assertEquals(1, activity.gridColumns());
         float settledViewportY = focused.getTop() + focused.getHeight() * focusFractionY
