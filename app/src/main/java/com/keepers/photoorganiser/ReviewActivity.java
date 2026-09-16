@@ -330,8 +330,8 @@ public final class ReviewActivity extends Activity {
     }
 
     private static float boundedGridPreviewScale(float gestureScale) {
-        float response = (float) Math.log(Math.max(.01f, gestureScale)) * .7f;
-        return 1f + Math.max(-.24f, Math.min(.24f, response));
+        float response = (float) Math.log(Math.max(.01f, gestureScale)) * 1.25f;
+        return 1f + Math.max(-.44f, Math.min(.44f, response));
     }
 
     private void finishGridScalePreview() {
