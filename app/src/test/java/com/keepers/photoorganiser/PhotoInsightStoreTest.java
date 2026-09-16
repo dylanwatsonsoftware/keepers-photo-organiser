@@ -50,6 +50,18 @@ public class PhotoInsightStoreTest {
         assertEquals(.82, store.loadFeatures("portrait").cameraFacing(), .001);
     }
 
+    @Test public void persistsMediaIdentityNeededToReuseAnalysis() {
+        PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
+        PhotoFeatures original = new PhotoFeatures("reusable", 48291, 9918273, .7,
+                .8, .75, .6, .9, 2, .4, .95, .82);
+
+        store.save(List.of(original), Map.of(), Set.of());
+
+        PhotoFeatures restored = store.loadFeatures(original.id());
+        assertEquals(48291, restored.takenAtMillis());
+        assertEquals(9918273, restored.perceptualHash());
+    }
+
     @Test public void loadedAssessmentUsesTheCachedPhotoContext() {
         PhotoInsightStore store = new PhotoInsightStore(RuntimeEnvironment.getApplication());
         PhotoContextStore contexts = new PhotoContextStore(RuntimeEnvironment.getApplication());

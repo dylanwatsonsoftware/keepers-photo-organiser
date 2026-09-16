@@ -45,6 +45,16 @@ public class ReviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.review_loading));
     }
 
+    @Test public void analysisStatusReservesAStableLayoutSlot() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+        View strip = layout.findViewById(R.id.analysis_progress_strip);
+        int expected = Math.round(36 * layout.getResources().getDisplayMetrics().density);
+
+        assertEquals(expected, strip.getLayoutParams().height);
+        assertEquals(View.INVISIBLE, strip.getVisibility());
+    }
+
     @Test public void galleryUsesCompactKeeperAndFilterControls() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
@@ -140,11 +150,7 @@ public class ReviewLayoutTest {
                     name, "id", layout.getContext().getPackageName());
             assertTrue(actionId != 0);
             View action = layout.findViewById(actionId);
-            assertTrue(action instanceof TextView);
-            assertTrue(!(action instanceof Button));
-            assertTrue(action.isClickable());
-            assertNotNull(action.getBackground());
-            assertNotNull(((TextView) action).getCompoundDrawables()[1]);
+            assertIconLabelAction(action, null);
         }
     }
 
@@ -175,12 +181,7 @@ public class ReviewLayoutTest {
                 .inflate(R.layout.activity_review, null);
 
         View action = layout.findViewById(R.id.albums_destination);
-        assertTrue(action instanceof TextView);
-        assertTrue(!(action instanceof Button));
-        assertNotNull(action.getBackground());
-        assertTrue("Albums".contentEquals(((TextView) action).getText()));
-        assertNotNull(((TextView) action).getCompoundDrawables()[1]);
-        assertTrue(action.isClickable());
+        assertIconLabelAction(action, "Albums");
     }
 
     @Test public void albumDestinationScreenUsesACompactSingleLineTitle() {
@@ -202,14 +203,25 @@ public class ReviewLayoutTest {
 
         View quickReview = layout.findViewById(R.id.review_destination);
         View albumReview = layout.findViewById(R.id.albums_destination);
-        assertTrue(quickReview instanceof TextView);
-        assertTrue(albumReview instanceof TextView);
-        assertTrue(!(quickReview instanceof Button));
-        assertNotNull(quickReview.getBackground());
-        assertNotNull(((TextView) quickReview).getCompoundDrawables()[1]);
-        assertNotNull(((TextView) albumReview).getCompoundDrawables()[1]);
-        assertTrue("Review".contentEquals(((TextView) quickReview).getText()));
+        assertIconLabelAction(quickReview, "Review");
+        assertIconLabelAction(albumReview, "Albums");
         assertTrue(layout.getResources().getIdentifier("export_feedback", "id",
                 layout.getContext().getPackageName()) == 0);
+    }
+
+    private static void assertIconLabelAction(View action, String expectedLabel) {
+        assertTrue(action instanceof LinearLayout);
+        assertTrue(action.isClickable());
+        assertNotNull(action.getBackground());
+        LinearLayout column = (LinearLayout) action;
+        assertEquals(2, column.getChildCount());
+        assertTrue(column.getChildAt(0) instanceof ImageView);
+        assertTrue(column.getChildAt(1) instanceof TextView);
+        ImageView icon = (ImageView) column.getChildAt(0);
+        int expectedSize = Math.round(24 * action.getResources().getDisplayMetrics().density);
+        assertEquals(expectedSize, icon.getLayoutParams().width);
+        assertEquals(expectedSize, icon.getLayoutParams().height);
+        if (expectedLabel != null)
+            assertEquals(expectedLabel, ((TextView) column.getChildAt(1)).getText().toString());
     }
 }

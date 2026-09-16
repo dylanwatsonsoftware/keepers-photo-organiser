@@ -490,10 +490,34 @@ public final class ReviewActivity extends Activity {
             renderedMediaSelections.clear();
             previousCount = 0;
         }
-        mediaAnalysisQueue.add(recentPhotos.subList(previousCount, recentPhotos.size()));
+        ArrayList<RecentPhoto> pendingAnalysis = new ArrayList<>();
+        HashSet<String> pendingAnalysisIds = new HashSet<>();
+        PhotoInsightStore photoInsights = new PhotoInsightStore(this);
+        VideoInsightStore videoInsights = new VideoInsightStore(this);
+        for (RecentPhoto media : recentPhotos.subList(previousCount, recentPhotos.size())) {
+            boolean reusable;
+            if (media.mediaType() == MediaType.VIDEO) {
+                VideoFeatures cached = videoInsights.load(media.uri().toString());
+                reusable = cached != null
+                        && cached.durationMillis() == media.durationMillis();
+            } else {
+                PhotoFeatures cached = photoInsights.loadReusableFeatures(
+                        media.uri().toString(), media.takenAtMillis());
+                reusable = cached != null;
+                if (cached != null) features.add(cached);
+            }
+            if (reusable) analyzedCount++;
+            else {
+                pendingAnalysis.add(media);
+                pendingAnalysisIds.add(media.uri().toString());
+            }
+        }
+        mediaAnalysisQueue.add(pendingAnalysis);
         int tileSize = tileWidth();
         for (int index = previousCount; index < recentPhotos.size(); index++) {
-            FrameLayout tile = createTile(recentPhotos.get(index), tileSize, generation);
+            RecentPhoto media = recentPhotos.get(index);
+            FrameLayout tile = createTile(media, tileSize, generation,
+                    pendingAnalysisIds.contains(media.uri().toString()));
             tiles.add(tile);
             grid.addView(tile);
         }
@@ -640,7 +664,8 @@ public final class ReviewActivity extends Activity {
         showSuggestions(recommended, alternatives);
     }
 
-    private FrameLayout createTile(RecentPhoto recentPhoto, int size, int generation) {
+    private FrameLayout createTile(RecentPhoto recentPhoto, int size, int generation,
+            boolean analyze) {
         Uri photo = recentPhoto.uri();
         FrameLayout tile = new FrameLayout(this);
         tile.setTag(photo);
@@ -660,7 +685,7 @@ public final class ReviewActivity extends Activity {
                         / (float) Math.max(1, bitmap.getHeight()));
                 if (gridColumns == 1) reflowTile(tile, tileWidth());
             }
-            if (recentPhoto.mediaType() == MediaType.VIDEO) return;
+            if (!analyze || recentPhoto.mediaType() == MediaType.VIDEO) return;
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
                 PhotoContextStore contextStore = new PhotoContextStore(this);
@@ -1304,7 +1329,7 @@ public final class ReviewActivity extends Activity {
         goodAlternatives = Set.copyOf(alternatives);
         new SuggestionStore(this).save(suggestions);
         new SuggestionStore(this).saveAlternatives(goodAlternatives);
-        findViewById(R.id.analysis_progress_strip).setVisibility(View.GONE);
+        findViewById(R.id.analysis_progress_strip).setVisibility(View.INVISIBLE);
         updateSelectionDisplay();
     }
 

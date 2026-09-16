@@ -56,7 +56,7 @@ public class ReviewActivityTest {
 
         activity.showSuggestions(Set.of("photo"));
 
-        assertEquals(View.GONE, strip.getVisibility());
+        assertEquals(View.INVISIBLE, strip.getVisibility());
     }
 
     @Test public void galleryDefaultsToFourPhotoColumns() {
@@ -247,7 +247,7 @@ public class ReviewActivityTest {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
         assertTrue(activity.findViewById(id(activity, "gallery_destination")).isSelected());
-        assertTrue(activity.findViewById(id(activity, "review_destination")) instanceof TextView);
+        assertTrue(activity.findViewById(id(activity, "review_destination")).isClickable());
 
         activity.findViewById(id(activity, "albums_destination")).performClick();
         Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
@@ -903,7 +903,7 @@ public class ReviewActivityTest {
 
         activity.showSuggestions(Set.of("content://media/photo/2"));
 
-        assertEquals(View.GONE,
+        assertEquals(View.INVISIBLE,
                 activity.findViewById(R.id.analysis_progress_strip).getVisibility());
         assertEquals("Keepers · 0", text(activity, R.id.filter_keepers));
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
@@ -1088,7 +1088,7 @@ public class ReviewActivityTest {
 
         assertEquals(Math.round(30 * density), heart.getLayoutParams().width);
         assertNull(heart.getBackground());
-        assertEquals(Math.round(28 * density), star.getLayoutParams().width);
+        assertEquals(Math.round(22 * density), star.getLayoutParams().width);
         assertEquals(0f, star.getTranslationY(), 0.001f);
     }
 
@@ -1118,13 +1118,13 @@ public class ReviewActivityTest {
                 grid.getChildAt(1)).getChildAt(3).getVisibility());
     }
 
-    @Test public void savedStacksRenderWhileBadgeMakesReassessmentVisible() {
+    @Test public void cachedStacksRenderWithoutStartingAnalysisAgain() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/cached-1";
         String recommended = "content://media/photo/cached-2";
         List<PhotoFeatures> cachedFeatures = List.of(
-                new PhotoFeatures(first, 10, 1, .6),
-                new PhotoFeatures(recommended, 11, 2, .9));
+                new PhotoFeatures(first, 0, 1, .6),
+                new PhotoFeatures(recommended, 1, 2, .9));
         Map<String, PhotoStackPosition> cachedStacks = Map.of(
                 first, new PhotoStackPosition(1, 2),
                 recommended, new PhotoStackPosition(2, 2));
@@ -1138,11 +1138,24 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         assertEquals(1, grid.getChildCount());
         assertEquals(recommended, grid.getChildAt(0).getTag().toString());
-        assertEquals("Analysing 0 of 2", text(activity, R.id.analysis_progress_label));
-        assertEquals(View.VISIBLE,
-                activity.findViewById(R.id.analysis_progress_bar).getVisibility());
+        assertEquals(View.INVISIBLE,
+                activity.findViewById(R.id.analysis_progress_strip).getVisibility());
         TextView badge = (TextView) ((ViewGroup) grid.getChildAt(0)).getChildAt(3);
         assertEquals("2", badge.getText().toString());
+    }
+
+    @Test public void onlyNewPhotosEnterAnalysisWhenCachedMediaIsUnchanged() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String cached = "content://media/photo/cached";
+        String added = "content://media/photo/added";
+        new PhotoInsightStore(activity).save(List.of(
+                new PhotoFeatures(cached, 0, 19, .8)), Map.of(), Set.of(cached));
+
+        activity.showPhotos(List.of(Uri.parse(cached), Uri.parse(added)));
+
+        assertEquals("Analysing 1 of 2", text(activity, R.id.analysis_progress_label));
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.analysis_progress_strip).getVisibility());
     }
 
     @Test public void aStackStaysVisibleUntilItsKeeperIsAddedToAnAlbum() {

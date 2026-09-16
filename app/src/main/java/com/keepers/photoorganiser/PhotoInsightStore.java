@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 
 public final class PhotoInsightStore {
+    // Increment when feature extraction or recommendation rules require fresh analysis.
+    private static final String ANALYSIS_SCHEMA = "v1";
     private final SharedPreferences preferences;
     private final KeeperSelectionStore keeperSelections;
     private final PhotoContextStore photoContexts;
@@ -31,11 +33,13 @@ public final class PhotoInsightStore {
             int size = stack == null ? 0 : stack.size();
             boolean recommended = recommendations.contains(feature.id());
             boolean alternative = alternatives.contains(feature.id());
-            editor.putString(feature.id(), feature.quality() + "|" + position + "|" + size
+            editor.putString(feature.id(), ANALYSIS_SCHEMA + "|" + feature.quality()
+                    + "|" + position + "|" + size
                     + "|" + recommended + "|" + feature.focus() + "|" + feature.exposure()
                     + "|" + feature.composition() + "|" + feature.motionStability()
                     + "|" + alternative + "|" + feature.faceCount() + "|" + feature.smile()
-                    + "|" + feature.eyesOpen() + "|" + feature.cameraFacing());
+                    + "|" + feature.eyesOpen() + "|" + feature.cameraFacing()
+                    + "|" + feature.takenAtMillis() + "|" + feature.perceptualHash());
         }
         editor.apply();
     }
@@ -44,22 +48,19 @@ public final class PhotoInsightStore {
         String encoded = preferences.getString(id, null);
         if (encoded == null) return null;
         String[] parts = encoded.split("\\|");
-        if (parts.length != 4 && parts.length != 8 && parts.length != 9
+        boolean current = parts.length == 16 && ANALYSIS_SCHEMA.equals(parts[0]);
+        int offset = current ? 1 : 0;
+        if (!current && parts.length != 4 && parts.length != 8 && parts.length != 9
                 && parts.length != 12 && parts.length != 13) return null;
         try {
-            double quality = Double.parseDouble(parts[0]);
-            int position = Integer.parseInt(parts[1]);
-            int size = Integer.parseInt(parts[2]);
-            boolean recommended = Boolean.parseBoolean(parts[3]);
-            boolean alternative = parts.length >= 9 && Boolean.parseBoolean(parts[8]);
-            PhotoFeatures features = parts.length >= 8
-                    ? new PhotoFeatures(id, 0, 0, quality, Double.parseDouble(parts[4]),
-                            Double.parseDouble(parts[5]), Double.parseDouble(parts[6]),
-                            Double.parseDouble(parts[7]), parts.length >= 12
-                            ? Integer.parseInt(parts[9]) : 0, parts.length >= 12
-                            ? Double.parseDouble(parts[10]) : -1, parts.length >= 12
-                            ? Double.parseDouble(parts[11]) : -1, parts.length == 13
-                            ? Double.parseDouble(parts[12]) : -1)
+            double quality = Double.parseDouble(parts[offset]);
+            int position = Integer.parseInt(parts[offset + 1]);
+            int size = Integer.parseInt(parts[offset + 2]);
+            boolean recommended = Boolean.parseBoolean(parts[offset + 3]);
+            boolean alternative = parts.length >= offset + 9
+                    && Boolean.parseBoolean(parts[offset + 8]);
+            PhotoFeatures features = parts.length >= offset + 8
+                    ? parseFeatures(id, parts, offset, current)
                     : new PhotoFeatures(id, 0, 0, quality);
             PhotoStackPosition stack = size > 1 ? new PhotoStackPosition(position, size) : null;
             String reason = alternative ? "A near-identical photo ranked slightly higher"
@@ -80,19 +81,43 @@ public final class PhotoInsightStore {
         String encoded = preferences.getString(id, null);
         if (encoded == null) return null;
         String[] parts = encoded.split("\\|");
-        if (parts.length != 8 && parts.length != 9 && parts.length != 12
+        boolean current = parts.length == 16 && ANALYSIS_SCHEMA.equals(parts[0]);
+        int offset = current ? 1 : 0;
+        if (!current && parts.length != 8 && parts.length != 9 && parts.length != 12
                 && parts.length != 13) return null;
         try {
-            return new PhotoFeatures(id, 0, 0, Double.parseDouble(parts[0]),
-                    Double.parseDouble(parts[4]), Double.parseDouble(parts[5]),
-                    Double.parseDouble(parts[6]), Double.parseDouble(parts[7]),
-                    parts.length >= 12 ? Integer.parseInt(parts[9]) : 0,
-                    parts.length >= 12 ? Double.parseDouble(parts[10]) : -1,
-                    parts.length >= 12 ? Double.parseDouble(parts[11]) : -1,
-                    parts.length == 13 ? Double.parseDouble(parts[12]) : -1);
+            return parseFeatures(id, parts, offset, current);
         } catch (NumberFormatException invalid) {
             return null;
         }
+    }
+
+    public PhotoFeatures loadReusableFeatures(String id, long takenAtMillis) {
+        String encoded = preferences.getString(id, null);
+        if (encoded == null) return null;
+        String[] parts = encoded.split("\\|");
+        if (parts.length != 16 || !ANALYSIS_SCHEMA.equals(parts[0])) return null;
+        try {
+            PhotoFeatures features = parseFeatures(id, parts, 1, true);
+            return features.takenAtMillis() == takenAtMillis ? features : null;
+        } catch (NumberFormatException invalid) {
+            return null;
+        }
+    }
+
+    private static PhotoFeatures parseFeatures(String id, String[] parts, int offset,
+            boolean current) {
+        boolean extended = parts.length >= offset + 12;
+        return new PhotoFeatures(id,
+                current ? Long.parseLong(parts[offset + 13]) : 0,
+                current ? Long.parseLong(parts[offset + 14]) : 0,
+                Double.parseDouble(parts[offset]), Double.parseDouble(parts[offset + 4]),
+                Double.parseDouble(parts[offset + 5]), Double.parseDouble(parts[offset + 6]),
+                Double.parseDouble(parts[offset + 7]),
+                extended ? Integer.parseInt(parts[offset + 9]) : 0,
+                extended ? Double.parseDouble(parts[offset + 10]) : -1,
+                extended ? Double.parseDouble(parts[offset + 11]) : -1,
+                parts.length >= offset + 13 ? Double.parseDouble(parts[offset + 12]) : -1);
     }
 
     private PhotoContext contextOrGeneral(String id) {
