@@ -18,7 +18,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AnimationSet;
+import android.view.animation.ScaleAnimation;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -189,7 +189,7 @@ public class ReviewActivityTest {
         assertEquals("×", text(activity, R.id.cancel_selection));
     }
 
-    @Test public void tappingKeeperHeartStartsDelightfulFeedback() {
+    @Test public void tappingKeeperHeartStartsSubtleFeedback() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(Uri.parse("content://media/photo/animated-heart")));
         ImageView heart = (ImageView) activity.<GridLayout>findViewById(R.id.photo_grid)
@@ -197,8 +197,22 @@ public class ReviewActivityTest {
 
         heart.performClick();
 
-        assertTrue(heart.getAnimation() instanceof AnimationSet);
-        assertEquals(2, ((AnimationSet) heart.getAnimation()).getAnimations().size());
+        assertTrue(heart.getAnimation() instanceof ScaleAnimation);
+        assertTrue(heart.getAnimation().getDuration() <= 200);
+    }
+
+    @Test public void keeperHeartStillAnimatesAfterAnalysisHasCompleted() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String id = "content://media/photo/analyzed-heart";
+        new PhotoInsightStore(activity).save(List.of(
+                new PhotoFeatures(id, 0, 12, .8)), Map.of(), Set.of());
+        activity.showPhotos(List.of(Uri.parse(id)));
+        ImageView heart = (ImageView) activity.<GridLayout>findViewById(R.id.photo_grid)
+                .getChildAt(0).findViewWithTag("marker");
+
+        heart.performClick();
+
+        assertTrue(heart.getAnimation() instanceof ScaleAnimation);
     }
 
     @Test public void applyingGalleryFiltersUsesVisibleTapFeedback() {

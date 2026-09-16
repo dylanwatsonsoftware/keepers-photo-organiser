@@ -789,26 +789,14 @@ public final class ReviewActivity extends Activity {
             }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
-            android.view.animation.AnimationSet pop =
-                    new android.view.animation.AnimationSet(false);
-            android.view.animation.ScaleAnimation grow =
-                    new android.view.animation.ScaleAnimation(1f, 1.34f, 1f, 1.34f,
-                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
-                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
-            grow.setDuration(100);
-            grow.setFillAfter(true);
-            grow.setInterpolator(new android.view.animation.DecelerateInterpolator());
-            android.view.animation.ScaleAnimation settle =
-                    new android.view.animation.ScaleAnimation(1.34f, 1f, 1.34f, 1f,
-                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
-                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
-            settle.setStartOffset(90);
-            settle.setDuration(170);
-            settle.setInterpolator(new android.view.animation.OvershootInterpolator(1.8f));
-            pop.addAnimation(grow);
-            pop.addAnimation(settle);
-            marker.startAnimation(pop);
             refreshRecommendationsIfReady();
+            android.view.animation.ScaleAnimation pop =
+                    new android.view.animation.ScaleAnimation(.9f, 1f, .9f, 1f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
+            pop.setDuration(160);
+            pop.setInterpolator(new android.view.animation.OvershootInterpolator(.8f));
+            marker.startAnimation(pop);
         });
 
         ImageView suggestion = new ImageView(this);
