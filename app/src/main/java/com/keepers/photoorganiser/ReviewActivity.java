@@ -63,6 +63,7 @@ public final class ReviewActivity extends Activity {
     private static final int RANGE_SCROLL_EDGE_DP = 72;
     private static final int RANGE_SCROLL_MAX_STEP_DP = 20;
     private static final long SELECTION_SCALE_ANIMATION_MILLIS = 140;
+    private static final long HEART_FEEDBACK_ANIMATION_MILLIS = 160;
     private static final String GALLERY_DISPLAY_PREFERENCES = "gallery_display";
     private static final String GRID_COLUMNS_PREFERENCE = "grid_columns";
     private KeeperSelectionStore selectionStore;
@@ -115,6 +116,7 @@ public final class ReviewActivity extends Activity {
     private Set<String> rangeSelectionBaseline = Set.of();
     private final MediaAnalysisQueue mediaAnalysisQueue = new MediaAnalysisQueue();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable deferredRecommendationRefresh = this::refreshRecommendationsIfReady;
     private final Runnable rangeSelectionAutoScroll = new Runnable() {
         @Override public void run() {
             rangeSelectionScrollScheduled = false;
@@ -789,14 +791,16 @@ public final class ReviewActivity extends Activity {
             }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
-            refreshRecommendationsIfReady();
             android.view.animation.ScaleAnimation pop =
                     new android.view.animation.ScaleAnimation(.9f, 1f, .9f, 1f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
-            pop.setDuration(160);
+            pop.setDuration(HEART_FEEDBACK_ANIMATION_MILLIS);
             pop.setInterpolator(new android.view.animation.OvershootInterpolator(.8f));
             marker.startAnimation(pop);
+            mainHandler.removeCallbacks(deferredRecommendationRefresh);
+            mainHandler.postDelayed(deferredRecommendationRefresh,
+                    HEART_FEEDBACK_ANIMATION_MILLIS);
         });
 
         ImageView suggestion = new ImageView(this);
@@ -1815,6 +1819,7 @@ public final class ReviewActivity extends Activity {
 
     @Override protected void onDestroy() {
         stopRangeSelectionAutoScroll();
+        mainHandler.removeCallbacks(deferredRecommendationRefresh);
         analysisGeneration++;
         mediaAnalysisQueue.clear();
         if (videoAnalysisExecutor != null) videoAnalysisExecutor.shutdownNow();

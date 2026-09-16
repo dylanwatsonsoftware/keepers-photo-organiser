@@ -213,6 +213,12 @@ public class ReviewActivityTest {
         heart.performClick();
 
         assertTrue(heart.getAnimation() instanceof ScaleAnimation);
+        assertEquals(Set.of(), new SuggestionStore(activity).load());
+
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(160,
+                TimeUnit.MILLISECONDS);
+
+        assertEquals(Set.of(id), new SuggestionStore(activity).load());
     }
 
     @Test public void applyingGalleryFiltersUsesVisibleTapFeedback() {
