@@ -12,15 +12,24 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewLayoutTest {
+    @Test @Config(qualifiers = "night")
+    public void galleryUsesAdaptiveDarkPaletteResources() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+
+        assertEquals(0xFF11110F, context.getColor(R.color.gallery_background));
+        assertEquals(0xFFF4F1EA, context.getColor(R.color.gallery_text_primary));
+        assertEquals(0xFFFF7A7F, context.getColor(R.color.gallery_accent_keeper));
+    }
+
     @Test public void reviewContentRespectsSystemWindowInsets() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
@@ -36,7 +45,7 @@ public class ReviewLayoutTest {
         assertNotNull(layout.findViewById(R.id.review_loading));
     }
 
-    @Test public void galleryUsesCompactIconActionsAndSummaryRow() {
+    @Test public void galleryUsesCompactKeeperAndFilterControls() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
@@ -48,23 +57,19 @@ public class ReviewLayoutTest {
                 "selection_count", "id", layout.getContext().getPackageName())));
         assertNotNull(layout.findViewById(layout.getResources().getIdentifier(
                 "cancel_selection", "id", layout.getContext().getPackageName())));
-        LinearLayout summary = layout.findViewById(R.id.photo_summary);
-        assertNotNull(summary);
-        assertTrue(summary.getOrientation() == LinearLayout.HORIZONTAL);
-        LinearLayout filters = layout.findViewById(R.id.review_filter_chips);
-        assertNotNull(filters);
-        assertTrue(filters.getParent() instanceof HorizontalScrollView);
-        assertTrue(layout.findViewById(R.id.filter_keepers).getParent() == filters);
+        assertEquals(0, layout.getResources().getIdentifier(
+                "photo_summary", "id", layout.getContext().getPackageName()));
+        View keeper = layout.findViewById(R.id.filter_keepers);
+        assertTrue(keeper instanceof TextView);
+        assertTrue(keeper.isClickable());
+        assertNotNull(keeper.getBackground());
+        assertNotNull(layout.findViewById(R.id.open_gallery_filters));
+        assertNotNull(layout.findViewById(R.id.gallery_filter_sheet));
         View include = layout.findViewById(R.id.filter_include_keepers);
         assertTrue(include instanceof TextView);
         assertTrue(!(include instanceof Button));
         assertTrue(include.isClickable());
         assertNotNull(include.getBackground());
-        assertTrue(include.getParent() == filters);
-        assertTrue(layout.findViewById(R.id.filter_recommended).getParent() == filters);
-        assertTrue(layout.findViewById(R.id.filter_hidden).getParent() == filters);
-        assertTrue(layout.findViewById(R.id.filter_origin_local).getParent() == filters);
-        assertTrue(layout.findViewById(R.id.filter_origin_cloud).getParent() == filters);
         assertTrue(findViewWithText(layout, "On-device photos") == null);
         assertTrue(findViewWithText(layout, "Google Photos") == null);
         View metadata = layout.findViewById(R.id.toggle_metadata);
@@ -87,18 +92,11 @@ public class ReviewLayoutTest {
                     name, "id", layout.getContext().getPackageName());
             assertTrue(actionId != 0);
             View action = layout.findViewById(actionId);
-            assertTrue(action instanceof FrameLayout);
+            assertTrue(action instanceof TextView);
             assertTrue(!(action instanceof Button));
             assertTrue(action.isClickable());
             assertNotNull(action.getBackground());
-            LinearLayout content = (LinearLayout) ((FrameLayout) action).getChildAt(0);
-            assertEquals(LinearLayout.VERTICAL, content.getOrientation());
-            assertEquals(Gravity.CENTER, content.getGravity());
-            ImageView icon = (ImageView) content.getChildAt(0);
-            assertEquals(24, icon.getLayoutParams().width);
-            assertEquals(24, icon.getLayoutParams().height);
-            assertEquals(ImageView.ScaleType.CENTER_INSIDE, icon.getScaleType());
-            assertTrue(content.getChildAt(1) instanceof TextView);
+            assertNotNull(((TextView) action).getCompoundDrawables()[1]);
         }
     }
 
@@ -128,16 +126,12 @@ public class ReviewLayoutTest {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
-        View action = layout.findViewById(R.id.open_album_review);
-        assertTrue(action instanceof FrameLayout);
+        View action = layout.findViewById(R.id.albums_destination);
+        assertTrue(action instanceof TextView);
         assertTrue(!(action instanceof Button));
         assertNotNull(action.getBackground());
-        LinearLayout content = (LinearLayout) ((FrameLayout) action).getChildAt(0);
-        assertTrue(content.getChildAt(0) instanceof ImageView);
-        TextView label = (TextView) content.getChildAt(1);
-        assertTrue("Add to albums".contentEquals(label.getText()));
-        assertTrue("Review and add Keepers to Google Photos albums".contentEquals(
-                action.getContentDescription()));
+        assertTrue("Albums".contentEquals(((TextView) action).getText()));
+        assertNotNull(((TextView) action).getCompoundDrawables()[1]);
         assertTrue(action.isClickable());
     }
 
@@ -158,25 +152,15 @@ public class ReviewLayoutTest {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);
 
-        View quickReview = layout.findViewById(R.id.open_quick_review);
-        View albumReview = layout.findViewById(R.id.open_album_review);
-        assertTrue(quickReview instanceof FrameLayout);
-        assertTrue(albumReview instanceof FrameLayout);
+        View quickReview = layout.findViewById(R.id.review_destination);
+        View albumReview = layout.findViewById(R.id.albums_destination);
+        assertTrue(quickReview instanceof TextView);
+        assertTrue(albumReview instanceof TextView);
         assertTrue(!(quickReview instanceof Button));
         assertNotNull(quickReview.getBackground());
-        LinearLayout content = (LinearLayout) ((FrameLayout) quickReview).getChildAt(0);
-        LinearLayout albumContent = (LinearLayout) ((FrameLayout) albumReview).getChildAt(0);
-        int expectedWidth = Math.round(160 * layout.getResources().getDisplayMetrics().density);
-        assertTrue(content.getLayoutParams().width == expectedWidth);
-        assertTrue(albumContent.getLayoutParams().width == expectedWidth);
-        assertTrue(content.getGravity() == (Gravity.CENTER_VERTICAL | Gravity.START));
-        assertTrue(albumContent.getGravity() == content.getGravity());
-        assertTrue(content.getChildAt(0).getLayoutParams().width
-                == albumContent.getChildAt(0).getLayoutParams().width);
-        assertTrue(content.getChildAt(0) instanceof ImageView);
-        assertTrue(content.getChildAt(1) instanceof TextView);
-        assertTrue("Quick review".contentEquals(
-                ((TextView) content.getChildAt(1)).getText()));
+        assertNotNull(((TextView) quickReview).getCompoundDrawables()[1]);
+        assertNotNull(((TextView) albumReview).getCompoundDrawables()[1]);
+        assertTrue("Review".contentEquals(((TextView) quickReview).getText()));
         assertTrue(layout.getResources().getIdentifier("export_feedback", "id",
                 layout.getContext().getPackageName()) == 0);
     }

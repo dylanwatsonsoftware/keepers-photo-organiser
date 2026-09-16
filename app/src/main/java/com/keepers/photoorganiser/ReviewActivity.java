@@ -21,6 +21,7 @@ import android.os.Process;
 import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
@@ -62,6 +63,8 @@ public final class ReviewActivity extends Activity {
     private static final int RANGE_SCROLL_EDGE_DP = 72;
     private static final int RANGE_SCROLL_MAX_STEP_DP = 20;
     private static final long SELECTION_SCALE_ANIMATION_MILLIS = 140;
+    private static final String GALLERY_DISPLAY_PREFERENCES = "gallery_display";
+    private static final String GRID_COLUMNS_PREFERENCE = "grid_columns";
     private KeeperSelectionStore selectionStore;
     private AsyncThumbnailLoader thumbnailLoader;
     private List<Uri> photos = List.of();
@@ -89,6 +92,12 @@ public final class ReviewActivity extends Activity {
     private String pickerAccessToken;
     private String pickerSessionId;
     private boolean metadataVisible;
+    private int gridColumns;
+    private ScaleGestureDetector gridScaleDetector;
+    private float accumulatedGridScale = 1f;
+    private boolean gridScaleInProgress;
+    private boolean suppressTouchUntilScaleEnds;
+    private final Map<String, Float> mediaAspectRatios = new HashMap<>();
     private boolean selectingMedia;
     private boolean rangeSelectionGestureActive;
     private boolean rangeSelectionRemoving;
@@ -135,12 +144,16 @@ public final class ReviewActivity extends Activity {
                     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
                     runnable.run();
                 }, "keepers-video-analysis"));
-        metadataVisible = getSharedPreferences("gallery_display", MODE_PRIVATE)
+        metadataVisible = getSharedPreferences(GALLERY_DISPLAY_PREFERENCES, MODE_PRIVATE)
                 .getBoolean("metadata_visible", false);
+        gridColumns = clampGridColumns(getSharedPreferences(GALLERY_DISPLAY_PREFERENCES,
+                MODE_PRIVATE).getInt(GRID_COLUMNS_PREFERENCE, 4));
         findViewById(R.id.open_settings).setOnClickListener(view ->
                 startActivity(new Intent(this, PeopleActivity.class)));
-        findViewById(R.id.open_album_review).setOnClickListener(view ->
+        findViewById(R.id.albums_destination).setOnClickListener(view ->
                 startActivity(new Intent(this, AlbumReviewActivity.class)));
+        findViewById(R.id.review_destination).setOnClickListener(view -> openQuickReview());
+        findViewById(R.id.gallery_destination).setSelected(true);
         findViewById(R.id.cancel_selection).setOnClickListener(view -> endMediaSelection());
         findViewById(R.id.selection_hide).setOnClickListener(view -> hideSelectedMedia());
         findViewById(R.id.selection_share).setOnClickListener(view -> shareSelectedMedia());
@@ -162,7 +175,6 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_videos).setOnClickListener(view ->
                 setMediaFilter(MediaFilter.VIDEOS));
         findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
-        findViewById(R.id.open_quick_review).setOnClickListener(view -> openQuickReview());
         findViewById(R.id.filter_origin_all).setOnClickListener(view -> clearOriginFilter());
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
                 setOriginFilter(PhotoOrigin.LOCAL));
@@ -170,15 +182,106 @@ public final class ReviewActivity extends Activity {
                 setOriginFilter(PhotoOrigin.CLOUD));
         ScrollView scroll = findViewById(R.id.review_scroll);
         GridLayout grid = findViewById(R.id.photo_grid);
+        grid.setColumnCount(gridColumns);
+        setupGalleryControls();
+        setupGridScaleGesture();
         scroll.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
             View content = scroll.getChildAt(0);
             if (content != null && infiniteScroll.onScroll(scrollY, scroll.getHeight(),
                     content.getHeight(), hasMorePhotos)) loadNextPage();
         });
         grid.addOnLayoutChangeListener((view, left, top, right, bottom,
-                oldLeft, oldTop, oldRight, oldBottom) -> fillFilteredViewport());
+                oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft) reflowGrid(false);
+            fillFilteredViewport();
+        });
         loadOrRequestPhotos();
         handleImportAction(getIntent());
+    }
+
+    private void setupGalleryControls() {
+        View overlay = findViewById(R.id.gallery_filter_overlay);
+        View sheet = findViewById(R.id.gallery_filter_sheet);
+        findViewById(R.id.open_gallery_filters).setOnClickListener(view -> {
+            overlay.setVisibility(View.VISIBLE);
+            sheet.requestFocus();
+        });
+        findViewById(R.id.close_gallery_filters).setOnClickListener(view ->
+                overlay.setVisibility(View.GONE));
+        findViewById(R.id.apply_gallery_filters).setOnClickListener(view ->
+                overlay.setVisibility(View.GONE));
+        overlay.setOnClickListener(view -> overlay.setVisibility(View.GONE));
+        sheet.setOnClickListener(view -> {});
+        findViewById(R.id.reset_gallery_filters).setOnClickListener(view -> {
+            galleryFilter = GalleryFilter.ALL;
+            originFilter = null;
+            mediaFilter = MediaFilter.ALL;
+            if (metadataVisible) toggleMetadata();
+            applyFilter();
+        });
+        int[] densityIds = {R.id.grid_columns_1, R.id.grid_columns_2,
+                R.id.grid_columns_3, R.id.grid_columns_4};
+        for (int index = 0; index < densityIds.length; index++) {
+            int columns = index + 1;
+            findViewById(densityIds[index]).setOnClickListener(view ->
+                    setGridColumns(columns));
+        }
+        updateGridDensityChoices();
+    }
+
+    private void setupGridScaleGesture() {
+        gridScaleDetector = new ScaleGestureDetector(this,
+                new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
+                        accumulatedGridScale = 1f;
+                        gridScaleInProgress = true;
+                        if (rangeSelectionGestureActive) finishMediaRangeSelection();
+                        return true;
+                    }
+
+                    @Override public boolean onScale(ScaleGestureDetector detector) {
+                        accumulatedGridScale *= detector.getScaleFactor();
+                        if (accumulatedGridScale > 1.14f && gridColumns > 1) {
+                            setGridColumns(gridColumns - 1);
+                            accumulatedGridScale = 1f;
+                        } else if (accumulatedGridScale < .87f && gridColumns < 4) {
+                            setGridColumns(gridColumns + 1);
+                            accumulatedGridScale = 1f;
+                        }
+                        return true;
+                    }
+
+                    @Override public void onScaleEnd(ScaleGestureDetector detector) {
+                        gridScaleInProgress = false;
+                        accumulatedGridScale = 1f;
+                    }
+                });
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        boolean inGallery = touchIsInside(findViewById(R.id.review_scroll), event);
+        if (gridScaleDetector != null
+                && (inGallery || gridScaleInProgress || suppressTouchUntilScaleEnds))
+            gridScaleDetector.onTouchEvent(event);
+        if (inGallery && (gridScaleInProgress || event.getPointerCount() > 1))
+            suppressTouchUntilScaleEnds = true;
+        if (suppressTouchUntilScaleEnds) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL)
+                suppressTouchUntilScaleEnds = false;
+            return true;
+        }
+        return super.dispatchTouchEvent(event);
+    }
+
+    private static boolean touchIsInside(View view, MotionEvent event) {
+        if (view == null || view.getVisibility() != View.VISIBLE) return false;
+        int[] location = new int[2];
+        view.getLocationOnScreen(location);
+        float x = event.getRawX();
+        float y = event.getRawY();
+        return x >= location[0] && x < location[0] + view.getWidth()
+                && y >= location[1] && y < location[1] + view.getHeight();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -188,6 +291,11 @@ public final class ReviewActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        View filters = findViewById(R.id.gallery_filter_overlay);
+        if (filters != null && filters.getVisibility() == View.VISIBLE) {
+            filters.setVisibility(View.GONE);
+            return;
+        }
         if (selectingMedia) {
             endMediaSelection();
             return;
@@ -225,17 +333,9 @@ public final class ReviewActivity extends Activity {
     }
 
     private void openQuickReview() {
-        Set<String> hidden = new HiddenPhotoStore(this).load();
-        Uri firstVisible = photos.stream()
-                .filter(candidate -> !hidden.contains(candidate.toString()))
-                .filter(candidate -> mediaFilter == MediaFilter.ALL
-                        || mediaFilter == MediaFilter.PHOTOS
-                        && mediaTypes.getOrDefault(candidate.toString(), MediaType.PHOTO)
-                        == MediaType.PHOTO
-                        || mediaFilter == MediaFilter.VIDEOS
-                        && mediaTypes.getOrDefault(candidate.toString(), MediaType.PHOTO)
-                        == MediaType.VIDEO)
-                .findFirst().orElse(null);
+        applyFilter();
+        List<String> visibleIds = visibleMediaIds();
+        Uri firstVisible = visibleIds.isEmpty() ? null : Uri.parse(visibleIds.get(0));
         if (firstVisible == null) {
             Toast.makeText(this, "No media to review yet", Toast.LENGTH_SHORT).show();
             return;
@@ -349,7 +449,7 @@ public final class ReviewActivity extends Activity {
             previousCount = 0;
         }
         mediaAnalysisQueue.add(recentPhotos.subList(previousCount, recentPhotos.size()));
-        int tileSize = Math.max(1, getResources().getDisplayMetrics().widthPixels / 3 - 2);
+        int tileSize = tileWidth();
         for (int index = previousCount; index < recentPhotos.size(); index++) {
             FrameLayout tile = createTile(recentPhotos.get(index), tileSize, generation);
             tiles.add(tile);
@@ -364,6 +464,87 @@ public final class ReviewActivity extends Activity {
             showAnalysisProgress(analyzedCount, photos.size());
         updateSelectionDisplay();
         startNextVideoAnalysis(generation);
+    }
+
+    void setGridColumns(int requestedColumns) {
+        int columns = clampGridColumns(requestedColumns);
+        if (columns == gridColumns
+                && findViewById(R.id.photo_grid) != null
+                && ((GridLayout) findViewById(R.id.photo_grid)).getColumnCount() == columns) {
+            updateGridDensityChoices();
+            return;
+        }
+        gridColumns = columns;
+        getSharedPreferences(GALLERY_DISPLAY_PREFERENCES, MODE_PRIVATE).edit()
+                .putInt(GRID_COLUMNS_PREFERENCE, columns).apply();
+        GridLayout grid = findViewById(R.id.photo_grid);
+        grid.setColumnCount(columns);
+        reflowGrid(true);
+        updateGridDensityChoices();
+        grid.announceForAccessibility(columns == 1 ? "One photo per row"
+                : columns + " photos per row");
+    }
+
+    int gridColumns() {
+        return gridColumns;
+    }
+
+    private static int clampGridColumns(int columns) {
+        return Math.max(1, Math.min(4, columns));
+    }
+
+    private int tileWidth() {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int available = grid == null ? 0 : grid.getWidth();
+        if (available <= 0) available = getResources().getDisplayMetrics().widthPixels;
+        return Math.max(1, available / gridColumns - dp(2));
+    }
+
+    private void reflowGrid(boolean preserveScrollAnchor) {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        if (grid == null || scroll == null) return;
+        View anchor = null;
+        int anchorOffset = 0;
+        if (preserveScrollAnchor) {
+            int scrollY = scroll.getScrollY();
+            for (int index = 0; index < grid.getChildCount(); index++) {
+                View child = grid.getChildAt(index);
+                if (child.getBottom() > scrollY) {
+                    anchor = child;
+                    anchorOffset = child.getTop() - scrollY;
+                    break;
+                }
+            }
+        }
+        int width = tileWidth();
+        for (FrameLayout tile : tiles) reflowTile(tile, width);
+        if (anchor != null) {
+            View anchored = anchor;
+            int offset = anchorOffset;
+            grid.post(() -> scroll.scrollTo(0, Math.max(0, anchored.getTop() - offset)));
+        }
+    }
+
+    private void reflowTile(FrameLayout tile, int width) {
+        String mediaId = tile.getTag().toString();
+        float aspectRatio = mediaAspectRatios.getOrDefault(mediaId, 4f / 3f);
+        int height = gridColumns == 1
+                ? Math.max(dp(160), Math.round(width / Math.max(.1f, aspectRatio))) : width;
+        GridLayout.LayoutParams params = (GridLayout.LayoutParams) tile.getLayoutParams();
+        params.width = width;
+        params.height = height;
+        params.setMargins(dp(1), dp(1), dp(1), dp(1));
+        tile.setLayoutParams(params);
+    }
+
+    private void updateGridDensityChoices() {
+        int[] ids = {R.id.grid_columns_1, R.id.grid_columns_2,
+                R.id.grid_columns_3, R.id.grid_columns_4};
+        for (int index = 0; index < ids.length; index++) {
+            View choice = findViewById(ids[index]);
+            if (choice != null) choice.setSelected(gridColumns == index + 1);
+        }
     }
 
     private void restoreCachedInsights() {
@@ -393,15 +574,20 @@ public final class ReviewActivity extends Activity {
         tile.setTag(photo);
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.width = size;
-        params.height = size;
+        params.height = gridColumns == 1 ? Math.round(size / (4f / 3f)) : size;
         params.setMargins(1, 1, 1, 1);
         tile.setLayoutParams(params);
 
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setBackgroundColor(Color.rgb(232, 234, 237));
+        image.setBackgroundColor(getColor(R.color.gallery_surface_elevated));
         thumbnailLoader.load(image, photo, size, bitmap -> {
             if (generation != analysisGeneration) return;
+            if (bitmap != null) {
+                mediaAspectRatios.put(photo.toString(), bitmap.getWidth()
+                        / (float) Math.max(1, bitmap.getHeight()));
+                if (gridColumns == 1) reflowTile(tile, tileWidth());
+            }
             if (recentPhoto.mediaType() == MediaType.VIDEO) return;
             if (bitmap != null) {
                 PhotoQualityAssessment assessment = PhotoFeatureExtractor.assess(bitmap);
@@ -479,7 +665,7 @@ public final class ReviewActivity extends Activity {
         suggestion.setPadding(dp(6), dp(6), dp(6), dp(6));
         GradientDrawable suggestionCircle = new GradientDrawable();
         suggestionCircle.setShape(GradientDrawable.OVAL);
-        suggestionCircle.setColor(Color.rgb(176, 96, 0));
+        suggestionCircle.setColor(getColor(R.color.gallery_accent_warm));
         suggestion.setBackground(suggestionCircle);
         suggestion.setVisibility(View.GONE);
         FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(dp(28), dp(28),
@@ -838,11 +1024,11 @@ public final class ReviewActivity extends Activity {
         content.setOrientation(LinearLayout.VERTICAL);
         int spacing = Math.round(20 * getResources().getDisplayMetrics().density);
         content.setPadding(spacing, spacing, spacing, spacing);
-        content.setBackgroundColor(Color.WHITE);
+        content.setBackgroundColor(getColor(R.color.gallery_surface));
 
         TextView title = new TextView(this);
         title.setText("Added to review");
-        title.setTextColor(Color.rgb(32, 33, 36));
+        title.setTextColor(getColor(R.color.gallery_text_primary));
         title.setTextSize(21);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         content.addView(title);
@@ -853,7 +1039,7 @@ public final class ReviewActivity extends Activity {
                 + "Keepers saved only a private review copy; it did not upload or change "
                 + "anything in Google Photos." + (importedCount == selectedCount ? ""
                 : " " + (selectedCount - importedCount) + " could not be loaded."));
-        message.setTextColor(Color.rgb(95, 99, 104));
+        message.setTextColor(getColor(R.color.gallery_text_secondary));
         message.setTextSize(14);
         LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -865,7 +1051,7 @@ public final class ReviewActivity extends Activity {
         TextView done = new TextView(this);
         done.setText("Done");
         done.setGravity(Gravity.CENTER);
-        done.setTextColor(Color.WHITE);
+        done.setTextColor(getColor(R.color.gallery_on_primary));
         done.setTextSize(15);
         done.setTypeface(null, android.graphics.Typeface.BOLD);
         done.setBackgroundResource(R.drawable.gallery_primary_action);
@@ -988,7 +1174,7 @@ public final class ReviewActivity extends Activity {
             ImageView heart = (ImageView) tile.getChildAt(1);
             heart.setImageResource(keeper ? R.drawable.ic_heart_filled
                     : R.drawable.ic_heart_outline);
-            heart.setColorFilter(keeper ? KeeperStatusStyle.heartColor(saved) : Color.WHITE);
+            heart.setColorFilter(keeper ? getColor(R.color.gallery_accent_keeper) : Color.WHITE);
             int heartPadding = dp(HeartIconStyle.paddingDp(keeper));
             heart.setPadding(heartPadding, heartPadding, heartPadding, heartPadding);
             heart.setVisibility(View.VISIBLE);
@@ -1005,10 +1191,8 @@ public final class ReviewActivity extends Activity {
                     : keeper ? "New Keeper " + item.toLowerCase() + ". Tap to remove."
                     : item + ". Tap to mark as keeper.");
         }
-        int count = 0;
-        for (String keeper : visibleSelected) if (!completions.hasAny(keeper)) count++;
-        ((TextView) findViewById(R.id.keeper_count)).setText(count == 0
-                ? "No new keepers" : count + (count == 1 ? " new keeper" : " new keepers"));
+        ((TextView) findViewById(R.id.filter_keepers)).setText(
+                "Keepers · " + selectionStore.load().size());
         applyFilter();
         updateMediaSelectionDisplay();
     }
@@ -1022,31 +1206,33 @@ public final class ReviewActivity extends Activity {
         goodAlternatives = Set.copyOf(alternatives);
         new SuggestionStore(this).save(suggestions);
         new SuggestionStore(this).saveAlternatives(goodAlternatives);
-        int count = suggestions.size();
-        findViewById(R.id.suggestion_progress).setVisibility(View.GONE);
-        ((TextView) findViewById(R.id.suggestion_count)).setText(count == 0
-                ? "No near-duplicate groups found" : count
-                + (count == 1 ? " suggested best shot" : " suggested best shots"));
+        findViewById(R.id.analysis_progress_strip).setVisibility(View.GONE);
         updateSelectionDisplay();
     }
 
     void showAnalysisProgress(int completed, int total) {
-        findViewById(R.id.suggestion_progress).setVisibility(View.VISIBLE);
-        ((TextView) findViewById(R.id.suggestion_count)).setText(
-                "Analysing · " + completed + "/" + total);
+        View strip = findViewById(R.id.analysis_progress_strip);
+        android.widget.ProgressBar progress = findViewById(R.id.analysis_progress_bar);
+        strip.setVisibility(View.VISIBLE);
+        progress.setVisibility(View.VISIBLE);
+        progress.setIndeterminate(total <= 0);
+        progress.setMax(Math.max(1, total));
+        progress.setProgress(Math.max(0, Math.min(completed, total)));
+        ((TextView) findViewById(R.id.analysis_progress_label)).setText(
+                "Analysing " + completed + " of " + total);
     }
 
     private GradientDrawable recommendationCircle() {
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(Color.rgb(176, 96, 0));
+        circle.setColor(getColor(R.color.gallery_accent_warm));
         return circle;
     }
 
     private GradientDrawable selectionCircle() {
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(Color.rgb(24, 128, 56));
+        circle.setColor(getColor(R.color.gallery_selection));
         return circle;
     }
 
@@ -1075,9 +1261,10 @@ public final class ReviewActivity extends Activity {
 
     private void toggleMetadata() {
         metadataVisible = !metadataVisible;
-        getSharedPreferences("gallery_display", MODE_PRIVATE).edit()
+        getSharedPreferences(GALLERY_DISPLAY_PREFERENCES, MODE_PRIVATE).edit()
                 .putBoolean("metadata_visible", metadataVisible).apply();
         updateMetadataOverlays();
+        updateFilterBadge();
     }
 
     private void beginMediaRangeSelection(String mediaId, View touchTarget) {
@@ -1217,20 +1404,23 @@ public final class ReviewActivity extends Activity {
         View cancel = findViewById(R.id.cancel_selection);
         View settings = findViewById(R.id.open_settings);
         View actions = findViewById(R.id.gallery_selection_actions);
-        View albums = findViewById(R.id.open_album_review);
+        View navigation = findViewById(R.id.gallery_bottom_navigation);
+        View controls = findViewById(R.id.gallery_controls);
         title.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
         count.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
         cancel.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
         settings.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
         actions.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
-        albums.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        navigation.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        controls.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
         count.setText(mediaSelections.size() + " selected");
         for (FrameLayout tile : tiles) {
             String mediaId = tile.getTag().toString();
             boolean selected = selectingMedia
                     && mediaSelections.contains(mediaId);
             ImageView image = (ImageView) tile.getChildAt(0);
-            tile.setBackgroundColor(selected ? Color.rgb(232, 234, 237) : Color.TRANSPARENT);
+            tile.setBackgroundColor(selected ? getColor(R.color.gallery_surface_elevated)
+                    : Color.TRANSPARENT);
             boolean selectionChanged = selected != renderedMediaSelections.contains(mediaId);
             if (selectionChanged) {
                 if (selected) renderedMediaSelections.add(mediaId);
@@ -1420,6 +1610,8 @@ public final class ReviewActivity extends Activity {
         findViewById(R.id.filter_media_all).setSelected(mediaFilter == MediaFilter.ALL);
         findViewById(R.id.filter_photos).setSelected(mediaFilter == MediaFilter.PHOTOS);
         findViewById(R.id.filter_videos).setSelected(mediaFilter == MediaFilter.VIDEOS);
+        findViewById(R.id.filter_keepers).setSelected(galleryFilter == GalleryFilter.KEEPERS);
+        updateFilterBadge();
         updateMetadataOverlays();
         TextView empty = findViewById(R.id.review_empty);
         if (!photos.isEmpty() && visible == 0) {
@@ -1438,6 +1630,21 @@ public final class ReviewActivity extends Activity {
         } else if (!photos.isEmpty()) {
             empty.setVisibility(View.GONE);
         }
+    }
+
+    private void updateFilterBadge() {
+        int active = 0;
+        if (galleryFilter == GalleryFilter.RECOMMENDED
+                || galleryFilter == GalleryFilter.HIDDEN
+                || galleryFilter == GalleryFilter.INCLUDE_KEEPERS) active++;
+        if (originFilter != null) active++;
+        if (mediaFilter != MediaFilter.ALL) active++;
+        if (metadataVisible) active++;
+        TextView badge = findViewById(R.id.gallery_filter_badge);
+        badge.setText(String.valueOf(active));
+        badge.setVisibility(active == 0 ? View.GONE : View.VISIBLE);
+        findViewById(R.id.open_gallery_filters).setContentDescription(active == 0
+                ? "Open gallery filters" : "Open gallery filters, " + active + " active");
     }
 
     @Override protected void onResume() {

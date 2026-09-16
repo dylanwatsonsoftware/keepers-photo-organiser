@@ -1,590 +1,428 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAF9F7"
+    android:background="@color/gallery_background"
     android:fitsSystemWindows="true"
-    android:orientation="vertical">
+    tools:ignore="UseAppTint,UseCompatTextViewDrawableXml">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingEnd="12dp">
-
-        <TextView
-            android:id="@+id/gallery_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Keepers"
-            android:textColor="#202124"
-            android:textSize="28sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/selection_count"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="1 selected"
-            android:textColor="#202124"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/cancel_selection"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="14dp"
-            android:text="Cancel"
-            android:textColor="#3C4043"
-            android:textStyle="bold"
-            android:visibility="gone" />
-
-        <ImageButton
-            android:id="@+id/open_settings"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/gallery_icon_button"
-            android:contentDescription="Settings"
-            android:padding="11dp"
-            android:src="@drawable/ic_settings"
-            android:tint="#5F6368" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/photo_summary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="14dp">
-
-        <TextView
-            android:id="@+id/keeper_count"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:background="@drawable/keeper_summary_chip"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="1"
-            android:paddingHorizontal="12dp"
-            android:text="No keepers selected yet"
-            android:textColor="#174EA6"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/suggestion_summary_chip"
-            android:gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingStart="20dp"
+            android:paddingEnd="12dp">
 
-            <ProgressBar
-                android:id="@+id/suggestion_progress"
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginEnd="7dp"
-                android:indeterminate="true"
-                android:indeterminateTint="#8A4B00"
+            <TextView
+                android:id="@+id/gallery_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Keepers"
+                android:textColor="@color/gallery_text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/selection_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="1 selected"
+                android:textColor="@color/gallery_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
                 android:visibility="gone" />
 
             <TextView
-                android:id="@+id/suggestion_count"
+                android:id="@+id/cancel_selection"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:ellipsize="end"
+                android:layout_height="40dp"
+                android:background="@drawable/gallery_filter_chip"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center"
-                android:maxLines="1"
-                android:text="Finding best shots…"
-                android:textColor="#8A4B00"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
+                android:paddingHorizontal="14dp"
+                android:text="Cancel"
+                android:textColor="@color/gallery_filter_text"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:clipToPadding="false"
-        android:fillViewport="false"
-        android:overScrollMode="never"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="12dp"
-        android:scrollbars="none">
+            <ImageButton
+                android:id="@+id/open_settings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/gallery_icon_button"
+                android:contentDescription="Settings"
+                android:padding="12dp"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/gallery_text_secondary" />
+        </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/review_filter_chips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/filter_origin_all"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="All sources"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_keepers"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="♥  Keepers"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_include_keepers"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="Include Keepers"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_recommended"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="★  Suggested"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_hidden"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="Hidden"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_origin_local"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="On device"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_origin_cloud"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="Cloud"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_media_all"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="All media"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_photos"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="Photos"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/filter_videos"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="Videos"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/toggle_metadata"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:paddingHorizontal="16dp"
-            android:text="%  Ratings"
-            android:textColor="@color/gallery_filter_text"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-        </LinearLayout>
-    </HorizontalScrollView>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="12dp">
-
-        <FrameLayout
-            android:id="@+id/open_quick_review"
+            android:id="@+id/gallery_controls"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:background="@drawable/gallery_primary_action"
-            android:clickable="true"
-            android:contentDescription="Start quick review"
-            android:focusable="true">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp">
 
-            <LinearLayout
-                android:layout_width="160dp"
-                android:layout_height="match_parent"
-                android:layout_gravity="center"
-                android:gravity="center_vertical|start"
-                android:importantForAccessibility="no"
-                android:orientation="horizontal">
+            <TextView
+                android:id="@+id/filter_keepers"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/gallery_filter_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:minWidth="112dp"
+                android:paddingHorizontal="16dp"
+                android:text="Keepers · 0"
+                android:textColor="@color/gallery_filter_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/open_gallery_filters"
+                android:layout_width="48dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/gallery_filter_chip"
+                android:clickable="true"
+                android:contentDescription="Open gallery filters"
+                android:focusable="true">
 
                 <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/ic_swipe_cards" />
+                    android:src="@drawable/ic_filter"
+                    android:tint="@color/gallery_text_secondary" />
 
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Quick review"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
-    </LinearLayout>
+                    android:id="@+id/gallery_filter_badge"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="top|end"
+                    android:background="@drawable/gallery_filter_badge"
+                    android:gravity="center"
+                    android:text="1"
+                    android:textColor="@color/gallery_on_accent"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
 
-    <TextView
-        android:id="@+id/review_empty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="32dp"
-        android:text="Loading recent camera photos…"
-        android:textColor="#5F6368"
-        android:textSize="16sp" />
-
-    <ScrollView
-        android:id="@+id/review_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#FFFFFF"
-        android:clipToPadding="false">
-
-        <GridLayout
-            android:id="@+id/photo_grid"
+        <LinearLayout
+            android:id="@+id/analysis_progress_strip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="3"
-            android:padding="1dp" />
-    </ScrollView>
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            android:visibility="gone">
 
-    <ProgressBar
-        android:id="@+id/review_loading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_margin="12dp"
-        android:indeterminateTint="#B06000"
-        android:visibility="gone" />
-
-    <LinearLayout
-        android:id="@+id/gallery_selection_actions"
-        android:layout_width="match_parent"
-        android:layout_height="68dp"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="10dp"
-        android:background="@drawable/person_setup_card"
-        android:elevation="10dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="6dp"
-        android:visibility="gone">
-
-        <FrameLayout
-            android:id="@+id/selection_hide"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:contentDescription="Hide selected media"
-            android:focusable="true"
-            >
-
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/analysis_progress_label"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:importantForAccessibility="no"
-                android:orientation="vertical">
+                android:paddingBottom="5dp"
+                android:text="Analysing 0 of 0"
+                android:textColor="@color/gallery_text_secondary"
+                android:textSize="12sp" />
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginBottom="3dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/ic_hide"
-                    android:tint="#3C4043" />
+            <ProgressBar
+                android:id="@+id/analysis_progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:indeterminate="false"
+                android:progressBackgroundTint="@color/gallery_divider"
+                android:progressTint="@color/gallery_accent_warm" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Hide"
-                    android:textColor="#3C4043"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
+        </LinearLayout>
 
-        <FrameLayout
-            android:id="@+id/selection_share"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
+        <TextView
+            android:id="@+id/review_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="32dp"
+            android:text="Loading recent camera photos…"
+            android:textColor="@color/gallery_text_secondary"
+            android:textSize="16sp" />
+
+        <ScrollView
+            android:id="@+id/review_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:contentDescription="Share selected media"
-            android:focusable="true"
-            >
+            android:background="@color/gallery_grid_gutter"
+            android:clipToPadding="false"
+            android:fillViewport="false">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <GridLayout
+                android:id="@+id/photo_grid"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:columnCount="4"
+                android:padding="1dp" />
+        </ScrollView>
+
+        <ProgressBar
+            android:id="@+id/review_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="8dp"
+            android:indeterminateTint="@color/gallery_accent_warm"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/gallery_bottom_navigation"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/gallery_bottom_bar"
+            android:elevation="10dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="6dp">
+
+            <TextView
+                android:id="@+id/gallery_destination"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/gallery_navigation_item"
+                android:clickable="true"
+                android:drawablePadding="3dp"
+                android:drawableTop="@drawable/ic_gallery"
+                android:drawableTint="@color/gallery_navigation_text"
+                android:focusable="true"
                 android:gravity="center"
-                android:importantForAccessibility="no"
-                android:orientation="vertical">
+                android:text="Gallery"
+                android:textColor="@color/gallery_navigation_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginBottom="3dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/ic_share"
-                    android:tint="#3C4043" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Share"
-                    android:textColor="#3C4043"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
-
-        <FrameLayout
-            android:id="@+id/selection_keeper"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:contentDescription="Mark selected media as keepers"
-            android:focusable="true"
-            >
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
+            <TextView
+                android:id="@+id/review_destination"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/gallery_navigation_item"
+                android:clickable="true"
+                android:drawablePadding="3dp"
+                android:drawableTop="@drawable/ic_swipe_cards"
+                android:drawableTint="@color/gallery_navigation_text"
+                android:focusable="true"
                 android:gravity="center"
-                android:importantForAccessibility="no"
-                android:orientation="vertical">
+                android:text="Review"
+                android:textColor="@color/gallery_navigation_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginBottom="3dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/ic_heart_filled"
-                    android:tint="#D93025" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Keeper"
-                    android:textColor="#3C4043"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
-
-        <FrameLayout
-            android:id="@+id/selection_albums"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/gallery_filter_chip"
-            android:clickable="true"
-            android:contentDescription="Add selected media to albums"
-            android:focusable="true"
-            >
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
+            <TextView
+                android:id="@+id/albums_destination"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/gallery_navigation_item"
+                android:clickable="true"
+                android:drawablePadding="3dp"
+                android:drawableTop="@drawable/ic_review_albums"
+                android:drawableTint="@color/gallery_navigation_text"
+                android:focusable="true"
                 android:gravity="center"
-                android:importantForAccessibility="no"
-                android:orientation="vertical">
+                android:text="Albums"
+                android:textColor="@color/gallery_navigation_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginBottom="3dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/ic_review_albums"
-                    android:tint="#3C4043" />
+        <LinearLayout
+            android:id="@+id/gallery_selection_actions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/gallery_bottom_bar"
+            android:elevation="10dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="6dp"
+            android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Albums"
-                    android:textColor="#3C4043"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
+            <TextView
+                android:id="@+id/selection_hide"
+                style="@style/GallerySelectionAction"
+                android:contentDescription="Hide selected media"
+                android:drawableTop="@drawable/ic_hide"
+                android:text="Hide" />
+
+            <TextView
+                android:id="@+id/selection_share"
+                style="@style/GallerySelectionAction"
+                android:contentDescription="Share selected media"
+                android:drawableTop="@drawable/ic_share"
+                android:text="Share" />
+
+            <TextView
+                android:id="@+id/selection_keeper"
+                style="@style/GallerySelectionAction"
+                android:contentDescription="Mark selected media as keepers"
+                android:drawableTop="@drawable/ic_heart_filled"
+                android:text="Keeper" />
+
+            <TextView
+                android:id="@+id/selection_albums"
+                style="@style/GallerySelectionAction"
+                android:contentDescription="Add selected media to albums"
+                android:drawableTop="@drawable/ic_review_albums"
+                android:text="Albums" />
+        </LinearLayout>
     </LinearLayout>
 
     <FrameLayout
-        android:id="@+id/open_album_review"
+        android:id="@+id/gallery_filter_overlay"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/gallery_primary_action"
+        android:layout_height="match_parent"
+        android:background="@color/gallery_scrim"
         android:clickable="true"
-        android:contentDescription="Review and add Keepers to Google Photos albums"
-        android:focusable="true">
+        android:focusable="true"
+        android:visibility="gone">
 
-        <LinearLayout
-            android:layout_width="160dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:gravity="center_vertical|start"
-            android:importantForAccessibility="no"
-            android:orientation="horizontal">
+        <ScrollView
+            android:id="@+id/gallery_filter_sheet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/gallery_filter_sheet"
+            android:clickable="true"
+            android:elevation="18dp"
+            android:focusable="true">
 
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_review_albums" />
-
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Add to albums"
-                android:textColor="#FFFFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Filter gallery"
+                        android:textColor="@color/gallery_text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/close_gallery_filters"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/gallery_icon_button"
+                        android:clickable="true"
+                        android:contentDescription="Close filters"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="×"
+                        android:textColor="@color/gallery_text_secondary"
+                        android:textSize="28sp" />
+                </LinearLayout>
+
+                <TextView style="@style/GalleryFilterHeading" android:text="View" />
+                <LinearLayout style="@style/GalleryFilterRow">
+                    <TextView android:id="@+id/filter_recommended" style="@style/GalleryFilterChoice" android:text="Suggested" />
+                    <TextView android:id="@+id/filter_hidden" style="@style/GalleryFilterChoice" android:text="Hidden" />
+                    <TextView android:id="@+id/filter_include_keepers" style="@style/GalleryFilterChoice" android:text="Include completed" />
+                </LinearLayout>
+
+                <TextView style="@style/GalleryFilterHeading" android:text="Source" />
+                <LinearLayout style="@style/GalleryFilterRow">
+                    <TextView android:id="@+id/filter_origin_all" style="@style/GalleryFilterChoice" android:text="All" />
+                    <TextView android:id="@+id/filter_origin_local" style="@style/GalleryFilterChoice" android:text="On device" />
+                    <TextView android:id="@+id/filter_origin_cloud" style="@style/GalleryFilterChoice" android:text="Cloud" />
+                </LinearLayout>
+
+                <TextView style="@style/GalleryFilterHeading" android:text="Media" />
+                <LinearLayout style="@style/GalleryFilterRow">
+                    <TextView android:id="@+id/filter_media_all" style="@style/GalleryFilterChoice" android:text="All" />
+                    <TextView android:id="@+id/filter_photos" style="@style/GalleryFilterChoice" android:text="Photos" />
+                    <TextView android:id="@+id/filter_videos" style="@style/GalleryFilterChoice" android:text="Videos" />
+                </LinearLayout>
+
+                <TextView style="@style/GalleryFilterHeading" android:text="Display" />
+                <TextView
+                    android:id="@+id/toggle_metadata"
+                    style="@style/GalleryFilterChoice"
+                    android:layout_width="wrap_content"
+                    android:text="Show ratings" />
+
+                <LinearLayout style="@style/GalleryFilterRow" android:layout_marginTop="8dp">
+                    <TextView android:id="@+id/grid_columns_1" style="@style/GalleryGridChoice" android:text="1" />
+                    <TextView android:id="@+id/grid_columns_2" style="@style/GalleryGridChoice" android:text="2" />
+                    <TextView android:id="@+id/grid_columns_3" style="@style/GalleryGridChoice" android:text="3" />
+                    <TextView android:id="@+id/grid_columns_4" style="@style/GalleryGridChoice" android:text="4" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/reset_gallery_filters"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/gallery_filter_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="Reset"
+                        android:textColor="@color/gallery_filter_text"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/apply_gallery_filters"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/gallery_primary_action"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="Show results"
+                        android:textColor="@color/gallery_on_primary"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
-</LinearLayout>
+</FrameLayout>

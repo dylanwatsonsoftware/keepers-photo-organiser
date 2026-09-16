@@ -38,19 +38,129 @@ import org.robolectric.shadows.ShadowViewGroup;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
-    @Test public void suggestedBestBadgeShowsLivePhotoAnalysisProgress() {
+    @Test public void analysisProgressUsesATemporaryStripAboveTheGrid() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
-        ProgressBar progress = activity.findViewById(R.id.suggestion_progress);
+        View strip = activity.findViewById(id(activity, "analysis_progress_strip"));
+        ProgressBar progress = activity.findViewById(id(activity, "analysis_progress_bar"));
 
         activity.showAnalysisProgress(17, 60);
 
+        assertEquals(View.VISIBLE, strip.getVisibility());
         assertEquals(View.VISIBLE, progress.getVisibility());
-        assertEquals("Analysing · 17/60", text(activity, R.id.suggestion_count));
+        assertEquals(60, progress.getMax());
+        assertEquals(17, progress.getProgress());
+        assertEquals("Analysing 17 of 60", text(activity,
+                id(activity, "analysis_progress_label")));
 
         activity.showSuggestions(Set.of("photo"));
 
-        assertEquals(View.GONE, progress.getVisibility());
-        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
+        assertEquals(View.GONE, strip.getVisibility());
+    }
+
+    @Test public void galleryDefaultsToFourPhotoColumns() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        assertEquals(4, activity.<GridLayout>findViewById(R.id.photo_grid).getColumnCount());
+    }
+
+    @Test public void ratingsDisplayIsCountedAsAnActiveAdvancedFilter() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        TextView badge = activity.findViewById(id(activity, "gallery_filter_badge"));
+
+        assertEquals(View.GONE, badge.getVisibility());
+        activity.findViewById(R.id.toggle_metadata).performClick();
+
+        assertEquals(View.VISIBLE, badge.getVisibility());
+        assertEquals("1", badge.getText().toString());
+    }
+
+    @Test public void chosenGridDensityIsClampedAndRemembered() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        activity.setGridColumns(2);
+        assertEquals(2, activity.gridColumns());
+        assertEquals(2, activity.<GridLayout>findViewById(R.id.photo_grid).getColumnCount());
+
+        ReviewActivity reopened = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        assertEquals(2, reopened.gridColumns());
+        reopened.setGridColumns(9);
+        assertEquals(4, reopened.gridColumns());
+    }
+
+    @Test public void oneColumnDensityUsesAFullWidthNonSquarePhoto() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.setGridColumns(1);
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/full-width")));
+
+        View tile = activity.<GridLayout>findViewById(R.id.photo_grid).getChildAt(0);
+        assertTrue(tile.getLayoutParams().width > 0);
+        assertTrue(tile.getLayoutParams().height > 0);
+        assertTrue(tile.getLayoutParams().width != tile.getLayoutParams().height);
+    }
+
+    @Test public void longPressSelectionReplacesBottomNavigation() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/contextual-bar")));
+
+        assertTrue(activity.<GridLayout>findViewById(R.id.photo_grid)
+                .getChildAt(0).performLongClick());
+
+        assertEquals(View.GONE,
+                activity.findViewById(id(activity, "gallery_bottom_navigation")).getVisibility());
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.gallery_selection_actions).getVisibility());
+    }
+
+    @Test public void filterActionOpensAndApplyClosesBottomSheet() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        View overlay = activity.findViewById(id(activity, "gallery_filter_overlay"));
+
+        activity.findViewById(id(activity, "open_gallery_filters")).performClick();
+        assertEquals(View.VISIBLE, overlay.getVisibility());
+        activity.findViewById(id(activity, "apply_gallery_filters")).performClick();
+        assertEquals(View.GONE, overlay.getVisibility());
+    }
+
+    @Test public void backClosesFilterSheetBeforeLeavingGallery() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        View overlay = activity.findViewById(id(activity, "gallery_filter_overlay"));
+        activity.findViewById(id(activity, "open_gallery_filters")).performClick();
+
+        activity.onBackPressed();
+
+        assertEquals(View.GONE, overlay.getVisibility());
+        assertFalse(activity.isFinishing());
+    }
+
+    @Test public void galleryHeaderUsesOneCountedKeepersShortcutAndOneFilterAction() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri keeper = Uri.parse("content://media/photo/header-keeper");
+        new KeeperSelectionStore(activity).replace(Set.of(keeper.toString()));
+
+        activity.showPhotos(List.of(keeper,
+                Uri.parse("content://media/photo/header-unreviewed")));
+
+        View keepers = activity.findViewById(id(activity, "filter_keepers"));
+        View filters = activity.findViewById(id(activity, "open_gallery_filters"));
+        assertEquals("Keepers · 1", ((TextView) keepers).getText().toString());
+        assertTrue(keepers instanceof TextView);
+        assertTrue(!(keepers instanceof android.widget.Button));
+        assertNotNull(keepers.getBackground());
+        assertNotNull(filters);
+        assertEquals(0, activity.getResources().getIdentifier(
+                "photo_summary", "id", activity.getPackageName()));
+    }
+
+    @Test public void galleryHasCompactGalleryReviewAndAlbumsDestinations() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+
+        assertTrue(activity.findViewById(id(activity, "gallery_destination")).isSelected());
+        assertTrue(activity.findViewById(id(activity, "review_destination")) instanceof TextView);
+
+        activity.findViewById(id(activity, "albums_destination")).performClick();
+        Intent albums = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(AlbumReviewActivity.class.getName(),
+                albums.getComponent().getClassName());
     }
 
     @Test public void quickReviewActionOpensFirstPhotoInOptionalMode() {
@@ -58,7 +168,7 @@ public class ReviewActivityTest {
         Uri first = Uri.parse("content://media/photo/quick-first");
         activity.showPhotos(List.of(first, Uri.parse("content://media/photo/quick-second")));
 
-        activity.findViewById(R.id.open_quick_review).performClick();
+        activity.findViewById(R.id.review_destination).performClick();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
@@ -117,7 +227,7 @@ public class ReviewActivityTest {
     @Test public void albumReviewButtonOpensTheGuidedQueue() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
-        activity.findViewById(R.id.open_album_review).performClick();
+        activity.findViewById(R.id.albums_destination).performClick();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
@@ -202,7 +312,7 @@ public class ReviewActivityTest {
         activity.showMedia(List.of(photo, video));
 
         activity.findViewById(R.id.filter_videos).performClick();
-        activity.findViewById(R.id.open_quick_review).performClick();
+        activity.findViewById(R.id.review_destination).performClick();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(video.uri(), started.getData());
@@ -229,7 +339,7 @@ public class ReviewActivityTest {
 
         ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
 
-        assertEquals("1 new keeper", text(activity, R.id.keeper_count));
+        assertEquals("Keepers · 1", text(activity, R.id.filter_keepers));
         assertEquals(2, grid.getChildCount());
         assertEquals(View.VISIBLE, grid.getChildAt(1).getVisibility());
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
@@ -273,7 +383,7 @@ public class ReviewActivityTest {
         assertTrue((share.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
     }
 
-    @Test public void gallerySelectionUsesAGreenTickInsteadOfRecommendationGold() {
+    @Test public void gallerySelectionUsesANeutralTickInsteadOfRecommendationGold() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(Uri.parse("content://media/photo/select-green")));
         GridLayout grid = activity.findViewById(R.id.photo_grid);
@@ -284,7 +394,8 @@ public class ReviewActivityTest {
         assertEquals(View.VISIBLE, check.getVisibility());
         assertEquals("✓", check.getText().toString());
         GradientDrawable background = (GradientDrawable) check.getBackground();
-        assertEquals(Color.rgb(24, 128, 56), background.getColor().getDefaultColor());
+        assertEquals(activity.getColor(R.color.gallery_selection),
+                background.getColor().getDefaultColor());
     }
 
     @Test public void longPressStartsInsetGallerySelectionWithCountAndCancel() {
@@ -302,7 +413,7 @@ public class ReviewActivityTest {
         Shadows.shadowOf(android.os.Looper.getMainLooper())
                 .idleFor(140, TimeUnit.MILLISECONDS);
         assertEquals(.84f, image.getScaleX(), .001f);
-        assertEquals(Color.rgb(232, 234, 237),
+        assertEquals(activity.getColor(R.color.gallery_surface_elevated),
                 ((ColorDrawable) grid.getChildAt(0).getBackground()).getColor());
         TextView check = grid.getChildAt(0).findViewWithTag("hide_selection_check");
         assertEquals(Gravity.TOP | Gravity.START,
@@ -633,7 +744,7 @@ public class ReviewActivityTest {
         activity.showPhotos(List.of(hidden, visible));
         new HiddenPhotoStore(activity).hide(Set.of(hidden.toString()));
 
-        activity.findViewById(R.id.open_quick_review).performClick();
+        activity.findViewById(R.id.review_destination).performClick();
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(visible, started.getData());
@@ -650,7 +761,7 @@ public class ReviewActivityTest {
 
         ((android.view.ViewGroup) grid.getChildAt(0)).getChildAt(1).performClick();
 
-        assertEquals("No new keepers", text(activity, R.id.keeper_count));
+        assertEquals("Keepers · 1", text(activity, R.id.filter_keepers));
         assertEquals(0, grid.getChildCount());
         activity.findViewById(R.id.filter_keepers).performClick();
         assertEquals(1, grid.getChildCount());
@@ -667,8 +778,9 @@ public class ReviewActivityTest {
 
         activity.showSuggestions(Set.of("content://media/photo/2"));
 
-        assertEquals("1 suggested best shot", text(activity, R.id.suggestion_count));
-        assertEquals("No new keepers", text(activity, R.id.keeper_count));
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.analysis_progress_strip).getVisibility());
+        assertEquals("Keepers · 0", text(activity, R.id.filter_keepers));
         assertEquals(1f, grid.getChildAt(0).getAlpha(), 0.001f);
         assertEquals(1f, grid.getChildAt(1).getAlpha(), 0.001f);
         assertEquals(View.VISIBLE,
@@ -901,9 +1013,9 @@ public class ReviewActivityTest {
         GridLayout grid = activity.findViewById(R.id.photo_grid);
         assertEquals(1, grid.getChildCount());
         assertEquals(recommended, grid.getChildAt(0).getTag().toString());
-        assertEquals("Analysing · 0/2", text(activity, R.id.suggestion_count));
+        assertEquals("Analysing 0 of 2", text(activity, R.id.analysis_progress_label));
         assertEquals(View.VISIBLE,
-                activity.findViewById(R.id.suggestion_progress).getVisibility());
+                activity.findViewById(R.id.analysis_progress_bar).getVisibility());
         TextView badge = (TextView) ((ViewGroup) grid.getChildAt(0)).getChildAt(3);
         assertEquals("2", badge.getText().toString());
     }

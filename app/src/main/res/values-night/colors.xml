@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="gallery_background">#11110F</color>
+    <color name="gallery_surface">#1C1B18</color>
+    <color name="gallery_surface_elevated">#282622</color>
+    <color name="gallery_text_primary">#F4F1EA</color>
+    <color name="gallery_text_secondary">#B8B2A8</color>
+    <color name="gallery_divider">#3B3832</color>
+    <color name="gallery_grid_gutter">#11110F</color>
+    <color name="gallery_accent_keeper">#FF7A7F</color>
+    <color name="gallery_accent_warm">#E3A84F</color>
+    <color name="gallery_primary">#F4F1EA</color>
+    <color name="gallery_primary_pressed">#D7D1C7</color>
+    <color name="gallery_on_primary">#171512</color>
+    <color name="gallery_on_accent">#171512</color>
+    <color name="gallery_scrim">#B3000000</color>
+    <color name="gallery_selection">#D8D2C8</color>
+</resources>
