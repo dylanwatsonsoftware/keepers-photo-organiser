@@ -63,6 +63,7 @@ public class ReviewLayoutTest {
         assertTrue(keeper instanceof TextView);
         assertTrue(keeper.isClickable());
         assertNotNull(keeper.getBackground());
+        assertNotNull(((TextView) keeper).getCompoundDrawablesRelative()[0]);
         assertNotNull(layout.findViewById(R.id.open_gallery_filters));
         assertNotNull(layout.findViewById(R.id.gallery_filter_sheet));
         View include = layout.findViewById(R.id.filter_include_keepers);
@@ -77,6 +78,31 @@ public class ReviewLayoutTest {
         assertTrue(!(metadata instanceof Button));
         assertTrue(metadata.isClickable());
         assertNotNull(metadata.getBackground());
+    }
+
+    @Test public void keeperShortcutAndFilterActionAreRightAligned() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+        LinearLayout controls = layout.findViewById(R.id.gallery_controls);
+
+        assertTrue(controls.getChildAt(0).getLayoutParams() instanceof LinearLayout.LayoutParams);
+        LinearLayout.LayoutParams spacer = (LinearLayout.LayoutParams)
+                controls.getChildAt(0).getLayoutParams();
+        assertTrue(spacer.weight > 0f);
+        assertEquals(R.id.filter_keepers, controls.getChildAt(1).getId());
+        assertEquals(R.id.open_gallery_filters, controls.getChildAt(2).getId());
+    }
+
+    @Test @Config(qualifiers = "night")
+    public void settingsAndAlbumsUseAdaptiveGallerySurfaces() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        View settings = LayoutInflater.from(context).inflate(R.layout.activity_people, null);
+        View albums = LayoutInflater.from(context).inflate(R.layout.activity_album_review, null);
+
+        assertEquals(context.getColor(R.color.gallery_background),
+                ((android.graphics.drawable.ColorDrawable) settings.getBackground()).getColor());
+        assertEquals(context.getColor(R.color.gallery_background),
+                ((android.graphics.drawable.ColorDrawable) albums.getBackground()).getColor());
     }
 
     @Test public void gallerySelectionMenuUsesEstablishedStyledActions() {

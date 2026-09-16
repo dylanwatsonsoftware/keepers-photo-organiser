@@ -235,16 +235,18 @@ public final class ReviewActivity extends Activity {
                     @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
                         accumulatedGridScale = 1f;
                         gridScaleInProgress = true;
-                        if (rangeSelectionGestureActive) finishMediaRangeSelection();
+                        boolean cancellingRangeSelection = rangeSelectionGestureActive;
+                        if (cancellingRangeSelection) finishMediaRangeSelection();
+                        if (cancellingRangeSelection && selectingMedia) endMediaSelection();
                         return true;
                     }
 
                     @Override public boolean onScale(ScaleGestureDetector detector) {
                         accumulatedGridScale *= detector.getScaleFactor();
-                        if (accumulatedGridScale > 1.14f && gridColumns > 1) {
+                        if (accumulatedGridScale > 1.06f && gridColumns > 1) {
                             setGridColumns(gridColumns - 1);
                             accumulatedGridScale = 1f;
-                        } else if (accumulatedGridScale < .87f && gridColumns < 4) {
+                        } else if (accumulatedGridScale < .94f && gridColumns < 4) {
                             setGridColumns(gridColumns + 1);
                             accumulatedGridScale = 1f;
                         }
@@ -478,7 +480,15 @@ public final class ReviewActivity extends Activity {
         getSharedPreferences(GALLERY_DISPLAY_PREFERENCES, MODE_PRIVATE).edit()
                 .putInt(GRID_COLUMNS_PREFERENCE, columns).apply();
         GridLayout grid = findViewById(R.id.photo_grid);
+        ArrayList<View> visibleTiles = new ArrayList<>();
+        for (int index = 0; index < grid.getChildCount(); index++)
+            visibleTiles.add(grid.getChildAt(index));
+        grid.removeAllViews();
         grid.setColumnCount(columns);
+        for (View visibleTile : visibleTiles) {
+            resetGridPlacement(visibleTile);
+            grid.addView(visibleTile);
+        }
         reflowGrid(true);
         updateGridDensityChoices();
         grid.announceForAccessibility(columns == 1 ? "One photo per row"
@@ -536,6 +546,28 @@ public final class ReviewActivity extends Activity {
         params.height = height;
         params.setMargins(dp(1), dp(1), dp(1), dp(1));
         tile.setLayoutParams(params);
+        ImageView suggestion = tile.findViewWithTag("suggestion_marker");
+        if (suggestion != null) {
+            int markerSize = dp(gridColumns >= 4 ? 22 : gridColumns == 3 ? 24 : 28);
+            int markerPadding = dp(gridColumns >= 4 ? 4 : 6);
+            FrameLayout.LayoutParams suggestionParams =
+                    (FrameLayout.LayoutParams) suggestion.getLayoutParams();
+            suggestionParams.width = markerSize;
+            suggestionParams.height = markerSize;
+            int edge = dp(gridColumns >= 4 ? 5 : 7);
+            suggestionParams.setMargins(edge, edge, 0, 0);
+            suggestion.setLayoutParams(suggestionParams);
+            suggestion.setPadding(markerPadding, markerPadding, markerPadding, markerPadding);
+        }
+    }
+
+    private static void resetGridPlacement(View tile) {
+        GridLayout.LayoutParams old = (GridLayout.LayoutParams) tile.getLayoutParams();
+        GridLayout.LayoutParams reset = new GridLayout.LayoutParams();
+        reset.width = old.width;
+        reset.height = old.height;
+        reset.setMargins(old.leftMargin, old.topMargin, old.rightMargin, old.bottomMargin);
+        tile.setLayoutParams(reset);
     }
 
     private void updateGridDensityChoices() {
@@ -656,21 +688,34 @@ public final class ReviewActivity extends Activity {
             }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
+            android.view.animation.ScaleAnimation feedback =
+                    new android.view.animation.ScaleAnimation(.68f, 1f, .68f, 1f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
+            feedback.setDuration(260);
+            feedback.setInterpolator(new android.view.animation.OvershootInterpolator(2.2f));
+            marker.startAnimation(feedback);
             refreshRecommendationsIfReady();
         });
 
         ImageView suggestion = new ImageView(this);
+        suggestion.setTag("suggestion_marker");
         suggestion.setImageResource(R.drawable.ic_star);
         suggestion.setColorFilter(Color.WHITE);
-        suggestion.setPadding(dp(6), dp(6), dp(6), dp(6));
+        int suggestionPadding = dp(gridColumns >= 4 ? 4 : 6);
+        suggestion.setPadding(suggestionPadding, suggestionPadding,
+                suggestionPadding, suggestionPadding);
         GradientDrawable suggestionCircle = new GradientDrawable();
         suggestionCircle.setShape(GradientDrawable.OVAL);
         suggestionCircle.setColor(getColor(R.color.gallery_accent_warm));
         suggestion.setBackground(suggestionCircle);
         suggestion.setVisibility(View.GONE);
-        FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(dp(28), dp(28),
+        int suggestionSize = dp(gridColumns >= 4 ? 22 : gridColumns == 3 ? 24 : 28);
+        FrameLayout.LayoutParams suggestionParams = new FrameLayout.LayoutParams(
+                suggestionSize, suggestionSize,
                 Gravity.TOP | Gravity.START);
-        suggestionParams.setMargins(dp(7), dp(7), 0, 0);
+        int suggestionEdge = dp(gridColumns >= 4 ? 5 : 7);
+        suggestionParams.setMargins(suggestionEdge, suggestionEdge, 0, 0);
         tile.addView(suggestion, suggestionParams);
 
         TextView stack = new TextView(this);
@@ -1412,7 +1457,7 @@ public final class ReviewActivity extends Activity {
         settings.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
         actions.setVisibility(selectingMedia ? View.VISIBLE : View.GONE);
         navigation.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
-        controls.setVisibility(selectingMedia ? View.GONE : View.VISIBLE);
+        controls.setVisibility(selectingMedia ? View.INVISIBLE : View.VISIBLE);
         count.setText(mediaSelections.size() + " selected");
         for (FrameLayout tile : tiles) {
             String mediaId = tile.getTag().toString();
@@ -1594,7 +1639,10 @@ public final class ReviewActivity extends Activity {
                 && mediaTypes.getOrDefault(id, MediaType.PHOTO) == MediaType.VIDEO).toList();
         for (String id : visibleIds) {
             FrameLayout tile = tilesById.get(id);
-            if (tile != null) grid.addView(tile);
+            if (tile != null) {
+                resetGridPlacement(tile);
+                grid.addView(tile);
+            }
             if (tile != null) visible++;
         }
         View keeperFilter = findViewById(R.id.filter_keepers);

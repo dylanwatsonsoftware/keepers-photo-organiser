@@ -13,12 +13,27 @@
         android:orientation="vertical">
 
         <LinearLayout
+            android:id="@+id/gallery_header"
             android:layout_width="match_parent"
             android:layout_height="64dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="20dp"
             android:paddingEnd="12dp">
+
+            <TextView
+                android:id="@+id/cancel_selection"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/gallery_icon_button"
+                android:clickable="true"
+                android:contentDescription="Cancel selection"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="×"
+                android:textColor="@color/gallery_text_primary"
+                android:textSize="30sp"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/gallery_title"
@@ -38,20 +53,6 @@
                 android:text="1 selected"
                 android:textColor="@color/gallery_text_primary"
                 android:textSize="22sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/cancel_selection"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:background="@drawable/gallery_filter_chip"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingHorizontal="14dp"
-                android:text="Cancel"
-                android:textColor="@color/gallery_filter_text"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
@@ -76,6 +77,11 @@
             android:paddingEnd="16dp"
             android:paddingBottom="8dp">
 
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
             <TextView
                 android:id="@+id/filter_keepers"
                 android:layout_width="wrap_content"
@@ -84,6 +90,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
+                android:drawableStart="@drawable/ic_heart_filled"
+                android:drawablePadding="7dp"
+                android:drawableTint="@color/gallery_accent_keeper"
                 android:minWidth="112dp"
                 android:paddingHorizontal="16dp"
                 android:text="Keepers · 0"
@@ -375,12 +384,17 @@
                     <TextView android:id="@+id/filter_videos" style="@style/GalleryFilterChoice" android:text="Videos" />
                 </LinearLayout>
 
-                <TextView style="@style/GalleryFilterHeading" android:text="Display" />
+                <TextView style="@style/GalleryFilterHeading" android:text="Photo scores" />
                 <TextView
                     android:id="@+id/toggle_metadata"
                     style="@style/GalleryFilterChoice"
                     android:layout_width="wrap_content"
                     android:text="Show ratings" />
+
+                <TextView
+                    style="@style/GalleryFilterHeading"
+                    android:layout_marginTop="14dp"
+                    android:text="Grid size" />
 
                 <LinearLayout style="@style/GalleryFilterRow" android:layout_marginTop="8dp">
                     <TextView android:id="@+id/grid_columns_1" style="@style/GalleryGridChoice" android:text="1" />

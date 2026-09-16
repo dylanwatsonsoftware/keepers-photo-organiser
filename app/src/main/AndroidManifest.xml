@@ -32,10 +32,12 @@
             </intent-filter>
         </activity>
         <activity android:name=".PreviewActivity" android:exported="false" />
-        <activity android:name=".PeopleActivity" android:exported="false" />
+        <activity android:name=".PeopleActivity" android:exported="false"
+            android:theme="@style/Theme.Keepers.Gallery" />
         <activity android:name=".PersonDetailActivity" android:exported="false" />
         <activity android:name=".AlbumDetailActivity" android:exported="false" />
-        <activity android:name=".AlbumReviewActivity" android:exported="false" />
+        <activity android:name=".AlbumReviewActivity" android:exported="false"
+            android:theme="@style/Theme.Keepers.Gallery" />
         <activity android:name=".FaceGroupReviewActivity" android:exported="false" />
         <provider
             android:name=".CloudPhotoProvider"

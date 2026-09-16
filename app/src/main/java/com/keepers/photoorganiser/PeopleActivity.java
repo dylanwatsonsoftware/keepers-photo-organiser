@@ -168,11 +168,11 @@ public final class PeopleActivity extends Activity {
             if (album.featurePhotoId().isBlank()) {
                 cover.setImageResource(R.drawable.ic_review_albums);
                 cover.setPadding(dp(14), dp(14), dp(14), dp(14));
-                cover.setColorFilter(0xFF5F6368);
+                cover.setColorFilter(getColor(R.color.gallery_text_secondary));
             } else thumbnailLoader.load(cover, Uri.parse(album.featurePhotoId()), 320);
             TextView label = new TextView(this);
             label.setText(name);
-            label.setTextColor(0xFF202124);
+            label.setTextColor(getColor(R.color.gallery_text_primary));
             label.setTextSize(17);
             label.setTypeface(null, android.graphics.Typeface.BOLD);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
@@ -181,7 +181,7 @@ public final class PeopleActivity extends Activity {
             card.addView(label, labelParams);
             TextView arrow = new TextView(this);
             arrow.setText("›");
-            arrow.setTextColor(0xFF5F6368);
+            arrow.setTextColor(getColor(R.color.gallery_text_secondary));
             arrow.setTextSize(28);
             card.addView(arrow, new LinearLayout.LayoutParams(dp(28),
                     ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -256,7 +256,7 @@ public final class PeopleActivity extends Activity {
         FaceObservation representative = group.members().get(0);
         ImageView face = new ImageView(this);
         face.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        face.setBackgroundColor(0xFFE8EAED);
+        face.setBackgroundColor(getColor(R.color.gallery_surface_elevated));
         card.addView(face, new LinearLayout.LayoutParams(dp(68), dp(68)));
         thumbnailLoader.load(face, Uri.parse(representative.photoId()), 256,
                 bitmap -> showFaceCrop(face, bitmap, representative));
@@ -269,7 +269,7 @@ public final class PeopleActivity extends Activity {
         card.addView(details, detailsParams);
         TextView count = new TextView(this);
         count.setText("Seen in " + photos + (photos == 1 ? " photo" : " photos"));
-        count.setTextColor(0xFF3C4043);
+        count.setTextColor(getColor(R.color.gallery_text_primary));
         count.setTextSize(14);
         details.addView(count);
 
@@ -281,7 +281,7 @@ public final class PeopleActivity extends Activity {
             TextView suggestion = new TextView(this);
             String predictedName = personName(predictedId, people);
             suggestion.setText("Likely " + predictedName);
-            suggestion.setTextColor(0xFFB06000);
+            suggestion.setTextColor(getColor(R.color.gallery_accent_warm));
             suggestion.setTextSize(14);
             suggestion.setTypeface(null, android.graphics.Typeface.BOLD);
             suggestion.setGravity(Gravity.CENTER);
@@ -296,7 +296,7 @@ public final class PeopleActivity extends Activity {
 
             TextView decline = new TextView(this);
             decline.setText("Not " + predictedName);
-            decline.setTextColor(0xFF3C4043);
+            decline.setTextColor(getColor(R.color.gallery_text_primary));
             decline.setTextSize(13);
             decline.setTypeface(null, android.graphics.Typeface.BOLD);
             decline.setGravity(Gravity.CENTER);
@@ -415,7 +415,7 @@ public final class PeopleActivity extends Activity {
         card.addView(portrait, new LinearLayout.LayoutParams(dp(64), dp(64)));
         TextView label = new TextView(this);
         label.setText(name);
-        label.setTextColor(0xFF202124);
+        label.setTextColor(getColor(R.color.gallery_text_primary));
         label.setTextSize(18);
         label.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0,
@@ -424,7 +424,7 @@ public final class PeopleActivity extends Activity {
         card.addView(label, labelParams);
         TextView arrow = new TextView(this);
         arrow.setText("›");
-        arrow.setTextColor(0xFF5F6368);
+        arrow.setTextColor(getColor(R.color.gallery_text_secondary));
         arrow.setTextSize(28);
         card.addView(arrow, new LinearLayout.LayoutParams(dp(28),
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -533,14 +533,14 @@ public final class PeopleActivity extends Activity {
             row.setPadding(dp(8), dp(6), dp(8), dp(6));
             ImageView image = new ImageView(PeopleActivity.this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            image.setBackgroundColor(0xFFE8EAED);
+            image.setBackgroundColor(getColor(R.color.gallery_surface_elevated));
             row.addView(image, new LinearLayout.LayoutParams(dp(38), dp(38)));
             if (choice.portrait() != null) thumbnailLoader.load(image,
                     Uri.parse(choice.portrait().photoId()), 160,
                     bitmap -> showFaceCrop(image, bitmap, choice.portrait()));
             TextView label = new TextView(PeopleActivity.this);
             label.setText(choice.label());
-            label.setTextColor(0xFF202124);
+            label.setTextColor(getColor(R.color.gallery_text_primary));
             label.setTextSize(16);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0,
                     ViewGroup.LayoutParams.WRAP_CONTENT, 1);

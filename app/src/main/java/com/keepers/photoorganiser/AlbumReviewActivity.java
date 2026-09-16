@@ -177,7 +177,7 @@ public final class AlbumReviewActivity extends Activity {
             List<String> visiblePhotos, AlbumCompletionStore completions) {
         TextView choice = new TextView(this);
         choice.setText("+ " + label);
-        choice.setTextColor(0xFF3C4043);
+        choice.setTextColor(getColor(R.color.gallery_text_primary));
         choice.setTextSize(13);
         choice.setTypeface(android.graphics.Typeface.DEFAULT,
                 android.graphics.Typeface.BOLD);
@@ -234,7 +234,7 @@ public final class AlbumReviewActivity extends Activity {
         card.addView(destinationPanel, panelParams);
         TextView instruction = new TextView(this);
         instruction.setText("Add to:");
-        instruction.setTextColor(0xFF3C4043);
+        instruction.setTextColor(getColor(R.color.gallery_text_primary));
         instruction.setTextSize(13);
         instruction.setTypeface(android.graphics.Typeface.DEFAULT,
                 android.graphics.Typeface.BOLD);
@@ -365,7 +365,7 @@ public final class AlbumReviewActivity extends Activity {
         if (album.featurePhotoId().isBlank()) {
             cover.setImageResource(R.drawable.ic_review_albums);
             cover.setPadding(dp(20), dp(20), dp(20), dp(20));
-            cover.setColorFilter(0xFF5F6368);
+            cover.setColorFilter(getColor(R.color.gallery_text_secondary));
         } else thumbnailLoader.loadProgressive(cover, Uri.parse(album.featurePhotoId()),
                 480, 1200, bitmap -> {});
         TextView check = new TextView(this);
@@ -381,7 +381,7 @@ public final class AlbumReviewActivity extends Activity {
         frame.addView(check, checkParams);
         TextView name = new TextView(this);
         name.setText(album.albumName());
-        name.setTextColor(0xFF3C4043);
+        name.setTextColor(getColor(R.color.gallery_text_primary));
         name.setTextSize(12);
         name.setGravity(android.view.Gravity.CENTER);
         name.setMaxLines(2);
@@ -444,7 +444,7 @@ public final class AlbumReviewActivity extends Activity {
         portraitFrame.addView(check, checkParams);
         TextView name = new TextView(this);
         name.setText(displayName(person));
-        name.setTextColor(0xFF3C4043);
+        name.setTextColor(getColor(R.color.gallery_text_primary));
         name.setTextSize(12);
         name.setGravity(android.view.Gravity.CENTER);
         name.setMaxLines(2);
@@ -455,7 +455,8 @@ public final class AlbumReviewActivity extends Activity {
         TextView source = new TextView(this);
         source.setTag("assignment_source");
         source.setTextSize(10);
-        source.setTextColor(suggested ? 0xFFB06000 : 0xFF174EA6);
+        source.setTextColor(getColor(suggested ? R.color.gallery_accent_warm
+                : R.color.gallery_text_secondary));
         source.setGravity(android.view.Gravity.CENTER);
         source.setBackgroundResource(suggested ? R.drawable.suggestion_summary_chip
                 : R.drawable.keeper_summary_chip);

@@ -87,6 +87,40 @@ public class ReviewActivityTest {
         assertEquals(4, reopened.gridColumns());
     }
 
+    @Test public void populatedGridCanShrinkWithoutInvalidColumnIndices() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/one"),
+                Uri.parse("content://media/photo/two"),
+                Uri.parse("content://media/photo/three"),
+                Uri.parse("content://media/photo/four")));
+
+        activity.setGridColumns(2);
+
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        assertEquals(2, grid.getColumnCount());
+        assertEquals(4, grid.getChildCount());
+    }
+
+    @Test public void filteredTileCanReattachAfterGridShrinks() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri hiddenDuringResize = Uri.parse("content://media/photo/reattached");
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/one"), hiddenDuringResize));
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        View tile = grid.getChildAt(1);
+        grid.removeView(tile);
+        GridLayout.LayoutParams stale = (GridLayout.LayoutParams) tile.getLayoutParams();
+        stale.columnSpec = GridLayout.spec(3);
+        tile.setLayoutParams(stale);
+
+        activity.setGridColumns(2);
+        activity.showSuggestions(Set.of(hiddenDuringResize.toString()));
+
+        assertEquals(2, grid.getColumnCount());
+        assertEquals(2, grid.getChildCount());
+    }
+
     @Test public void oneColumnDensityUsesAFullWidthNonSquarePhoto() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.setGridColumns(1);
@@ -109,6 +143,33 @@ public class ReviewActivityTest {
                 activity.findViewById(id(activity, "gallery_bottom_navigation")).getVisibility());
         assertEquals(View.VISIBLE,
                 activity.findViewById(R.id.gallery_selection_actions).getVisibility());
+        assertEquals(View.INVISIBLE,
+                activity.findViewById(R.id.gallery_controls).getVisibility());
+        assertEquals("×", text(activity, R.id.cancel_selection));
+    }
+
+    @Test public void tappingKeeperHeartStartsDelightfulFeedback() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(Uri.parse("content://media/photo/animated-heart")));
+        ImageView heart = (ImageView) activity.<GridLayout>findViewById(R.id.photo_grid)
+                .getChildAt(0).findViewWithTag("marker");
+
+        heart.performClick();
+
+        assertNotNull(heart.getAnimation());
+    }
+
+    @Test public void recommendationStarAdaptsToGridDensity() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        Uri photo = Uri.parse("content://media/photo/adaptive-star");
+        activity.showPhotos(List.of(photo));
+        activity.showSuggestions(Set.of(photo.toString()));
+        ImageView star = (ImageView) ((ViewGroup) activity.<GridLayout>findViewById(
+                R.id.photo_grid).getChildAt(0)).getChildAt(2);
+
+        assertTrue(star.getLayoutParams().width <= dp(activity, 22));
+        activity.setGridColumns(2);
+        assertTrue(star.getLayoutParams().width >= dp(activity, 26));
     }
 
     @Test public void filterActionOpensAndApplyClosesBottomSheet() {
@@ -1114,6 +1175,10 @@ public class ReviewActivityTest {
 
     private static int selectedCount(ReviewActivity activity) {
         return Integer.parseInt(text(activity, R.id.selection_count).split(" ")[0]);
+    }
+
+    private static int dp(ReviewActivity activity, int value) {
+        return Math.round(value * activity.getResources().getDisplayMetrics().density);
     }
 
     private static void layoutThreeColumnGrid(GridLayout grid, int tileSize) {
