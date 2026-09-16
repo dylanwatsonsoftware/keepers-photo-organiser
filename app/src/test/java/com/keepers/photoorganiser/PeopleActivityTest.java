@@ -186,6 +186,29 @@ public class PeopleActivityTest {
         assertEquals("ada", started.getStringExtra("person_id"));
     }
 
+    @Test public void savedPeopleLoadFeatureFacesWithoutLoadingSuggestions() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        String photo = "content://photos/ada-feature";
+        FaceObservation feature = face(photo, "1,0,0");
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true)));
+        new FaceObservationStore(context).save(photo, List.of(feature));
+        new FaceCorrectionStore(context).save(Map.of(
+                FaceCorrectionStore.key(feature), "ada"));
+        new PersonFeatureFaceStore(context).save("ada", FaceCorrectionStore.key(feature));
+
+        PeopleActivity activity = Robolectric.buildActivity(PeopleActivity.class).setup().get();
+        LinearLayout profiles = findContainerWithContentDescription(
+                activity.findViewById(android.R.id.content), "Tracked people");
+        ImageView portrait = findFirst(profiles.getChildAt(0), ImageView.class);
+
+        assertEquals(android.net.Uri.parse(photo), portrait.getTag());
+        assertEquals(0, activity.<LinearLayout>findViewById(
+                R.id.discovered_face_groups).getChildCount());
+        assertEquals("Load face suggestions", ((TextView) activity.findViewById(
+                R.id.load_face_groups)).getText().toString());
+    }
+
     @Test public void showsFaceObservationProgressFromGalleryAnalysis() {
         FaceObservationStore observations = new FaceObservationStore(
                 org.robolectric.RuntimeEnvironment.getApplication());

@@ -88,6 +88,7 @@ public final class PeopleActivity extends Activity {
         super.onResume();
         updateFeedbackSyncAction();
         showPeople();
+        refreshProfilePortraits(savedPeoplePortraits());
         showOtherAlbums();
         showDiscoveryProgress();
         if (faceGroupsLoaded) showDiscoveredGroups();
@@ -463,6 +464,23 @@ public final class PeopleActivity extends Activity {
             String person = FaceGroupAssignmentResolver.personFor(group, assignments);
             if (!person.isBlank() && !group.members().isEmpty()) result.putIfAbsent(person,
                     group.members().get(0));
+        }
+        return result;
+    }
+
+    private Map<String, FaceObservation> savedPeoplePortraits() {
+        List<FaceObservation> observations = new FaceObservationStore(this).loadAll();
+        Map<String, String> corrections = new FaceCorrectionStore(this).load();
+        PersonFeatureFaceStore featureFaces = new PersonFeatureFaceStore(this);
+        LinkedHashMap<String, FaceObservation> result = new LinkedHashMap<>();
+        for (TrackedPerson person : currentPeople()) {
+            List<FaceObservation> confirmed = ConfirmedPersonFaces.forPerson(
+                    person.id(), observations, corrections);
+            String preferred = featureFaces.load(person.id());
+            FaceObservation portrait = confirmed.stream().filter(face ->
+                    FaceCorrectionStore.key(face).equals(preferred)).findFirst()
+                    .orElse(confirmed.isEmpty() ? null : confirmed.get(0));
+            if (portrait != null) result.put(person.id(), portrait);
         }
         return result;
     }
