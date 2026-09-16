@@ -1458,6 +1458,10 @@ public final class ReviewActivity extends Activity {
         List<String> range = visible.subList(first, last + 1);
         if (rangeSelectionRemoving) mediaSelections.removeAll(range);
         else mediaSelections.addAll(range);
+        if (mediaSelections.isEmpty()) {
+            endMediaSelection();
+            return;
+        }
         updateMediaSelectionDisplay();
     }
 

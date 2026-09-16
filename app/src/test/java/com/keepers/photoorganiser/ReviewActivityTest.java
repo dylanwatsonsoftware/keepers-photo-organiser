@@ -795,7 +795,7 @@ public class ReviewActivityTest {
         dispatchUp(selectedAnchor, 50, 150);
     }
 
-    @Test public void removingTheWholeSelectedRangeExitsSelectionOnRelease() {
+    @Test public void removingTheWholeSelectedRangeExitsSelectionImmediately() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
                 Uri.parse("content://media/photo/remove-all-1"),
@@ -811,13 +811,12 @@ public class ReviewActivityTest {
 
         assertTrue(first.performLongClick());
         dispatchMove(first, 250, 50);
-        assertEquals("0 selected", text(activity, R.id.selection_count));
-        dispatchUp(first, 250, 50);
 
         assertEquals(View.GONE, activity.findViewById(R.id.selection_count).getVisibility());
         assertEquals(View.GONE,
                 activity.findViewById(R.id.gallery_selection_actions).getVisibility());
         assertEquals(View.VISIBLE, activity.findViewById(R.id.gallery_title).getVisibility());
+        dispatchUp(first, 250, 50);
     }
 
     @Test public void gallerySelectionCanMarkMultipleItemsAsKeepers() {
