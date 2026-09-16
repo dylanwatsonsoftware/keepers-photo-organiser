@@ -95,6 +95,7 @@ public final class ReviewActivity extends Activity {
     private int gridColumns;
     private ScaleGestureDetector gridScaleDetector;
     private float accumulatedGridScale = 1f;
+    private int gridScaleStartColumns;
     private boolean gridScaleInProgress;
     private boolean suppressTouchUntilScaleEnds;
     private final Map<String, Float> mediaAspectRatios = new HashMap<>();
@@ -274,7 +275,12 @@ public final class ReviewActivity extends Activity {
                 new ScaleGestureDetector.SimpleOnScaleGestureListener() {
                     @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
                         accumulatedGridScale = 1f;
+                        gridScaleStartColumns = gridColumns;
                         gridScaleInProgress = true;
+                        GridLayout grid = findViewById(R.id.photo_grid);
+                        grid.clearAnimation();
+                        grid.setScaleX(1f);
+                        grid.setScaleY(1f);
                         boolean cancellingRangeSelection = rangeSelectionGestureActive;
                         if (cancellingRangeSelection) finishMediaRangeSelection();
                         if (cancellingRangeSelection && selectingMedia) endMediaSelection();
@@ -283,21 +289,51 @@ public final class ReviewActivity extends Activity {
 
                     @Override public boolean onScale(ScaleGestureDetector detector) {
                         accumulatedGridScale *= detector.getScaleFactor();
-                        if (accumulatedGridScale > 1.06f && gridColumns > 1) {
-                            setGridColumns(gridColumns - 1);
-                            accumulatedGridScale = 1f;
-                        } else if (accumulatedGridScale < .94f && gridColumns < 4) {
-                            setGridColumns(gridColumns + 1);
-                            accumulatedGridScale = 1f;
-                        }
+                        float minimum = gridScaleStartColumns / 4f;
+                        float maximum = gridScaleStartColumns;
+                        accumulatedGridScale = Math.max(minimum * .88f,
+                                Math.min(maximum * 1.12f, accumulatedGridScale));
+                        previewGridScale(accumulatedGridScale,
+                                detector.getFocusX(), detector.getFocusY());
                         return true;
                     }
 
                     @Override public void onScaleEnd(ScaleGestureDetector detector) {
                         gridScaleInProgress = false;
-                        accumulatedGridScale = 1f;
+                        finishGridScalePreview();
                     }
                 });
+    }
+
+    private void previewGridScale(float scale, float focusX, float focusY) {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int[] gridLocation = new int[2];
+        grid.getLocationInWindow(gridLocation);
+        grid.setPivotX(Math.max(0, Math.min(grid.getWidth(), focusX - gridLocation[0])));
+        grid.setPivotY(Math.max(0, Math.min(grid.getHeight(), focusY - gridLocation[1])));
+        grid.setScaleX(scale);
+        grid.setScaleY(scale);
+    }
+
+    private void finishGridScalePreview() {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        int startColumns = Math.max(1, gridScaleStartColumns);
+        float previewScale = accumulatedGridScale;
+        int targetColumns = clampGridColumns(Math.round(startColumns / previewScale));
+        float settleStart = previewScale * targetColumns / startColumns;
+        float pivotX = grid.getWidth() == 0 ? .5f : grid.getPivotX() / grid.getWidth();
+        float pivotY = grid.getHeight() == 0 ? .5f : grid.getPivotY() / grid.getHeight();
+        grid.setScaleX(1f);
+        grid.setScaleY(1f);
+        setGridColumns(targetColumns);
+        android.view.animation.ScaleAnimation settle = new android.view.animation.ScaleAnimation(
+                settleStart, 1f, settleStart, 1f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, pivotX,
+                android.view.animation.Animation.RELATIVE_TO_SELF, pivotY);
+        settle.setDuration(220);
+        settle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+        grid.startAnimation(settle);
+        accumulatedGridScale = 1f;
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

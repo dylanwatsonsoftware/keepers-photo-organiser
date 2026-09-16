@@ -89,6 +89,45 @@ public class ReviewActivityTest {
         assertEquals(4, reopened.gridColumns());
     }
 
+    @Test public void pinchPreviewsContinuouslyBeforeCommittingNearestGridDensity() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.showPhotos(List.of(
+                Uri.parse("content://media/photo/pinch-1"),
+                Uri.parse("content://media/photo/pinch-2"),
+                Uri.parse("content://media/photo/pinch-3"),
+                Uri.parse("content://media/photo/pinch-4")));
+        View content = activity.findViewById(android.R.id.content);
+        content.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        content.layout(0, 0, 1080, 1920);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        float centreX = scroll.getWidth() / 2f;
+        float centreY = scroll.getTop() + Math.min(300, scroll.getHeight() / 2f);
+
+        dispatchPinch(activity, MotionEvent.ACTION_DOWN, centreX - 100, centreY,
+                centreX + 100, centreY, 1);
+        dispatchPinch(activity, MotionEvent.ACTION_POINTER_DOWN
+                        | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                centreX - 100, centreY, centreX + 100, centreY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_MOVE, centreX - 140, centreY,
+                centreX + 140, centreY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_MOVE, centreX - 200, centreY,
+                centreX + 200, centreY, 2);
+
+        assertEquals(4, grid.getColumnCount());
+        assertTrue(grid.getScaleX() > 1.2f);
+
+        dispatchPinch(activity, MotionEvent.ACTION_POINTER_UP
+                        | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                centreX - 200, centreY, centreX + 200, centreY, 2);
+        dispatchPinch(activity, MotionEvent.ACTION_UP, centreX - 200, centreY,
+                centreX + 200, centreY, 1);
+
+        assertEquals(3, activity.gridColumns());
+        assertNotNull(grid.getAnimation());
+    }
+
     @Test public void populatedGridCanShrinkWithoutInvalidColumnIndices() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         activity.showPhotos(List.of(
@@ -1296,6 +1335,27 @@ public class ReviewActivityTest {
         MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP,
                 localX, localY, 0);
         view.dispatchTouchEvent(event);
+        event.recycle();
+    }
+
+    private static void dispatchPinch(ReviewActivity activity, int action,
+            float firstX, float firstY, float secondX, float secondY, int pointerCount) {
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coordinates = new MotionEvent.PointerCoords[pointerCount];
+        for (int index = 0; index < pointerCount; index++) {
+            properties[index] = new MotionEvent.PointerProperties();
+            properties[index].id = index;
+            properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
+            coordinates[index] = new MotionEvent.PointerCoords();
+            coordinates[index].x = index == 0 ? firstX : secondX;
+            coordinates[index].y = index == 0 ? firstY : secondY;
+            coordinates[index].pressure = 1f;
+            coordinates[index].size = 1f;
+        }
+        MotionEvent event = MotionEvent.obtain(0, 32, action, pointerCount, properties,
+                coordinates, 0, 0, 1f, 1f, 0, 0,
+                android.view.InputDevice.SOURCE_TOUCHSCREEN, 0);
+        activity.dispatchTouchEvent(event);
         event.recycle();
     }
 }
