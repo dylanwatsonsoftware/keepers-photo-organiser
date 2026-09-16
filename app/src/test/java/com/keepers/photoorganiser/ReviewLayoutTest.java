@@ -80,6 +80,28 @@ public class ReviewLayoutTest {
         assertNotNull(metadata.getBackground());
     }
 
+    @Test public void includeCompletedFilterStaysSingleLineAndVerticallyCentered() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_review, null);
+        TextView include = layout.findViewById(R.id.filter_include_keepers);
+        TextView suggested = layout.findViewById(R.id.filter_recommended);
+        android.view.ViewGroup row = (android.view.ViewGroup) include.getParent();
+        int width = Math.round(280 * layout.getResources().getDisplayMetrics().density);
+        int height = Math.round(44 * layout.getResources().getDisplayMetrics().density);
+
+        row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        row.layout(0, 0, width, height);
+
+        assertTrue(include.isSingleLine());
+        assertTrue(((LinearLayout.LayoutParams) include.getLayoutParams()).weight
+                > ((LinearLayout.LayoutParams) suggested.getLayoutParams()).weight);
+        assertEquals(1, include.getLineCount());
+        assertEquals(suggested.getBaseline(), include.getBaseline());
+        assertTrue(include.getPaint().measureText(include.getText().toString())
+                <= include.getWidth() - include.getPaddingStart() - include.getPaddingEnd());
+    }
+
     @Test public void keeperShortcutAndFilterActionAreRightAligned() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
                 .inflate(R.layout.activity_review, null);

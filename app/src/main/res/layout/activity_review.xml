@@ -365,9 +365,25 @@
 
                 <TextView style="@style/GalleryFilterHeading" android:text="View" />
                 <LinearLayout style="@style/GalleryFilterRow">
-                    <TextView android:id="@+id/filter_recommended" style="@style/GalleryFilterChoice" android:text="Suggested" />
-                    <TextView android:id="@+id/filter_hidden" style="@style/GalleryFilterChoice" android:text="Hidden" />
-                    <TextView android:id="@+id/filter_include_keepers" style="@style/GalleryFilterChoice" android:text="Include completed" />
+                    <TextView
+                        android:id="@+id/filter_recommended"
+                        style="@style/GalleryFilterChoice"
+                        android:layout_weight="0.9"
+                        android:paddingHorizontal="6dp"
+                        android:text="Suggested" />
+                    <TextView
+                        android:id="@+id/filter_hidden"
+                        style="@style/GalleryFilterChoice"
+                        android:layout_weight="0.7"
+                        android:paddingHorizontal="6dp"
+                        android:text="Hidden" />
+                    <TextView
+                        android:id="@+id/filter_include_keepers"
+                        style="@style/GalleryFilterChoice"
+                        android:layout_weight="1.4"
+                        android:paddingHorizontal="6dp"
+                        android:singleLine="true"
+                        android:text="Include completed" />
                 </LinearLayout>
 
                 <TextView style="@style/GalleryFilterHeading" android:text="Source" />
