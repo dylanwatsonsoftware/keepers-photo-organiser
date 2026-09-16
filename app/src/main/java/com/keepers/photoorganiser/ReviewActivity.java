@@ -148,38 +148,44 @@ public final class ReviewActivity extends Activity {
                 .getBoolean("metadata_visible", false);
         gridColumns = clampGridColumns(getSharedPreferences(GALLERY_DISPLAY_PREFERENCES,
                 MODE_PRIVATE).getInt(GRID_COLUMNS_PREFERENCE, 4));
-        findViewById(R.id.open_settings).setOnClickListener(view ->
-                startActivity(new Intent(this, PeopleActivity.class)));
+        findViewById(R.id.open_settings).setOnClickListener(view -> navigateWithFeedback(view,
+                () -> startActivity(new Intent(this, PeopleActivity.class))));
         findViewById(R.id.albums_destination).setOnClickListener(view ->
-                startActivity(new Intent(this, AlbumReviewActivity.class)));
-        findViewById(R.id.review_destination).setOnClickListener(view -> openQuickReview());
+                navigateWithFeedback(view,
+                        () -> startActivity(new Intent(this, AlbumReviewActivity.class))));
+        findViewById(R.id.review_destination).setOnClickListener(view ->
+                navigateWithFeedback(view, this::openQuickReview));
         findViewById(R.id.gallery_destination).setSelected(true);
+        findViewById(R.id.gallery_destination).setOnClickListener(
+                ReviewActivity::playTapFeedback);
         findViewById(R.id.cancel_selection).setOnClickListener(view -> endMediaSelection());
         findViewById(R.id.selection_hide).setOnClickListener(view -> hideSelectedMedia());
         findViewById(R.id.selection_share).setOnClickListener(view -> shareSelectedMedia());
         findViewById(R.id.selection_keeper).setOnClickListener(view -> keepSelectedMedia());
         findViewById(R.id.selection_albums).setOnClickListener(view ->
                 addSelectedMediaToAlbums());
-        findViewById(R.id.filter_keepers).setOnClickListener(view ->
-                toggleFilter(GalleryFilter.KEEPERS));
+        findViewById(R.id.filter_keepers).setOnClickListener(view -> withTapFeedback(view,
+                () -> toggleFilter(GalleryFilter.KEEPERS)));
         findViewById(R.id.filter_include_keepers).setOnClickListener(view ->
-                toggleFilter(GalleryFilter.INCLUDE_KEEPERS));
+                withTapFeedback(view, () -> toggleFilter(GalleryFilter.INCLUDE_KEEPERS)));
         findViewById(R.id.filter_recommended).setOnClickListener(view ->
-                toggleFilter(GalleryFilter.RECOMMENDED));
+                withTapFeedback(view, () -> toggleFilter(GalleryFilter.RECOMMENDED)));
         findViewById(R.id.filter_hidden).setOnClickListener(view ->
-                toggleFilter(GalleryFilter.HIDDEN));
+                withTapFeedback(view, () -> toggleFilter(GalleryFilter.HIDDEN)));
         findViewById(R.id.filter_media_all).setOnClickListener(view ->
-                setMediaFilter(MediaFilter.ALL));
+                withTapFeedback(view, () -> setMediaFilter(MediaFilter.ALL)));
         findViewById(R.id.filter_photos).setOnClickListener(view ->
-                setMediaFilter(MediaFilter.PHOTOS));
+                withTapFeedback(view, () -> setMediaFilter(MediaFilter.PHOTOS)));
         findViewById(R.id.filter_videos).setOnClickListener(view ->
-                setMediaFilter(MediaFilter.VIDEOS));
-        findViewById(R.id.toggle_metadata).setOnClickListener(view -> toggleMetadata());
-        findViewById(R.id.filter_origin_all).setOnClickListener(view -> clearOriginFilter());
+                withTapFeedback(view, () -> setMediaFilter(MediaFilter.VIDEOS)));
+        findViewById(R.id.toggle_metadata).setOnClickListener(view ->
+                withTapFeedback(view, this::toggleMetadata));
+        findViewById(R.id.filter_origin_all).setOnClickListener(view ->
+                withTapFeedback(view, this::clearOriginFilter));
         findViewById(R.id.filter_origin_local).setOnClickListener(view ->
-                setOriginFilter(PhotoOrigin.LOCAL));
+                withTapFeedback(view, () -> setOriginFilter(PhotoOrigin.LOCAL)));
         findViewById(R.id.filter_origin_cloud).setOnClickListener(view ->
-                setOriginFilter(PhotoOrigin.CLOUD));
+                withTapFeedback(view, () -> setOriginFilter(PhotoOrigin.CLOUD)));
         ScrollView scroll = findViewById(R.id.review_scroll);
         GridLayout grid = findViewById(R.id.photo_grid);
         grid.setColumnCount(gridColumns);
@@ -203,6 +209,7 @@ public final class ReviewActivity extends Activity {
         View overlay = findViewById(R.id.gallery_filter_overlay);
         View sheet = findViewById(R.id.gallery_filter_sheet);
         findViewById(R.id.open_gallery_filters).setOnClickListener(view -> {
+            playTapFeedback(view);
             overlay.setVisibility(View.VISIBLE);
             sheet.requestFocus();
         });
@@ -213,6 +220,7 @@ public final class ReviewActivity extends Activity {
         overlay.setOnClickListener(view -> overlay.setVisibility(View.GONE));
         sheet.setOnClickListener(view -> {});
         findViewById(R.id.reset_gallery_filters).setOnClickListener(view -> {
+            playTapFeedback(view);
             galleryFilter = GalleryFilter.ALL;
             originFilter = null;
             mediaFilter = MediaFilter.ALL;
@@ -224,9 +232,41 @@ public final class ReviewActivity extends Activity {
         for (int index = 0; index < densityIds.length; index++) {
             int columns = index + 1;
             findViewById(densityIds[index]).setOnClickListener(view ->
-                    setGridColumns(columns));
+                    withTapFeedback(view, () -> setGridColumns(columns)));
         }
         updateGridDensityChoices();
+    }
+
+    private void withTapFeedback(View view, Runnable action) {
+        playTapFeedback(view);
+        action.run();
+    }
+
+    private void navigateWithFeedback(View view, Runnable destination) {
+        if (!view.isEnabled()) return;
+        view.setEnabled(false);
+        playTapFeedback(view);
+        view.postDelayed(() -> {
+            view.setEnabled(true);
+            destination.run();
+        }, 120);
+    }
+
+    private static void playTapFeedback(View view) {
+        android.view.animation.AnimationSet feedback =
+                new android.view.animation.AnimationSet(false);
+        android.view.animation.ScaleAnimation scale =
+                new android.view.animation.ScaleAnimation(.94f, 1f, .94f, 1f,
+                        android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
+                        android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
+        scale.setDuration(170);
+        scale.setInterpolator(new android.view.animation.OvershootInterpolator(1.4f));
+        android.view.animation.AlphaAnimation fade =
+                new android.view.animation.AlphaAnimation(.72f, 1f);
+        fade.setDuration(130);
+        feedback.addAnimation(scale);
+        feedback.addAnimation(fade);
+        view.startAnimation(feedback);
     }
 
     private void setupGridScaleGesture() {
@@ -688,13 +728,25 @@ public final class ReviewActivity extends Activity {
             }
             AlbumApprovalInvalidator.invalidate(this);
             updateSelectionDisplay();
-            android.view.animation.ScaleAnimation feedback =
-                    new android.view.animation.ScaleAnimation(.68f, 1f, .68f, 1f,
+            android.view.animation.AnimationSet pop =
+                    new android.view.animation.AnimationSet(false);
+            android.view.animation.ScaleAnimation grow =
+                    new android.view.animation.ScaleAnimation(1f, 1.34f, 1f, 1.34f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
                             android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
-            feedback.setDuration(260);
-            feedback.setInterpolator(new android.view.animation.OvershootInterpolator(2.2f));
-            marker.startAnimation(feedback);
+            grow.setDuration(100);
+            grow.setFillAfter(true);
+            grow.setInterpolator(new android.view.animation.DecelerateInterpolator());
+            android.view.animation.ScaleAnimation settle =
+                    new android.view.animation.ScaleAnimation(1.34f, 1f, 1.34f, 1f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f,
+                            android.view.animation.Animation.RELATIVE_TO_SELF, .5f);
+            settle.setStartOffset(90);
+            settle.setDuration(170);
+            settle.setInterpolator(new android.view.animation.OvershootInterpolator(1.8f));
+            pop.addAnimation(grow);
+            pop.addAnimation(settle);
+            marker.startAnimation(pop);
             refreshRecommendationsIfReady();
         });
 

@@ -17,6 +17,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationSet;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -156,7 +157,36 @@ public class ReviewActivityTest {
 
         heart.performClick();
 
-        assertNotNull(heart.getAnimation());
+        assertTrue(heart.getAnimation() instanceof AnimationSet);
+        assertEquals(2, ((AnimationSet) heart.getAnimation()).getAnimations().size());
+    }
+
+    @Test public void applyingGalleryFiltersUsesVisibleTapFeedback() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        View keepers = activity.findViewById(R.id.filter_keepers);
+        View suggested = activity.findViewById(R.id.filter_recommended);
+
+        keepers.performClick();
+        suggested.performClick();
+
+        assertNotNull(keepers.getAnimation());
+        assertNotNull(suggested.getAnimation());
+    }
+
+    @Test public void destinationsShowFeedbackBeforeNavigating() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        View albums = activity.findViewById(R.id.albums_destination);
+        Shadows.shadowOf(activity).getNextStartedActivity();
+
+        albums.performClick();
+
+        assertNotNull(albums.getAnimation());
+        assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(AlbumReviewActivity.class.getName(),
+                started.getComponent().getClassName());
     }
 
     @Test public void recommendationStarAdaptsToGridDensity() {
@@ -219,6 +249,8 @@ public class ReviewActivityTest {
         assertTrue(activity.findViewById(id(activity, "review_destination")) instanceof TextView);
 
         activity.findViewById(id(activity, "albums_destination")).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
         Intent albums = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(AlbumReviewActivity.class.getName(),
                 albums.getComponent().getClassName());
@@ -230,6 +262,8 @@ public class ReviewActivityTest {
         activity.showPhotos(List.of(first, Uri.parse("content://media/photo/quick-second")));
 
         activity.findViewById(R.id.review_destination).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(PreviewActivity.class.getName(), started.getComponent().getClassName());
@@ -280,6 +314,8 @@ public class ReviewActivityTest {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
         activity.findViewById(R.id.open_settings).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(PeopleActivity.class.getName(), started.getComponent().getClassName());
@@ -289,6 +325,8 @@ public class ReviewActivityTest {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
 
         activity.findViewById(R.id.albums_destination).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(AlbumReviewActivity.class.getName(), started.getComponent().getClassName());
@@ -374,6 +412,8 @@ public class ReviewActivityTest {
 
         activity.findViewById(R.id.filter_videos).performClick();
         activity.findViewById(R.id.review_destination).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(video.uri(), started.getData());
@@ -806,6 +846,8 @@ public class ReviewActivityTest {
         new HiddenPhotoStore(activity).hide(Set.of(hidden.toString()));
 
         activity.findViewById(R.id.review_destination).performClick();
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(140,
+                TimeUnit.MILLISECONDS);
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertEquals(visible, started.getData());
