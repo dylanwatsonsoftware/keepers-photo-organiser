@@ -1253,6 +1253,40 @@ public class ReviewActivityTest {
                 activity.findViewById(R.id.analysis_progress_strip).getVisibility());
     }
 
+    @Test public void unchangedResumeKeepsCachedRecommendationsStable() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String photo = "content://media/photo/stable-resume";
+        PhotoInsightStore insights = new PhotoInsightStore(activity);
+        insights.save(List.of(new PhotoFeatures(photo, 41, 7, .8)),
+                Map.of(), Set.of());
+        activity.showMedia(List.of(new RecentPhoto(Uri.parse(photo), 41)));
+
+        activity.onResume();
+
+        assertFalse(insights.load(photo).recommended());
+        assertEquals(View.INVISIBLE,
+                activity.findViewById(R.id.analysis_progress_strip).getVisibility());
+    }
+
+    @Test public void partialPageRefreshPreservesOlderCachedAnalysisAndStacks() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String first = "content://media/photo/current-page";
+        String older = "content://media/photo/older-page";
+        PhotoInsightStore insights = new PhotoInsightStore(activity);
+        insights.save(List.of(new PhotoFeatures(first, 42, 8, .8),
+                new PhotoFeatures(older, 21, 4, .7)), Map.of(), Set.of());
+        List<String> olderStack = List.of(older, "content://media/photo/older-pair");
+        PhotoStackStore stacks = new PhotoStackStore(activity);
+        stacks.save(Map.of(older, olderStack));
+        activity.showMedia(List.of(new RecentPhoto(Uri.parse(first), 42)));
+        new KeeperSelectionStore(activity).toggle(Uri.parse(first));
+
+        activity.onResume();
+
+        assertNotNull(insights.loadReusableFeatures(older, 21));
+        assertEquals(olderStack, stacks.load(older));
+    }
+
     @Test public void aStackStaysVisibleUntilItsKeeperIsAddedToAnAlbum() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         String first = "content://media/photo/1";

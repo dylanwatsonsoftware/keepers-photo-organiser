@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class PhotoStackStore {
     private final SharedPreferences preferences;
@@ -18,6 +19,14 @@ public final class PhotoStackStore {
         for (Map.Entry<String, List<String>> entry : stacks.entrySet()) {
             editor.putString(entry.getKey(), String.join("\n", entry.getValue()));
         }
+        editor.apply();
+    }
+
+    public void saveForMedia(Set<String> mediaIds, Map<String, List<String>> stacks) {
+        SharedPreferences.Editor editor = preferences.edit();
+        for (String mediaId : mediaIds) editor.remove(mediaId);
+        for (Map.Entry<String, List<String>> entry : stacks.entrySet())
+            editor.putString(entry.getKey(), String.join("\n", entry.getValue()));
         editor.apply();
     }
 

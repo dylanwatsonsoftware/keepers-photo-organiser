@@ -132,6 +132,11 @@ public final class ReviewActivity extends Activity {
     private VideoFrameAnalyzer videoFrameAnalyzer;
     private boolean videoAnalysisRunning;
     private int pendingSemanticContexts;
+    private RecommendationInputs lastRecommendationInputs;
+
+    private record RecommendationInputs(Set<String> keepers, Set<String> hidden,
+            Set<RecommendationFeedback> feedback, Map<String, String> faceAssignments,
+            Map<String, String> faceCorrections) {}
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -568,6 +573,7 @@ public final class ReviewActivity extends Activity {
             showAnalysisProgress(analyzedCount, photos.size());
         updateSelectionDisplay();
         startNextVideoAnalysis(generation);
+        lastRecommendationInputs = currentRecommendationInputs();
     }
 
     void setGridColumns(int requestedColumns) {
@@ -996,13 +1002,16 @@ public final class ReviewActivity extends Activity {
         profile = profile.withContexts(contexts);
         recommendationProfile = profile;
         BestShotResult result = BestShotEngine.classify(features, profile, namedFaces);
-        new PhotoStackStore(this).save(members);
+        Set<String> analyzedIds = features.stream().map(PhotoFeatures::id)
+                .collect(java.util.stream.Collectors.toSet());
+        new PhotoStackStore(this).saveForMedia(analyzedIds, members);
         new PhotoInsightStore(this).save(features, stacks, result.recommended(),
                 result.goodAlternatives());
         updateMetadataOverlays();
         showStacks(stacks, members);
         showSuggestions(result.recommended(), result.goodAlternatives());
         if (analyzedCount < photos.size()) showAnalysisProgress(analyzedCount, photos.size());
+        lastRecommendationInputs = currentRecommendationInputs();
     }
 
     private void startNextVideoAnalysis(int generation) {
@@ -1656,6 +1665,14 @@ public final class ReviewActivity extends Activity {
         finalizePhotoInsights();
     }
 
+    private RecommendationInputs currentRecommendationInputs() {
+        return new RecommendationInputs(Set.copyOf(selectionStore.load()),
+                Set.copyOf(new HiddenPhotoStore(this).load()),
+                Set.copyOf(new HashSet<>(new RecommendationFeedbackStore(this).load())),
+                new FaceGroupAssignmentStore(this).load(),
+                new FaceCorrectionStore(this).load());
+    }
+
     private void updateMetadataOverlays() {
         PhotoInsightStore insights = new PhotoInsightStore(this);
         PhotoContextStore contexts = new PhotoContextStore(this);
@@ -1809,7 +1826,11 @@ public final class ReviewActivity extends Activity {
         super.onResume();
         if (!photos.isEmpty()) {
             updateSelectionDisplay();
-            refreshRecommendationsIfReady();
+            RecommendationInputs currentInputs = currentRecommendationInputs();
+            if (lastRecommendationInputs != null
+                    && !lastRecommendationInputs.equals(currentInputs))
+                refreshRecommendationsIfReady();
+            lastRecommendationInputs = currentRecommendationInputs();
         }
     }
 

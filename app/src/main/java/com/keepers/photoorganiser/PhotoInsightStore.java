@@ -26,7 +26,7 @@ public final class PhotoInsightStore {
 
     public void save(List<PhotoFeatures> features, Map<String, PhotoStackPosition> stacks,
             Set<String> recommendations, Set<String> alternatives) {
-        SharedPreferences.Editor editor = preferences.edit().clear();
+        SharedPreferences.Editor editor = preferences.edit();
         for (PhotoFeatures feature : features) {
             PhotoStackPosition stack = stacks.get(feature.id());
             int position = stack == null ? 0 : stack.position();
