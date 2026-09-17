@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import android.view.LayoutInflater;
 import android.view.Gravity;
 import android.view.View;
+import android.graphics.drawable.GradientDrawable;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewLayoutTest {
@@ -107,6 +109,18 @@ public class PreviewLayoutTest {
         int rankingId = layout.getResources().getIdentifier(
                 "preview_metadata_ranking", "id", layout.getContext().getPackageName());
         assertTrue(rankingId != 0);
+    }
+
+    @Test @Config(qualifiers = "night")
+    public void photoDetailsCardKeepsContrastInsideTheLightAnalysisSheet() {
+        View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())
+                .inflate(R.layout.activity_preview, null);
+        LinearLayout card = layout.findViewById(R.id.preview_metadata_section);
+        GradientDrawable background = (GradientDrawable) card.getBackground();
+        TextView heading = (TextView) card.getChildAt(0);
+
+        assertEquals(0xFFF1EEE8, background.getColor().getDefaultColor());
+        assertEquals(0xFF202124, heading.getCurrentTextColor());
     }
     @Test public void previewHasCurrentAndDragRevealSurfaces() {
         View layout = LayoutInflater.from(RuntimeEnvironment.getApplication())

@@ -398,7 +398,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/keeper_summary_chip"
+                android:background="@drawable/preview_analysis_card"
                 android:orientation="vertical"
                 android:padding="14dp">
 
@@ -472,7 +472,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/keeper_summary_chip"
+                android:background="@drawable/preview_analysis_card"
                 android:orientation="vertical"
                 android:padding="14dp"
                 android:visibility="gone">

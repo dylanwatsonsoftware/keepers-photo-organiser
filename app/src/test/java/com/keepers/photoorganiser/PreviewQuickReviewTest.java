@@ -80,6 +80,32 @@ public class PreviewQuickReviewTest {
         assertTrue(((ColorDrawable) root.getBackground()).getColor() >>> 24 < 32);
     }
 
+    @Test public void pullDownHidesChromeAndReturningToOriginRestoresIt() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/pull-chrome"), false);
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+        activity.findViewById(R.id.preview_current_surface).layout(0, 0, 600, 600);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 260));
+
+        assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_close).getVisibility());
+        assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
+        assertEquals(View.INVISIBLE,
+                activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+        assertEquals(View.INVISIBLE, activity.findViewById(R.id.preview_share).getVisibility());
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 104));
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_close).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_controls).getVisibility());
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.preview_start_quick_review).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.preview_share).getVisibility());
+    }
+
     @Test public void tappingFullscreenPhotoTogglesAllPhotoChrome() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PreviewActivity activity = create(context,

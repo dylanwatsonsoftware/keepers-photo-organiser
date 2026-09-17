@@ -79,6 +79,7 @@ public final class PreviewActivity extends Activity {
     private View previewShare;
     private Map<String, RecentPhoto> mediaDetails = Map.of();
     private boolean photoChromeVisible = true;
+    private boolean dismissDragInProgress;
     private GestureCoordinates stackCarouselGesture;
     private int stackCarouselStartIndex = -1;
     private boolean stackCarouselDragging;
@@ -416,6 +417,7 @@ public final class PreviewActivity extends Activity {
             adjacentSurface.setVisibility(View.INVISIBLE);
             dragPreviewPhoto = null;
             analysisDragStarted = false;
+            dismissDragInProgress = false;
             analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
             photoGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
             setPreviewBackgroundAlpha(1f);
@@ -427,6 +429,18 @@ public final class PreviewActivity extends Activity {
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             float deltaX = photoGesture.deltaX(event.getRawX());
             float deltaY = photoGesture.deltaY(event.getRawY());
+            boolean startingDismiss = deltaY > dp(8)
+                    && Math.abs(deltaY) > Math.abs(deltaX);
+            if (startingDismiss) dismissDragInProgress = true;
+            if (dismissDragInProgress) {
+                DragTransform drag = DragTransform.from(deltaX, deltaY, image.getHeight());
+                image.setTranslationX(drag.x());
+                image.setTranslationY(drag.y());
+                image.setAlpha(drag.alpha());
+                setPreviewBackgroundAlpha(drag.backgroundAlpha());
+                setDismissChromeHidden(deltaY > dp(8));
+                return true;
+            }
             if (!quickReview && !analysisWasOpen && deltaY < 0
                     && Math.abs(deltaY) > Math.abs(deltaX)
                     && Math.abs(deltaY) > dp(8)) {
@@ -471,6 +485,10 @@ public final class PreviewActivity extends Activity {
             image.setTranslationY(drag.y());
             image.setAlpha(drag.alpha());
             setPreviewBackgroundAlpha(drag.backgroundAlpha());
+            return true;
+        }
+        if (event.getAction() == MotionEvent.ACTION_CANCEL) {
+            resetPosition(image);
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
@@ -1395,6 +1413,9 @@ public final class PreviewActivity extends Activity {
     }
 
     private void resetPosition(View image) {
+        boolean restoringDismissChrome = dismissDragInProgress;
+        dismissDragInProgress = false;
+        if (restoringDismissChrome) setDismissChromeHidden(false);
         setPreviewBackgroundAlpha(1f);
         if (quickReview) {
             hideQuickReviewIndicators();
@@ -1415,6 +1436,24 @@ public final class PreviewActivity extends Activity {
         int boundedAlpha = Math.round(Math.max(0f, Math.min(1f, alpha)) * 255);
         findViewById(R.id.preview_root).setBackgroundColor(
                 Color.argb(boundedAlpha, 0, 0, 0));
+    }
+
+    private void setDismissChromeHidden(boolean hidden) {
+        int standardVisibility = hidden || !photoChromeVisible
+                ? View.INVISIBLE : View.VISIBLE;
+        previewClose.setVisibility(standardVisibility);
+        previewControls.setVisibility(standardVisibility);
+        previewQuickReview.setVisibility(quickReview
+                ? View.GONE : standardVisibility);
+        previewShare.setVisibility(quickReview
+                ? View.GONE : standardVisibility);
+        findViewById(R.id.quick_review_mode_badge).setVisibility(
+                !hidden && quickReview && photoChromeVisible ? View.VISIBLE : View.GONE);
+        findViewById(R.id.quick_review_keep_indicator).setVisibility(View.GONE);
+        findViewById(R.id.quick_review_pass_indicator).setVisibility(View.GONE);
+        View play = currentSurface.findViewWithTag("video_play");
+        if (play != null && mediaTypeOf(photo) == MediaType.VIDEO)
+            play.setVisibility(standardVisibility);
     }
 
     @Override public void finish() {
