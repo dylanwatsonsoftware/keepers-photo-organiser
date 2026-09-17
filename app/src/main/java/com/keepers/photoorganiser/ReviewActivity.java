@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 public final class ReviewActivity extends Activity {
     private static final int IMPORT_PHOTOS = 201;
     private static final int AUTHORIZE_GOOGLE_PHOTOS = 202;
+    private static final int PREVIEW_PHOTO = 203;
     private static final String PHOTOS_PICKER_SCOPE =
             "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
     private enum GalleryFilter { ALL, INCLUDE_KEEPERS, KEEPERS, RECOMMENDED, HIDDEN }
@@ -1010,7 +1011,7 @@ public final class ReviewActivity extends Activity {
                     .setData(photo).putExtra(EXTRA_REVIEW_LIMIT, reviewWindow.limit());
             if (recentPhoto.mediaType() == MediaType.VIDEO)
                 preview.putExtra(PreviewActivity.EXTRA_AUTOPLAY_VIDEO, true);
-            startActivity(preview);
+            startActivityForResult(preview, PREVIEW_PHOTO);
         });
         tile.setOnLongClickListener(view -> {
             beginMediaRangeSelection(photo.toString(), view);
@@ -1346,6 +1347,11 @@ public final class ReviewActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PREVIEW_PHOTO) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null)
+                scrollGalleryToMedia(data.getData());
+            return;
+        }
         if (requestCode == AUTHORIZE_GOOGLE_PHOTOS) {
             if (resultCode == RESULT_OK && data != null && photosAuthorization != null) {
                 try {
@@ -1374,6 +1380,22 @@ public final class ReviewActivity extends Activity {
             imports.add(imported);
         }
         loadRecentPhotos();
+    }
+
+    private void scrollGalleryToMedia(Uri media) {
+        GridLayout grid = findViewById(R.id.photo_grid);
+        ScrollView scroll = findViewById(R.id.review_scroll);
+        if (grid == null || scroll == null) return;
+        for (int index = 0; index < grid.getChildCount(); index++) {
+            View tile = grid.getChildAt(index);
+            if (!media.equals(tile.getTag())) continue;
+            grid.post(() -> {
+                int desired = tile.getTop() + tile.getHeight() / 2 - scroll.getHeight() / 2;
+                int maximum = Math.max(0, grid.getHeight() - scroll.getHeight());
+                scroll.scrollTo(0, Math.max(0, Math.min(desired, maximum)));
+            });
+            return;
+        }
     }
 
     private ImportedPhoto resolvePickedPhoto(Uri pickerUri, long fallbackTime) {

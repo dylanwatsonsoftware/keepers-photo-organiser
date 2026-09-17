@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Looper;
 import android.view.MotionEvent;
@@ -35,6 +36,50 @@ import org.robolectric.shadows.ShadowSeekBar;
 
 @RunWith(RobolectricTestRunner.class)
 public class PreviewQuickReviewTest {
+    @Test public void finishingFullscreenReturnsTheLastViewedPhoto() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        Uri first = Uri.parse("content://photo/return-first");
+        Uri second = Uri.parse("content://photo/return-second");
+        imports.add(new ImportedPhoto(first, 20, PhotoOrigin.LOCAL));
+        imports.add(new ImportedPhoto(second, 10, PhotoOrigin.LOCAL));
+        List<String> stack = List.of(first.toString(), second.toString());
+        new PhotoStackStore(context).save(Map.of(first.toString(), stack,
+                second.toString(), stack));
+        PreviewActivity activity = create(context, first, false);
+        HorizontalScrollView carousel = activity.findViewById(R.id.preview_stack_carousel);
+        LinearLayout thumbnails = activity.findViewById(R.id.preview_stack_thumbnails);
+        layoutCarousel(carousel, thumbnails, 72);
+
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_DOWN, 108, 36));
+        carousel.dispatchTouchEvent(event(MotionEvent.ACTION_UP, 108, 36));
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertEquals(second, currentPhoto(activity));
+
+        activity.finish();
+
+        assertEquals(android.app.Activity.RESULT_OK, Shadows.shadowOf(activity).getResultCode());
+        assertEquals(second, Shadows.shadowOf(activity).getResultIntent().getData());
+        imports.clear();
+    }
+
+    @Test public void pullingDownQuicklyRevealsTheActivityBehindFullscreen() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PreviewActivity activity = create(context,
+                Uri.parse("content://photo/transparent-pull"), false);
+        Method swipe = PreviewActivity.class.getDeclaredMethod("handleSwipe", MotionEvent.class);
+        swipe.setAccessible(true);
+        View root = activity.findViewById(R.id.preview_root);
+        root.layout(0, 0, 600, 600);
+        activity.findViewById(R.id.preview_current_surface).layout(0, 0, 600, 600);
+
+        swipe.invoke(activity, event(MotionEvent.ACTION_DOWN, 100, 100));
+        swipe.invoke(activity, event(MotionEvent.ACTION_MOVE, 100, 400));
+
+        assertTrue(((ColorDrawable) root.getBackground()).getColor() >>> 24 < 32);
+    }
+
     @Test public void tappingFullscreenPhotoTogglesAllPhotoChrome() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PreviewActivity activity = create(context,

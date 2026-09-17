@@ -6,6 +6,7 @@
     <color name="gallery_surface_elevated">#F1EEE8</color>
     <color name="gallery_text_primary">#24221F</color>
     <color name="gallery_text_secondary">#706B64</color>
+    <color name="gallery_keeper_filter_idle">@color/gallery_text_secondary</color>
     <color name="gallery_divider">#E3DED6</color>
     <color name="gallery_grid_gutter">#FAF8F4</color>
     <color name="gallery_accent_keeper">#E65F65</color>

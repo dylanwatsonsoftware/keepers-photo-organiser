@@ -5,6 +5,7 @@
     <color name="gallery_surface_elevated">#282622</color>
     <color name="gallery_text_primary">#F4F1EA</color>
     <color name="gallery_text_secondary">#B8B2A8</color>
+    <color name="gallery_keeper_filter_idle">#FFFFFFFF</color>
     <color name="gallery_divider">#3B3832</color>
     <color name="gallery_grid_gutter">#11110F</color>
     <color name="gallery_accent_keeper">#FF7A7F</color>

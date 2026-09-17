@@ -21,6 +21,22 @@ import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewLayoutTest {
+    @Test @Config(qualifiers = "notnight")
+    public void idleKeeperFilterIconUsesReadableLightThemeTint() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+
+        assertEquals(context.getColor(R.color.gallery_text_secondary),
+                context.getColorStateList(R.color.gallery_keeper_filter_icon).getDefaultColor());
+    }
+
+    @Test @Config(qualifiers = "night")
+    public void idleKeeperFilterIconRemainsWhiteInDarkTheme() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+
+        assertEquals(0xFFFFFFFF,
+                context.getColorStateList(R.color.gallery_keeper_filter_icon).getDefaultColor());
+    }
+
     @Test @Config(qualifiers = "night")
     public void galleryUsesAdaptiveDarkPaletteResources() {
         android.content.Context context = RuntimeEnvironment.getApplication();

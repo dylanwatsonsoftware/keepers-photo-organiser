@@ -418,6 +418,7 @@ public final class PreviewActivity extends Activity {
             analysisDragStarted = false;
             analysisWasOpen = analysisSheet.getVisibility() == View.VISIBLE;
             photoGesture = new GestureCoordinates(event.getRawX(), event.getRawY());
+            setPreviewBackgroundAlpha(1f);
             if (quickReview) hideQuickReviewIndicators();
             // Once open, let the analysis ScrollView handle its long factor breakdown.
             return AnalysisGestureRouting.handleAsPhotoGesture(analysisWasOpen);
@@ -469,6 +470,7 @@ public final class PreviewActivity extends Activity {
             image.setTranslationX(drag.x());
             image.setTranslationY(drag.y());
             image.setAlpha(drag.alpha());
+            setPreviewBackgroundAlpha(drag.backgroundAlpha());
             return true;
         }
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
@@ -490,6 +492,7 @@ public final class PreviewActivity extends Activity {
                 return true;
             }
             adjacentSurface.setVisibility(View.INVISIBLE);
+            setPreviewBackgroundAlpha(0f);
             image.animate().translationY(image.getHeight()).alpha(0.5f).setDuration(160)
                     .withEndAction(this::finish).start();
             return true;
@@ -1392,6 +1395,7 @@ public final class PreviewActivity extends Activity {
     }
 
     private void resetPosition(View image) {
+        setPreviewBackgroundAlpha(1f);
         if (quickReview) {
             hideQuickReviewIndicators();
             adjacentSurface.animate().translationX(0).translationY(dp(12))
@@ -1405,6 +1409,17 @@ public final class PreviewActivity extends Activity {
         adjacentSurface.animate().translationX(adjacentRest).setDuration(140).start();
         image.animate().translationX(0).translationY(0).alpha(1).setDuration(140)
                 .withEndAction(() -> adjacentSurface.setVisibility(View.INVISIBLE)).start();
+    }
+
+    private void setPreviewBackgroundAlpha(float alpha) {
+        int boundedAlpha = Math.round(Math.max(0f, Math.min(1f, alpha)) * 255);
+        findViewById(R.id.preview_root).setBackgroundColor(
+                Color.argb(boundedAlpha, 0, 0, 0));
+    }
+
+    @Override public void finish() {
+        if (photo != null) setResult(RESULT_OK, new Intent().setData(photo));
+        super.finish();
     }
 
     private void animateAnalysisPageChange(Uri target, float deltaX) {

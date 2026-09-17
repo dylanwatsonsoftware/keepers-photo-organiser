@@ -9,6 +9,7 @@ public class DragTransformTest {
         assertEquals(120f, transform.x(), 0.001f);
         assertEquals(0f, transform.y(), 0.001f);
         assertEquals(1f, transform.alpha(), 0.001f);
+        assertEquals(1f, transform.backgroundAlpha(), 0.001f);
     }
 
     @Test public void downwardDragMovesVerticallyAndFades() {
@@ -16,6 +17,7 @@ public class DragTransformTest {
         assertEquals(0f, transform.x(), 0.001f);
         assertEquals(300f, transform.y(), 0.001f);
         assertEquals(0.75f, transform.alpha(), 0.001f);
+        assertEquals(0f, transform.backgroundAlpha(), 0.001f);
     }
 
     @Test public void upwardDragDoesNotMoveThePhoto() {

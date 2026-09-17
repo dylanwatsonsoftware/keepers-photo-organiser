@@ -31,7 +31,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PreviewActivity" android:exported="false" />
+        <activity android:name=".PreviewActivity" android:exported="false"
+            android:theme="@style/Theme.Keepers.Preview" />
         <activity android:name=".PeopleActivity" android:exported="false"
             android:theme="@style/Theme.Keepers.Gallery" />
         <activity android:name=".PersonDetailActivity" android:exported="false" />

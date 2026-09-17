@@ -352,12 +352,13 @@ public class ReviewActivityTest {
         assertNotNull(suggested.getAnimation());
     }
 
-    @Test public void keepersFilterHeartIsWhiteUntilTheFilterIsSelected() {
+    @Test public void keepersFilterHeartUsesIdleThemeTintUntilTheFilterIsSelected() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         TextView keepers = activity.findViewById(R.id.filter_keepers);
 
-        assertEquals(Color.WHITE, keepers.getCompoundDrawableTintList().getColorForState(
-                new int[]{-android.R.attr.state_selected}, Color.TRANSPARENT));
+        assertEquals(activity.getColor(R.color.gallery_keeper_filter_idle),
+                keepers.getCompoundDrawableTintList().getColorForState(
+                        new int[]{-android.R.attr.state_selected}, Color.TRANSPARENT));
 
         keepers.performClick();
 
@@ -580,6 +581,33 @@ public class ReviewActivityTest {
 
         Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
         assertTrue(started.getBooleanExtra("autoplay_video", false));
+    }
+
+    @Test public void returningFromFullscreenScrollsToTheLastViewedPhoto() {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        activity.setGridColumns(4);
+        ArrayList<Uri> photos = new ArrayList<>();
+        for (int index = 0; index < 32; index++)
+            photos.add(Uri.parse("content://media/photo/return-anchor-" + index));
+        activity.showPhotos(photos);
+        ScrollView scroll = activity.findViewById(R.id.review_scroll);
+        GridLayout grid = activity.findViewById(R.id.photo_grid);
+        scroll.layout(0, 0, 400, 300);
+        layoutGrid(grid, 4, 100);
+
+        grid.getChildAt(0).performClick();
+        org.robolectric.shadows.ShadowActivity.IntentForResult started =
+                Shadows.shadowOf(activity).getNextStartedActivityForResult();
+        Uri viewed = photos.get(26);
+        activity.onActivityResult(started.requestCode, android.app.Activity.RESULT_OK,
+                new Intent().setData(viewed));
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+
+        View target = grid.getChildAt(26);
+        int targetCentre = target.getTop() + target.getHeight() / 2;
+        assertTrue(targetCentre >= scroll.getScrollY());
+        assertTrue(targetCentre <= scroll.getScrollY() + scroll.getHeight());
+        assertTrue(scroll.getScrollY() > 0);
     }
 
     @Test public void galleryMetadataShowsRankedVideoSignalsAfterAnalysis() {
