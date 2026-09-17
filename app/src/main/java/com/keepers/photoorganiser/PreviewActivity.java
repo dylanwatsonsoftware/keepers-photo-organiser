@@ -1100,6 +1100,17 @@ public final class PreviewActivity extends Activity {
         labelParams.setMargins(0, dp(6), 0, 0);
         card.addView(label, labelParams);
         if (display.suggested()) card.addView(faceSuggestionActions(display));
+        else if (knownPerson) {
+            TextView change = faceSuggestionAction(
+                    "Change", "change_face_identity", false);
+            change.setContentDescription("Change " + display.name()
+                    + " for this photo only");
+            change.setOnClickListener(view -> showFaceIdentityChooser(display.face()));
+            LinearLayout.LayoutParams changeParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(34));
+            changeParams.setMargins(0, dp(6), 0, 0);
+            card.addView(change, changeParams);
+        }
         return card;
     }
 

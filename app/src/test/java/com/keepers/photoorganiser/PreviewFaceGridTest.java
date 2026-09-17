@@ -145,6 +145,40 @@ public class PreviewFaceGridTest {
         assertEquals("Ada", label(grid, 0));
     }
 
+    @Test public void confirmedFaceCanBeChangedForOnlyThisPhotoInstance() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        String currentPhoto = "content://photos/change-one-face";
+        String otherPhoto = "content://photos/keep-other-face";
+        new FaceObservationStore(context).save(currentPhoto, List.of(
+                face(currentPhoto, 0, .10, "1,0,0")));
+        new FaceObservationStore(context).save(otherPhoto, List.of(
+                face(otherPhoto, 0, .10, ".99,.01,0")));
+        new TrackedPersonStore(context).save(List.of(
+                new TrackedPerson("ada", "Ada", "Ada Photos", true),
+                new TrackedPerson("charlie", "Charlie", "Charlie Photos", true)));
+        new FaceCorrectionStore(context).save(Map.of(
+                currentPhoto + "#0", "ada", otherPhoto + "#0", "ada"));
+        PreviewActivity activity = Robolectric.buildActivity(PreviewActivity.class,
+                new Intent(context, PreviewActivity.class).setData(Uri.parse(currentPhoto)))
+                .setup().get();
+
+        Method showAnalysis = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        showAnalysis.setAccessible(true);
+        showAnalysis.invoke(activity);
+        GridLayout grid = activity.findViewById(R.id.preview_analysis_faces);
+        TextView change = grid.getChildAt(0).findViewWithTag("change_face_identity");
+
+        assertNotNull(change);
+        change.performClick();
+        AlertDialog chooser = (AlertDialog) ShadowDialog.getLatestDialog();
+        chooser.getListView().performItemClick(null, 1, 1);
+
+        Map<String, String> corrections = new FaceCorrectionStore(activity).load();
+        assertEquals("charlie", corrections.get(currentPhoto + "#0"));
+        assertEquals("ada", corrections.get(otherPhoto + "#0"));
+        assertEquals("Charlie", label(grid, 0));
+    }
+
     @Test public void suggestedPersonCanBeRejectedWithoutIgnoringTheFace() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         String known = "content://photos/reject-known";
