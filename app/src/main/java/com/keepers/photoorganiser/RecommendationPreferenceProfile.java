@@ -1,9 +1,11 @@
 package com.keepers.photoorganiser;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 
 public final class RecommendationPreferenceProfile {
     // Paired keeper choices consistently favour open eyes over modest sharpness gains.
@@ -16,17 +18,24 @@ public final class RecommendationPreferenceProfile {
     private final double strength;
     private final int feedbackCount;
     private final Map<String, PhotoContext> contexts;
+    private final List<RecommendationFeedback> absoluteFeedback;
+    private final Map<PhotoContextType, Double> contextBiases;
+    private final boolean contextPreferencesLearned;
 
     private RecommendationPreferenceProfile(double[] weights, double strength, int feedbackCount) {
-        this(weights, strength, feedbackCount, Map.of());
+        this(weights, strength, feedbackCount, Map.of(), List.of(), Map.of(), false);
     }
 
     private RecommendationPreferenceProfile(double[] weights, double strength, int feedbackCount,
-            Map<String, PhotoContext> contexts) {
+            Map<String, PhotoContext> contexts, List<RecommendationFeedback> absoluteFeedback,
+            Map<PhotoContextType, Double> contextBiases, boolean contextPreferencesLearned) {
         this.weights = weights;
         this.strength = strength;
         this.feedbackCount = feedbackCount;
         this.contexts = Map.copyOf(contexts);
+        this.absoluteFeedback = List.copyOf(absoluteFeedback);
+        this.contextBiases = Map.copyOf(contextBiases);
+        this.contextPreferencesLearned = contextPreferencesLearned;
     }
 
     public static RecommendationPreferenceProfile learn(List<RecommendationFeedback> feedback) {
@@ -47,6 +56,9 @@ public final class RecommendationPreferenceProfile {
         double evidenceCount = 0;
         Set<String> hiddenIds = new HashSet<>();
         for (PhotoFeatures hidden : hiddenPhotos) hiddenIds.add(hidden.id());
+        List<RecommendationFeedback> usableFeedback = new ArrayList<>();
+        for (RecommendationFeedback item : feedback)
+            if (!hiddenIds.contains(item.features().id())) usableFeedback.add(item);
         for (StackPreferenceComparison comparison : comparisons) {
             if (hiddenIds.contains(comparison.preferred().id())
                     || hiddenIds.contains(comparison.alternative().id())) continue;
@@ -66,7 +78,7 @@ public final class RecommendationPreferenceProfile {
         }
         double strength = evidenceCount / (evidenceCount + 5.0);
         return new RecommendationPreferenceProfile(weights, strength,
-                (int) Math.round(evidenceCount));
+                (int) Math.round(evidenceCount), Map.of(), usableFeedback, Map.of(), false);
     }
 
     public double score(PhotoFeatures photo) {
@@ -74,16 +86,19 @@ public final class RecommendationPreferenceProfile {
         PhotoContext context = contexts.getOrDefault(photo.id(), PhotoContext.general());
         double[] baselineWeights = contextualWeights(DEFAULT_WEIGHTS, context);
         double baseline = weightedAverage(values, baselineWeights);
-        if (feedbackCount == 0) return baseline;
-        double[] contextualWeights = contextualWeights(weights, context);
-        double weighted = 0;
-        double totalWeight = 0;
-        for (int index = 0; index < weights.length; index++) {
-            if (Double.isNaN(values[index])) continue;
-            weighted += contextualWeights[index] * values[index];
-            totalWeight += contextualWeights[index];
+        double technicalScore = baseline;
+        if (feedbackCount > 0) {
+            double[] contextualWeights = contextualWeights(weights, context);
+            double weighted = 0;
+            double totalWeight = 0;
+            for (int index = 0; index < weights.length; index++) {
+                if (Double.isNaN(values[index])) continue;
+                weighted += contextualWeights[index] * values[index];
+                totalWeight += contextualWeights[index];
+            }
+            technicalScore = baseline * (1 - strength) + weighted / totalWeight * strength;
         }
-        return baseline * (1 - strength) + weighted / totalWeight * strength;
+        return clamp(technicalScore + contextPreference(context));
     }
 
     public Ranking ranking(PhotoFeatures photo) {
@@ -112,7 +127,10 @@ public final class RecommendationPreferenceProfile {
     }
 
     public RecommendationPreferenceProfile withContexts(Map<String, PhotoContext> contexts) {
-        return new RecommendationPreferenceProfile(weights, strength, feedbackCount, contexts);
+        Map<PhotoContextType, Double> biases = contextPreferencesLearned
+                ? contextBiases : learnContextBiases(absoluteFeedback, contexts);
+        return new RecommendationPreferenceProfile(weights, strength, feedbackCount, contexts,
+                absoluteFeedback, biases, true);
     }
 
     public int feedbackCount() { return feedbackCount; }
@@ -160,6 +178,50 @@ public final class RecommendationPreferenceProfile {
         for (int index = 0; index < base.length; index++)
             adjusted[index] = base[index] * context.signalMultiplier(index);
         return adjusted;
+    }
+
+    private double contextPreference(PhotoContext context) {
+        double preference = 0;
+        for (Map.Entry<PhotoContextType, Double> entry : context.probabilities().entrySet())
+            preference += entry.getValue() * contextBiases.getOrDefault(entry.getKey(), 0.0);
+        return Math.max(-.06, Math.min(.06, preference));
+    }
+
+    private static Map<PhotoContextType, Double> learnContextBiases(
+            List<RecommendationFeedback> feedback, Map<String, PhotoContext> contexts) {
+        EnumMap<PhotoContextType, Double> lovedTotals = new EnumMap<>(PhotoContextType.class);
+        EnumMap<PhotoContextType, Double> rejectedTotals = new EnumMap<>(PhotoContextType.class);
+        int lovedCount = 0;
+        int rejectedCount = 0;
+        for (RecommendationFeedback item : feedback) {
+            PhotoContext context = contexts.get(item.features().id());
+            if (context == null) continue;
+            boolean loved = item.rating() == RecommendationFeedback.LOVED;
+            if (loved) lovedCount++; else rejectedCount++;
+            Map<PhotoContextType, Double> totals = loved ? lovedTotals : rejectedTotals;
+            for (PhotoContextType type : PhotoContextType.values()) {
+                if (type == PhotoContextType.GENERAL || type == PhotoContextType.LOW_LIGHT)
+                    continue;
+                totals.merge(type, context.probability(type), Double::sum);
+            }
+        }
+        if (lovedCount == 0 || rejectedCount == 0) return Map.of();
+        double balancedEvidence = 2.0 * Math.min(lovedCount, rejectedCount);
+        double evidenceStrength = balancedEvidence / (balancedEvidence + 20.0);
+        EnumMap<PhotoContextType, Double> result = new EnumMap<>(PhotoContextType.class);
+        for (PhotoContextType type : PhotoContextType.values()) {
+            if (type == PhotoContextType.GENERAL || type == PhotoContextType.LOW_LIGHT) continue;
+            double lovedMean = lovedTotals.getOrDefault(type, 0.0) / lovedCount;
+            double rejectedMean = rejectedTotals.getOrDefault(type, 0.0) / rejectedCount;
+            double bias = Math.max(-.06, Math.min(.06,
+                    (lovedMean - rejectedMean) * .10 * evidenceStrength));
+            if (Math.abs(bias) >= .001) result.put(type, bias);
+        }
+        return result;
+    }
+
+    private static double clamp(double value) {
+        return Math.max(0, Math.min(1, value));
     }
 
     public record Ranking(int score, String limitingSignal, int limitingPercent) {}

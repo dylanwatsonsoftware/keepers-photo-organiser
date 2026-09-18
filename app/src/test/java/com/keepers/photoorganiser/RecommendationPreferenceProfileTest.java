@@ -22,6 +22,32 @@ public class RecommendationPreferenceProfileTest {
         assertEquals(0, profile.feedbackCount());
     }
 
+    @Test public void absoluteFeedbackLearnsSubjectPreferencesWhenContextsAreAvailable() {
+        PhotoFeatures lovedPortraitA = neutralFeature("loved-portrait-a");
+        PhotoFeatures lovedPortraitB = neutralFeature("loved-portrait-b");
+        PhotoFeatures rejectedLandscapeA = neutralFeature("rejected-landscape-a");
+        PhotoFeatures rejectedLandscapeB = neutralFeature("rejected-landscape-b");
+        PhotoFeatures portraitCandidate = neutralFeature("portrait-candidate");
+        PhotoFeatures landscapeCandidate = neutralFeature("landscape-candidate");
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of(
+                RecommendationFeedback.from(lovedPortraitA, RecommendationFeedback.LOVED, ""),
+                RecommendationFeedback.from(lovedPortraitB, RecommendationFeedback.LOVED, ""),
+                RecommendationFeedback.from(rejectedLandscapeA,
+                        RecommendationFeedback.NOT_FOR_ME, ""),
+                RecommendationFeedback.from(rejectedLandscapeB,
+                        RecommendationFeedback.NOT_FOR_ME, "")))
+                .withContexts(Map.of(
+                        lovedPortraitA.id(), PhotoContext.of(PhotoContextType.PORTRAIT, 1),
+                        lovedPortraitB.id(), PhotoContext.of(PhotoContextType.PORTRAIT, 1),
+                        rejectedLandscapeA.id(), PhotoContext.of(PhotoContextType.LANDSCAPE, 1),
+                        rejectedLandscapeB.id(), PhotoContext.of(PhotoContextType.LANDSCAPE, 1),
+                        portraitCandidate.id(), PhotoContext.of(PhotoContextType.PORTRAIT, 1),
+                        landscapeCandidate.id(), PhotoContext.of(PhotoContextType.LANDSCAPE, 1)));
+
+        assertTrue(profile.score(portraitCandidate) - profile.score(landscapeCandidate) > .01);
+        assertEquals(0, profile.feedbackCount());
+    }
+
     @Test public void noFeedbackUsesTheBalancedAssessmentSignals() {
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of());
 
@@ -184,5 +210,10 @@ public class RecommendationPreferenceProfileTest {
     private static PhotoFeatures portrait(String id, double focus, double smile, double eyesOpen) {
         return new PhotoFeatures(id, 0, 0, .8, focus, .8, .8, .8,
                 1, smile, eyesOpen, .9);
+    }
+
+    private static PhotoFeatures neutralFeature(String id) {
+        return new PhotoFeatures(id, 0, id.hashCode(), .7, .7, .7, .7, .7,
+                0, -1, -1);
     }
 }

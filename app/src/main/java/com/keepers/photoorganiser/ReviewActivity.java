@@ -1100,13 +1100,18 @@ public final class ReviewActivity extends Activity {
         List<StackPreferenceComparison> comparisons = StackPreferenceComparison.from(
                 visibleFeatures,
                 BestShotEngine.comparisonMembers(visibleFeatures, namedFaces), keepers);
+        List<RecommendationFeedback> feedback = feedbackStore.load();
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(
-                feedbackStore.load(), comparisons, hiddenFeatures);
+                feedback, comparisons, hiddenFeatures);
         Map<String, PhotoContext> contexts = new HashMap<>();
         PhotoContextStore contextStore = new PhotoContextStore(this);
         for (PhotoFeatures feature : features) {
             PhotoContext context = contextStore.load(feature.id());
             if (context != null) contexts.put(feature.id(), context);
+        }
+        for (RecommendationFeedback item : feedback) {
+            PhotoContext context = contextStore.load(item.features().id());
+            if (context != null) contexts.put(item.features().id(), context);
         }
         profile = profile.withContexts(contexts);
         recommendationProfile = profile;
