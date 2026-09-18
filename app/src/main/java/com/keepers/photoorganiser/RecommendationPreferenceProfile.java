@@ -6,7 +6,8 @@ import java.util.Set;
 import java.util.Map;
 
 public final class RecommendationPreferenceProfile {
-    private static final double[] DEFAULT_WEIGHTS = { 1, 1, 1, 1, 1, 1.5, 1 };
+    // Paired keeper choices consistently favour open eyes over modest sharpness gains.
+    private static final double[] DEFAULT_WEIGHTS = { 1, 1, 1, 1, 1, 1.9, 1 };
     private static final String[] SIGNAL_LABELS = {
             "Detail", "Focus", "Exposure", "Composition", "Motion", "Eyes open",
             "Facing camera"

@@ -75,6 +75,14 @@ public class RecommendationPreferenceProfileTest {
         assertTrue(profile.score(openEyes) > profile.score(sharperClosedEyes));
     }
 
+    @Test public void openEyesBeatAModestSharpnessAdvantageInPortraits() {
+        RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of());
+        PhotoFeatures openEyes = portrait("open", .65, .5, 1);
+        PhotoFeatures slightlySharperPartlyClosed = portrait("partly-closed", 1, .5, .8);
+
+        assertTrue(profile.score(openEyes) > profile.score(slightlySharperPartlyClosed));
+    }
+
     @Test public void facingTheCameraBreaksAPortraitTie() {
         RecommendationPreferenceProfile profile = RecommendationPreferenceProfile.learn(List.of());
         PhotoFeatures facing = portrait("facing", .8, .5, .8);

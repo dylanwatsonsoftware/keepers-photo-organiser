@@ -34,7 +34,7 @@ public class GalleryMetadataOverlayTest {
                 .57, .97, .92, .53, 1, .99, .20, .95);
         PhotoContext context = PhotoContext.of(PhotoContextType.PORTRAIT, .88);
 
-        assertEquals("Type · Portrait 88%\nRank 58% · Limiting Eyes open 20%\n"
+        assertEquals("Type · Portrait 88%\nRank 56% · Limiting Eyes open 20%\n"
                         + "Exposure 97%\nFacing camera 95%",
                 GalleryMetadataOverlay.topSignals(features, context, 2));
     }
