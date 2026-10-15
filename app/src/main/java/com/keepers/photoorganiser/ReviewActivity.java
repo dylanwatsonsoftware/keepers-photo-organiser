@@ -893,6 +893,9 @@ public final class ReviewActivity extends Activity {
                 return;
             }
             boolean selected = selectionStore.toggle(photo);
+            if (mediaTypes.getOrDefault(photo.toString(), MediaType.PHOTO) == MediaType.VIDEO)
+                new VideoFeedbackStore(this).record(photo.toString(), selected
+                        ? VideoFeedback.LOVED : VideoFeedback.NOT_FOR_ME);
             PhotoFeatures measured = features.stream()
                     .filter(item -> item.id().equals(photo.toString())).findFirst().orElse(null);
             if (measured == null) measured = new PhotoInsightStore(this)
@@ -1154,7 +1157,14 @@ public final class ReviewActivity extends Activity {
 
     private void finishVideoAnalysis(int generation, VideoFeatures video) {
         if (generation != analysisGeneration) return;
-        if (video != null) new VideoInsightStore(this).save(video);
+        if (video != null) {
+            new VideoInsightStore(this).save(video);
+            if (new HiddenPhotoStore(this).load().contains(video.id()))
+                new VideoFeedbackStore(this).record(video, VideoFeedback.HIDDEN);
+            else if (selectionStore.load().contains(video.id())
+                    && new VideoFeedbackStore(this).load(video.id()) == null)
+                new VideoFeedbackStore(this).record(video, VideoFeedback.LOVED);
+        }
         analyzedCount++;
         updateMetadataOverlays();
         if (analyzedCount < photos.size()) showAnalysisProgress(analyzedCount, photos.size());
@@ -1743,6 +1753,9 @@ public final class ReviewActivity extends Activity {
     private void hideSelectedMedia() {
         if (mediaSelections.isEmpty()) return;
         new HiddenPhotoStore(this).hide(Set.copyOf(mediaSelections));
+        for (String id : mediaSelections)
+            if (mediaTypes.getOrDefault(id, MediaType.PHOTO) == MediaType.VIDEO)
+                new VideoFeedbackStore(this).record(id, VideoFeedback.HIDDEN);
         endMediaSelection();
     }
 
@@ -1781,6 +1794,8 @@ public final class ReviewActivity extends Activity {
         selectionStore.replace(keepers);
         RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
         for (String mediaId : mediaSelections) {
+            if (mediaTypes.getOrDefault(mediaId, MediaType.PHOTO) == MediaType.VIDEO)
+                new VideoFeedbackStore(this).record(mediaId, VideoFeedback.LOVED);
             PhotoFeatures measured = features.stream().filter(item ->
                     item.id().equals(mediaId)).findFirst().orElse(null);
             if (measured == null) measured = new PhotoInsightStore(this).loadFeatures(mediaId);
@@ -1818,6 +1833,7 @@ public final class ReviewActivity extends Activity {
         }
         RecommendationPreferenceProfile displayProfile =
                 recommendationProfile.withContexts(visibleContexts);
+        VideoPreferenceProfile videoProfile = VideoPreferenceProfile.learn(new VideoFeedbackStore(this).load());
         for (FrameLayout tile : tiles) {
             TextView overlay = tile.findViewWithTag("metadata_overlay");
             PhotoFeatures photo = insights.loadFeatures(tile.getTag().toString());
@@ -1830,7 +1846,7 @@ public final class ReviewActivity extends Activity {
                         .load(tile.getTag().toString());
                 overlay.setText(video == null ? "Video  " + MediaDuration.format(
                         mediaDurations.getOrDefault(tile.getTag().toString(), 0L))
-                        : GalleryMetadataOverlay.topSignals(video, 3));
+                        : GalleryMetadataOverlay.topSignals(video, videoProfile, 3));
             } else {
                 PhotoContext context = contexts.load(tile.getTag().toString());
                 overlay.setText(photo == null ? "Analysing…"

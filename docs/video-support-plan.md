@@ -29,7 +29,30 @@ audio and frames.
 
 ## Stage 2 — video analysis, recommendations, and feedback
 
-Status: initial bounded analysis implemented; recommendations and feedback remain planned.
+Status: bounded analysis, video feedback, and independent preference scoring implemented.
+
+Video heart, rejection, bulk keeper, and hide actions now store versioned video evidence
+separately from photo feedback. The existing feedback dialog accepts video comments, which
+remain local. Anonymous snapshot exports add a `videoFeedback` array with `mediaType: "video"`,
+`videoSchemaVersion`, rating, and bounded derived signals. Video IDs, duration, comments,
+filenames, URIs, frames, audio, and capture times are excluded. Existing photo export fields
+and the schema-5 snapshot envelope remain unchanged; video records carry their own version.
+
+Gallery overlays and the analysis sheet show an independent video quality score on a 0–100
+scale. With no balanced positive/negative evidence it retains the technical baseline. Balanced
+choices gradually change video signal weights, with shrinkage toward the baseline and the
+existing black/frozen-frame penalties. This is a quality ranking, not a calibrated keeper
+probability, and photo/video scores should not be interpreted as equivalent probabilities.
+The analysis sheet explains whether personalisation is active and its main limiting signal.
+Explicit feedback survives cached-analysis refreshes; an actual hide overrides an older love.
+Failed analysis leaves the clip available for manual review without fabricated signals.
+
+`VideoPreferenceProfile.evaluate(evidence)` provides deterministic 80/20 clip-ID holdout
+splitting, deduplicates current votes, trains only on the training partition, and reports
+baseline/learned pair accuracy plus sample/pair counts. No comparable positive/negative
+held-out pairs yields `NaN` (insufficient evidence), never a claimed improvement. Unit fixtures
+check the learning direction; real user data is still required to establish usefulness.
+No video burst comparisons are invented while clips remain independent items.
 
 The initial pass samples three frames at 15%, 50%, and 85% of each local clip, with each
 sample capped at a 384-pixel longest edge. It derives focus, detail, exposure, composition,
@@ -42,10 +65,10 @@ interaction and photo recommendations are not held behind video decoding.
    attention, audio level/clipping, and rotation-aware motion smoothness.
 2. Keep storing only derived anonymous signals; do not sync frames, filenames, URIs, audio,
    timestamps, or perceptual identifiers.
-3. Add video-specific feedback records and exports. Keeper, rejection, hide, comment, and
-   within-burst choices should identify `mediaType: "video"` and a video schema version.
-4. Learn photo and video preference profiles independently, then calibrate their displayed
-   recommendation scores so mixed galleries remain understandable.
+3. Video-specific keeper, rejection, hide, local comments, and derived-only exports are
+   implemented. Within-burst choices remain deferred until real video grouping exists.
+4. Independent profiles and explicit quality-score explanations are implemented. Empirical
+   photo/video probability calibration remains deferred pending held-out real-world evidence.
 5. Detect near-duplicate clips and photo/video burst relationships. Default to independent
    items until confidence is high, and never hide a photo behind a video stack automatically.
 6. Generate a best-moment score and recommended poster frame for each video.

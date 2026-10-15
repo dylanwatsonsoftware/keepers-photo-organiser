@@ -212,6 +212,8 @@ public final class PreviewActivity extends Activity {
         String hiddenId = photo.toString();
         HiddenPhotoStore hiddenStore = new HiddenPhotoStore(this);
         hiddenStore.hide(Set.of(hiddenId));
+        if (mediaTypeOf(photo) == MediaType.VIDEO)
+            new VideoFeedbackStore(this).record(hiddenId, VideoFeedback.HIDDEN);
         Set<String> hidden = hiddenStore.load();
         ArrayList<Uri> remaining = new ArrayList<>(allPhotos);
         int hiddenIndex = remaining.indexOf(photo);
@@ -246,6 +248,11 @@ public final class PreviewActivity extends Activity {
     }
 
     private void recordHeartFeedback(boolean selected) {
+        if (mediaTypeOf(photo) == MediaType.VIDEO) {
+            new VideoFeedbackStore(this).record(photo.toString(),
+                    selected ? VideoFeedback.LOVED : VideoFeedback.NOT_FOR_ME);
+            return;
+        }
         PhotoFeatures features = new PhotoInsightStore(this).loadFeatures(photo.toString());
         if (features == null) return;
         RecommendationFeedbackStore feedback = new RecommendationFeedbackStore(this);
@@ -256,10 +263,17 @@ public final class PreviewActivity extends Activity {
     }
 
     private void showFeedbackDialog() {
-        PhotoFeatures features = new PhotoInsightStore(this).loadFeatures(photo.toString());
-        if (features == null) return;
+        boolean isVideo = mediaTypeOf(photo) == MediaType.VIDEO;
+        VideoFeatures video = isVideo ? new VideoInsightStore(this).load(photo.toString()) : null;
+        PhotoFeatures features = isVideo ? null : new PhotoInsightStore(this).loadFeatures(photo.toString());
+        if (isVideo ? video == null : features == null) return;
         RecommendationFeedbackStore feedbackStore = new RecommendationFeedbackStore(this);
         RecommendationFeedback existing = feedbackStore.load(photo.toString());
+        VideoFeedback videoExisting = isVideo ? new VideoFeedbackStore(this).load(photo.toString()) : null;
+        int existingRating = isVideo ? videoExisting == null ? 0 : videoExisting.rating()
+                : existing == null ? 0 : existing.rating();
+        String existingComment = isVideo ? videoExisting == null ? "" : videoExisting.comment()
+                : existing == null ? "" : existing.comment();
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(22), dp(8), dp(22), dp(10));
@@ -272,9 +286,9 @@ public final class PreviewActivity extends Activity {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.HORIZONTAL);
         TextView loved = feedbackChoice("♥ Love this", RecommendationFeedback.LOVED,
-                existing);
+                existingRating);
         TextView rejected = feedbackChoice("Not for me", RecommendationFeedback.NOT_FOR_ME,
-                existing);
+                existingRating);
         choices.addView(loved, new LinearLayout.LayoutParams(0, dp(44), 1));
         LinearLayout.LayoutParams rejectedParams = new LinearLayout.LayoutParams(0, dp(44), 1);
         rejectedParams.setMarginStart(dp(8));
@@ -284,7 +298,7 @@ public final class PreviewActivity extends Activity {
         comment.setHint("Optional: tell us why");
         comment.setSingleLine(false);
         comment.setMinLines(2);
-        comment.setText(existing == null ? "" : existing.comment());
+        comment.setText(existingComment);
         comment.setTag("recommendation_feedback_comment");
         content.addView(comment, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -301,20 +315,22 @@ public final class PreviewActivity extends Activity {
         content.addView(save, saveParams);
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Improve recommendations").setView(content).create();
-        final int[] rating = { existing == null ? RecommendationFeedback.LOVED : existing.rating() };
+        final int[] rating = { existingRating == 0 ? RecommendationFeedback.LOVED : existingRating };
         loved.setOnClickListener(view -> { rating[0] = RecommendationFeedback.LOVED;
             loved.setSelected(true); rejected.setSelected(false); });
         rejected.setOnClickListener(view -> { rating[0] = RecommendationFeedback.NOT_FOR_ME;
             loved.setSelected(false); rejected.setSelected(true); });
         save.setOnClickListener(view -> {
-            feedbackStore.save(RecommendationFeedback.from(features, rating[0],
+            if (isVideo) new VideoFeedbackStore(this).save(new VideoFeedback(video, rating[0],
+                    comment.getText().toString()));
+            else feedbackStore.save(RecommendationFeedback.from(features, rating[0],
                     comment.getText().toString()));
             dialog.dismiss();
         });
         dialog.show();
     }
 
-    private TextView feedbackChoice(String label, int rating, RecommendationFeedback existing) {
+    private TextView feedbackChoice(String label, int rating, int existingRating) {
         TextView choice = new TextView(this);
         choice.setText(label);
         choice.setGravity(android.view.Gravity.CENTER);
@@ -322,7 +338,7 @@ public final class PreviewActivity extends Activity {
         choice.setBackgroundResource(R.drawable.gallery_filter_chip);
         choice.setClickable(true);
         choice.setFocusable(true);
-        choice.setSelected(existing != null && existing.rating() == rating);
+        choice.setSelected(existingRating == rating);
         return choice;
     }
 
@@ -978,8 +994,10 @@ public final class PreviewActivity extends Activity {
                 body.setText("Videos are analysed after photos to keep the gallery responsive.");
             } else {
                 VideoAssessment assessment = VideoAssessment.from(video);
-                title.setText("Video assessment · " + assessment.score() + "/100");
-                body.setText(assessment.explanation());
+                VideoPreferenceProfile.Ranking ranking = VideoPreferenceProfile.learn(
+                        new VideoFeedbackStore(this).load()).ranking(video);
+                title.setText("Video assessment · " + ranking.score() + "/100");
+                body.setText(ranking.explanation() + "\n\n" + assessment.explanation());
             }
             applyAssessmentIcon(title, 0);
         } else if (insight == null) {
@@ -998,7 +1016,8 @@ public final class PreviewActivity extends Activity {
                     + "\n" + insight.reason() + "\n\n" + insight.assessment().explanation());
         }
         View feedback = findViewById(R.id.preview_feedback);
-        feedback.setEnabled(insight != null && mediaTypeOf(photo) == MediaType.PHOTO);
+        feedback.setEnabled(mediaTypeOf(photo) == MediaType.VIDEO
+                ? new VideoInsightStore(this).load(photo.toString()) != null : insight != null);
         feedback.setAlpha(feedback.isEnabled() ? 1f : .45f);
         if (opening) analysisSheet.setTranslationY(analysisRevealDistance());
         analysisSheet.setVisibility(View.VISIBLE);

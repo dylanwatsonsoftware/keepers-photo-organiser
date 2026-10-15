@@ -28,6 +28,13 @@ public final class RecommendationFeedbackExport {
     public static String toJson(List<RecommendationFeedback> feedback,
             List<StackPreferenceComparison> comparisons, List<PhotoFeatures> hiddenPhotos,
             String appVersion, RecommendationExportMetadata metadata) {
+        return toJson(feedback, comparisons, hiddenPhotos, List.of(), appVersion, metadata);
+    }
+
+    public static String toJson(List<RecommendationFeedback> feedback,
+            List<StackPreferenceComparison> comparisons, List<PhotoFeatures> hiddenPhotos,
+            List<VideoFeedback> videoFeedback, String appVersion,
+            RecommendationExportMetadata metadata) {
         Set<String> hiddenIds = new HashSet<>();
         for (PhotoFeatures hidden : hiddenPhotos) hiddenIds.add(hidden.id());
         int feedbackCount = 0;
@@ -81,6 +88,24 @@ public final class RecommendationFeedbackExport {
             if (hasPrevious) json.append(',');
             hasPrevious = true;
             appendSignals(json, hidden);
+        }
+        json.append("],\"videoFeedback\":[");
+        hasPrevious = false;
+        for (VideoFeedback item : videoFeedback) {
+            if (hasPrevious) json.append(',');
+            hasPrevious = true;
+            VideoFeatures video = item.features();
+            json.append("{\"mediaType\":\"video\",\"videoSchemaVersion\":")
+                    .append(video.schemaVersion()).append(",\"rating\":\"")
+                    .append(item.rating() == VideoFeedback.LOVED ? "loved"
+                            : item.rating() == VideoFeedback.HIDDEN ? "hidden" : "not_for_me")
+                    .append("\",\"signals\":{\"detail\":").append(video.detail())
+                    .append(",\"focus\":").append(video.focus())
+                    .append(",\"exposure\":").append(video.exposure())
+                    .append(",\"composition\":").append(video.composition())
+                    .append(",\"frameStability\":").append(video.frameStability())
+                    .append(",\"blackFrameRate\":").append(video.blackFrameRate())
+                    .append(",\"frozenFrameRate\":").append(video.frozenFrameRate()).append("}}");
         }
         return json.append("]}").toString();
     }

@@ -5,6 +5,13 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class GalleryMetadataOverlayTest {
+    @Test public void videoOverlayShowsIndependentQualityScore() {
+        VideoFeatures video = new VideoFeatures(1, "video", 8000, 3,
+                .7, .8, .9, .6, .75, 0, 0);
+        assertEquals("Video quality 75/100\nExposure 90%\nFocus 80%",
+                GalleryMetadataOverlay.topSignals(video, VideoPreferenceProfile.learn(java.util.List.of()), 2));
+    }
+
     @Test public void displaysTheThreeHighestSignalsInDescendingOrder() {
         PhotoFeatures features = new PhotoFeatures("photo", 0, 0, .81,
                 .92, .63, .88, .47, 0, -1, -1);

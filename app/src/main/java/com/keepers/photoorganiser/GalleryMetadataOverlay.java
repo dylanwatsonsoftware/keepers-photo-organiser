@@ -71,6 +71,10 @@ public final class GalleryMetadataOverlay {
         return label + " " + Math.round(Math.max(0, Math.min(1, value)) * 100) + "%";
     }
 
+    public static String topSignals(VideoFeatures video, VideoPreferenceProfile profile, int limit) {
+        return "Video quality " + profile.ranking(video).score() + "/100\n" + topSignals(video, limit);
+    }
+
     public static String topSignals(VideoFeatures video, int limit) {
         List<Signal> signals = new ArrayList<>(List.of(
                 new Signal("Focus", video.focus(), 0),

@@ -30,9 +30,14 @@ public final class RecommendationFeedbackSnapshotFactory {
         RecommendationExportMetadata metadata =
                 new RecommendationExportIdentityStore(context).nextSnapshot();
         String appVersion = appVersion(context);
+        VideoFeedbackStore videoStore = new VideoFeedbackStore(context);
+        // Hiding always overrides an older positive vote, including bulk-hide workflows.
+        for (String id : hiddenIds) videoStore.record(id, VideoFeedback.HIDDEN);
+        List<VideoFeedback> videoFeedback = videoStore.load();
         String json = RecommendationFeedbackExport.toJson(
-                feedback, comparisons, hiddenFeatures, appVersion, metadata);
-        int evidenceCount = feedback.size() + comparisons.size() + hiddenFeatures.size();
+                feedback, comparisons, hiddenFeatures, videoFeedback, appVersion, metadata);
+        int evidenceCount = feedback.size() + comparisons.size() + hiddenFeatures.size()
+                + videoFeedback.size();
         return new RecommendationFeedbackSnapshot(metadata.sourceId(),
                 metadata.snapshotSequence(), appVersion, evidenceCount, json);
     }

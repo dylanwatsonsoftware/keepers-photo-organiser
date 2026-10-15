@@ -41,6 +41,25 @@ import org.robolectric.shadows.ShadowViewGroup;
 
 @RunWith(RobolectricTestRunner.class)
 public class ReviewActivityTest {
+    @Test public void cachedVideoAnalysisPreservesAnExplicitRejectionOfAKeeper() throws Exception {
+        ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
+        String id = "content://video/explicit-rejection";
+        new KeeperSelectionStore(activity).replace(Set.of(id));
+        VideoFeedbackStore store = new VideoFeedbackStore(activity);
+        store.clear();
+        VideoFeatures clip = new VideoFeatures(1, id, 8000, 3, .7, .8, .9, .6, .75, 0, 0);
+        store.save(new VideoFeedback(clip, VideoFeedback.NOT_FOR_ME, "Reason"));
+        java.lang.reflect.Field generation = ReviewActivity.class.getDeclaredField("analysisGeneration");
+        generation.setAccessible(true);
+        java.lang.reflect.Method finish = ReviewActivity.class.getDeclaredMethod(
+                "finishVideoAnalysis", int.class, VideoFeatures.class);
+        finish.setAccessible(true);
+        finish.invoke(activity, generation.getInt(activity), clip);
+        assertEquals(VideoFeedback.NOT_FOR_ME, store.load(id).rating());
+        store.clear();
+        new KeeperSelectionStore(activity).replace(Set.of());
+    }
+
     @Test public void analysisProgressUsesATemporaryStripAboveTheGrid() {
         ReviewActivity activity = Robolectric.buildActivity(ReviewActivity.class).setup().get();
         View strip = activity.findViewById(id(activity, "analysis_progress_strip"));
@@ -621,7 +640,7 @@ public class ReviewActivityTest {
 
         TextView overlay = activity.<GridLayout>findViewById(R.id.photo_grid)
                 .getChildAt(0).findViewWithTag("metadata_overlay");
-        assertEquals("Exposure 90%\nFocus 80%\nStability 75%", overlay.getText().toString());
+        assertEquals("Video quality 75/100\nExposure 90%\nFocus 80%\nStability 75%", overlay.getText().toString());
     }
 
     @Test public void quickReviewHonoursTheVideoFilter() {

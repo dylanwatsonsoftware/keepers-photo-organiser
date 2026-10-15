@@ -522,6 +522,38 @@ public class PreviewQuickReviewTest {
         imports.clear();
     }
 
+    @Test public void videoHeartAndFeedbackRemainSeparateFromPhotos() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ImportedPhotoStore imports = new ImportedPhotoStore(context);
+        imports.clear();
+        new VideoFeedbackStore(context).clear();
+        Uri video = Uri.parse("content://media/video/media/feedback-video");
+        imports.add(new ImportedPhoto(video, 20, PhotoOrigin.LOCAL, MediaType.VIDEO, 8_000));
+        new VideoInsightStore(context).save(new VideoFeatures(1, video.toString(), 8_000,
+                3, .7, .8, .9, .6, .75, 0, 0));
+        PreviewActivity activity = create(context, video, false);
+        Method record = PreviewActivity.class.getDeclaredMethod("recordHeartFeedback", boolean.class);
+        record.setAccessible(true);
+        record.invoke(activity, true);
+        assertEquals(VideoFeedback.LOVED,
+                new VideoFeedbackStore(context).load(video.toString()).rating());
+        assertNull(new RecommendationFeedbackStore(context).load(video.toString()));
+        Method show = PreviewActivity.class.getDeclaredMethod("showAnalysis");
+        show.setAccessible(true);
+        show.invoke(activity);
+        assertTrue(activity.findViewById(R.id.preview_feedback).isEnabled());
+        activity.findViewById(R.id.preview_feedback).performClick();
+        android.app.AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        android.widget.EditText comment = dialog.findViewById(android.R.id.content)
+                .findViewWithTag("recommendation_feedback_comment");
+        comment.setText("Family-only note");
+        dialog.findViewById(android.R.id.content).findViewWithTag("save_recommendation_feedback")
+                .performClick();
+        assertEquals("Family-only note", new VideoFeedbackStore(context).load(video.toString()).comment());
+        new VideoFeedbackStore(context).clear();
+        imports.clear();
+    }
+
     @Test public void localVideoShowsThumbnailAbovePlaybackSurfaceBeforePlaying() {
         Context context = RuntimeEnvironment.getApplication();
         ImportedPhotoStore imports = new ImportedPhotoStore(context);
